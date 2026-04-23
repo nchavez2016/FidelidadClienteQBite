@@ -267,7 +267,7 @@ export default function ProgressRoute({
     for (let i = 0; i < milestones.length; i++) {
       const msPoints = milestones[i].requiredPoints;
       const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
-      if (currentPoints < msPoints) {
+      if (currentPoints <= msPoints) {
         const segStart = i === 0 ? 0 : milestoneRouteRatio(i - 1);
         const segEnd = milestoneRouteRatio(i);
         const segProgress = (currentPoints - prevPoints) / (msPoints - prevPoints);
@@ -289,7 +289,7 @@ export default function ProgressRoute({
     _isFirst: boolean,
     isLast: boolean
   ): React.CSSProperties => {
-    if (isLast) return { right: PAD, top: '12px' };
+    if (isLast) return { right: PAD - 16, top: '12px' };
     return {
       left: `calc(${PAD}px + (100% - ${PAD * 2}px) * ${r})`,
       top: '12px',
