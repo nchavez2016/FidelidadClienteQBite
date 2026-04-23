@@ -75,7 +75,9 @@ export default function ProgressRoute({
   const allCompleted = currentPoints >= maxPoints;
   const totalMilestones = milestones.length;
   const segmentSize = totalMilestones > 0 ? 1 / totalMilestones : 0;
-  const milestoneRouteRatio = (idx: number) => (idx + 1) * segmentSize;
+  const milestoneRouteRatios = milestones.map((_, idx) => (idx + 1) * segmentSize);
+  const milestoneRouteRatio = (idx: number) => milestoneRouteRatios[idx] ?? 0;
+  const clampRatio = (value: number) => Math.min(Math.max(value, 0), 1);
 
   const getSegmentedRouteRatio = () => {
     if (totalMilestones === 0 || currentPoints <= 0) return 0;
@@ -87,20 +89,17 @@ export default function ProgressRoute({
       const nextMilestonePoints = milestones[segmentIdx].requiredPoints;
 
       if (currentPoints <= nextMilestonePoints) {
-        const baseRatio = segmentIdx * segmentSize;
+        const previousRatio = segmentIdx === 0 ? 0 : milestoneRouteRatios[segmentIdx - 1];
+        const nextRatio = milestoneRouteRatios[segmentIdx];
         const segmentPoints = nextMilestonePoints - previousMilestonePoints;
         const localSegmentProgress =
           segmentPoints > 0
-            ? Math.min(
-                Math.max(
-                  (currentPoints - previousMilestonePoints) / segmentPoints,
-                  0
-                ),
-                1
-              )
+            ? clampRatio((currentPoints - previousMilestonePoints) / segmentPoints)
             : 1;
 
-        return Math.min(baseRatio + localSegmentProgress * segmentSize, 1);
+        return currentPoints === nextMilestonePoints
+          ? nextRatio
+          : previousRatio + localSegmentProgress * (nextRatio - previousRatio);
       }
     }
 
@@ -151,10 +150,34 @@ export default function ProgressRoute({
   if (isMobile) {
     const NODE_SPACING = 52;
     const TRACK_START_TOP = 16;
-    const TRACK_LENGTH = milestones.length * NODE_SPACING;
+    const TRACK_LENGTH = totalMilestones * NODE_SPACING;
+    const verticalNodeTops = milestones.map((_, idx) => TRACK_START_TOP + (idx + 1) * NODE_SPACING);
 
     const getVerticalProgressTop = () => {
-      return TRACK_START_TOP + TRACK_LENGTH * getSegmentedRouteRatio();
+      if (currentPoints <= 0) return TRACK_START_TOP;
+      if (currentPoints >= maxPoints) return verticalNodeTops[verticalNodeTops.length - 1];
+
+      for (let segmentIdx = 0; segmentIdx < totalMilestones; segmentIdx++) {
+        const previousMilestonePoints =
+          segmentIdx === 0 ? 0 : milestones[segmentIdx - 1].requiredPoints;
+        const nextMilestonePoints = milestones[segmentIdx].requiredPoints;
+
+        if (currentPoints <= nextMilestonePoints) {
+          const previousTop = segmentIdx === 0 ? TRACK_START_TOP : verticalNodeTops[segmentIdx - 1];
+          const nextTop = verticalNodeTops[segmentIdx];
+          const segmentPoints = nextMilestonePoints - previousMilestonePoints;
+          const localSegmentProgress =
+            segmentPoints > 0
+              ? clampRatio((currentPoints - previousMilestonePoints) / segmentPoints)
+              : 1;
+
+          return currentPoints === nextMilestonePoints
+            ? nextTop
+            : previousTop + localSegmentProgress * (nextTop - previousTop);
+        }
+      }
+
+      return verticalNodeTops[verticalNodeTops.length - 1];
     };
 
     const fillHeight = getVerticalProgressTop();
@@ -170,21 +193,21 @@ export default function ProgressRoute({
         <div className="relative" style={{ paddingLeft: 28 }}>
           <div
             className="absolute"
-            style={{ left: 15, top: 0, bottom: 0, width: 3, borderRadius: 2, background: '#001F3F', opacity: 0.15 }}
+            style={{ left: 15, top: TRACK_START_TOP, height: TRACK_LENGTH, width: 3, borderRadius: 2, background: '#001F3F', opacity: 0.15 }}
           />
           <motion.div
             key={`vfill-${currentPoints}`}
             className="absolute"
             style={{
               left: 15,
-              top: 0,
+              top: TRACK_START_TOP,
               width: 3,
               borderRadius: 2,
               background: 'linear-gradient(180deg, #001F3F, #2E6DB4)',
               minHeight: currentPoints > 0 ? '8px' : '0px',
             }}
             initial={animate ? { height: 0 } : false}
-            animate={{ height: fillHeight }}
+            animate={{ height: fillHeight - TRACK_START_TOP }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
           />
 
@@ -207,7 +230,7 @@ export default function ProgressRoute({
             }
           />
 
-          <div className="flex items-center gap-3 mb-5 relative" style={{ minHeight: 32 }}>
+          <div className="flex items-center gap-3 relative" style={{ minHeight: 32, marginBottom: NODE_SPACING - 32 }}>
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0"
               style={{ marginLeft: -20, background: '#001F3F', borderColor: '#001F3F' }}
@@ -225,7 +248,7 @@ export default function ProgressRoute({
             const isLast = i === milestones.length - 1;
             const ptsFaltantes = m.requiredPoints - currentPoints;
             return (
-              <div key={m.id} className="flex items-center gap-3 mb-5 relative" style={{ minHeight: 32 }}>
+              <div key={m.id} className="flex items-center gap-3 relative" style={{ minHeight: 32, marginBottom: i === milestones.length - 1 ? 0 : NODE_SPACING - 32 }}>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${nodeStyles[state]}`}
                   style={{ marginLeft: -20, ...nodeInlineStyles[state] }}
