@@ -252,23 +252,9 @@ export default function ProgressRoute({
 
   // LAYOUT HORIZONTAL (desktop >= 640px)
   const PAD = 20;
-  const ratio = (pts: number) => (maxPoints > 0 ? pts / maxPoints : 0);
-  const milestoneRouteRatio = (idx: number) => (idx + 1) / milestones.length;
 
   const getFillRatio = () => {
-    if (currentPoints <= 0) return 0;
-    if (currentPoints >= maxPoints) return 1;
-    for (let i = 0; i < milestones.length; i++) {
-      const msPoints = milestones[i].requiredPoints;
-      const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
-      if (currentPoints <= msPoints) {
-        const segStart = i === 0 ? 0 : milestoneRouteRatio(i - 1);
-        const segEnd = milestoneRouteRatio(i);
-        const segProgress = (currentPoints - prevPoints) / (msPoints - prevPoints);
-        return segStart + segProgress * (segEnd - segStart);
-      }
-    }
-    return 1;
+    return getSegmentedRouteRatio();
   };
 
   const fillRatio = getFillRatio();
