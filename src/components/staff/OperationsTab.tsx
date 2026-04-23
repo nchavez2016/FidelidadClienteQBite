@@ -158,18 +158,6 @@ export default function OperationsTab({
             Registrar nuevo cliente
           </Button>
 
-          {selectedCustomer && (
-            <div className="border-t pt-3 mt-3">
-              <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-secondary" />
-                Últimos movimientos — {campaign?.branch || 'Sucursal'}
-              </p>
-              {custTx.length === 0
-                ? <p className="text-xs text-muted-foreground text-center py-2">Sin movimientos aún</p>
-                : custTx.map(tx => <TransactionItem key={tx.id} tx={tx} compact />)
-              }
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -322,6 +310,17 @@ export default function OperationsTab({
                   <KeyRound className="w-3.5 h-3.5" />
                   <span className="text-xs">Gestionar cuenta</span>
                 </Button>
+              </div>
+
+              <div className="border-t pt-3">
+                <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-secondary" />
+                  Últimos movimientos — {campaign?.branch || 'Sucursal'}
+                </p>
+                {custTx.length === 0
+                  ? <p className="text-xs text-muted-foreground text-center py-2">Sin movimientos aún</p>
+                  : custTx.map(tx => <TransactionItem key={tx.id} tx={tx} compact />)
+                }
               </div>
             </CardContent>
           </Card>
