@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import {
   getCurrentCustomer, getCustomerById, getActiveCampaigns,
   getCustomerTransactions, logoutCustomer, resetCustomerPassword,
-  acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints,
+  acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints, addTransaction,
 } from '@/lib/store';
 
 import ProgressRoute from '@/components/ProgressRoute';
@@ -91,8 +91,19 @@ export default function CustomerDashboard() {
   };
 
   const handleAcceptTerms = (checked: boolean) => {
-    if (checked && selectedCampaign) {
+    if (checked && selectedCampaign && !hasAcceptedTerms) {
       acceptCampaignTerms(customer.id, selectedCampaign.id);
+      addTransaction({
+        customerId: customer.id,
+        campaignId: selectedCampaign.id,
+        type: 'terms_acceptance',
+        points: 0,
+        balanceAfter: currentPoints,
+        staffId: customer.id,
+        staffName: customer.name,
+        commentCategory: 'observation',
+        commentText: `Aceptación de términos y condiciones de la campaña ${selectedCampaign.name}`,
+      });
       toast.success('¡Gracias por aceptar los términos! ✅');
       setTick(t => t + 1);
     }

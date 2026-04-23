@@ -29,7 +29,7 @@ export interface StaffUser {
   branchCampaignId?: string;
 }
 
-export type TransactionType = 'accumulation' | 'redemption' | 'reversal';
+export type TransactionType = 'accumulation' | 'redemption' | 'reversal' | 'terms_acceptance';
 
 export type CommentCategory = 'positive' | 'complaint' | 'observation' | 'promotion' | 'suggestion' | 'other';
 
