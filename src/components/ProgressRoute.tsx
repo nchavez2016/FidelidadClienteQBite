@@ -9,6 +9,7 @@ interface ProgressRouteProps {
   currentPoints: number;
   animate?: boolean;
   milestones?: Milestone[];
+  showFixture?: boolean;
 }
 
 const MOBILE_BREAKPOINT = 640;
@@ -17,6 +18,7 @@ export default function ProgressRoute({
   currentPoints,
   animate = true,
   milestones: propMilestones,
+  showFixture = false,
 }: ProgressRouteProps) {
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined'
@@ -261,6 +263,7 @@ export default function ProgressRoute({
   };
 
   const fillRatio = getFillRatio();
+  const fixturePoints = [0, 1, 2, 3];
 
   // toLeft = borde derecho exacto del relleno
   const toLeft = (r: number) =>
@@ -293,6 +296,15 @@ export default function ProgressRoute({
 
   return (
     <div className="w-full py-4">
+      {showFixture && (
+        <div className="mb-3 grid grid-cols-4 gap-1.5 rounded-lg border border-dashed border-secondary/30 bg-secondary/5 p-2">
+          {fixturePoints.map((points) => (
+            <div key={points} className="text-center text-[10px] font-bold text-secondary">
+              {points} pts
+            </div>
+          ))}
+        </div>
+      )}
       <div className="relative overflow-visible" style={{ minHeight: '110px', padding: `0 ${PAD}px` }}>
         <div
           className="absolute h-2.5 rounded-full"

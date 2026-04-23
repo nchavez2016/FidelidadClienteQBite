@@ -66,6 +66,9 @@ export default function CustomerDashboard() {
 
   const needsPasswordChange = customer ? customerNeedsPasswordChange(customer) : false;
   const hasAcceptedTerms = !!(selectedCampaign && customer?.acceptedCampaigns?.includes(selectedCampaign.id));
+  const showProgressFixture =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('fixture') === 'progress';
 
   useEffect(() => { if (!stored) navigate('/cliente/login'); }, [stored, navigate]);
   useEffect(() => { if (needsPasswordChange) setShowPasswordModal(true); }, [needsPasswordChange]);
@@ -177,6 +180,16 @@ export default function CustomerDashboard() {
               <div className="w-full" style={{ padding: '0 16px', boxSizing: 'border-box' }}>
                 <ProgressRoute currentPoints={currentPoints} milestones={milestones} />
               </div>
+              {showProgressFixture && (
+                <div className="mt-3 grid gap-3 border-t pt-3">
+                  {[0, 1, 2, 3].map(points => (
+                    <div key={points} className="rounded-lg border border-dashed border-secondary/30 bg-secondary/5 p-2">
+                      <p className="mb-1 text-[10px] font-bold text-secondary">Fixture: {points} pts</p>
+                      <ProgressRoute currentPoints={points} milestones={milestones} animate={false} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
 
             <StatsGrid currentPoints={currentPoints} pointsToNext={pointsToNext} maxPoints={maxPoints} nextMilestone={nextMilestone} />
