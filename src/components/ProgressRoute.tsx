@@ -73,28 +73,34 @@ export default function ProgressRoute({
   );
   const maxPoints = milestones[milestones.length - 1].requiredPoints;
   const allCompleted = currentPoints >= maxPoints;
-  const totalVisualSegments = milestones.length;
-  const milestoneRouteRatio = (idx: number) =>
-    totalVisualSegments > 0 ? (idx + 1) / totalVisualSegments : 0;
+  const totalSegments = milestones.length;
+  const segmentSize = totalSegments > 0 ? 1 / totalSegments : 0;
+  const milestoneRouteRatio = (idx: number) => (idx + 1) * segmentSize;
 
   const getSegmentedRouteRatio = () => {
-    if (totalVisualSegments === 0 || currentPoints <= 0) return 0;
+    if (totalSegments === 0 || currentPoints <= 0) return 0;
     if (currentPoints >= maxPoints) return 1;
 
-    for (let nextIdx = 0; nextIdx < milestones.length; nextIdx++) {
-      const prevNodePoints = nextIdx === 0 ? 0 : milestones[nextIdx - 1].requiredPoints;
-      const nextNodePoints = milestones[nextIdx].requiredPoints;
+    for (let segmentIdx = 0; segmentIdx < milestones.length; segmentIdx++) {
+      const previousMilestonePoints =
+        segmentIdx === 0 ? 0 : milestones[segmentIdx - 1].requiredPoints;
+      const nextMilestonePoints = milestones[segmentIdx].requiredPoints;
 
-      if (currentPoints <= nextNodePoints) {
-        const baseRatio = nextIdx / totalVisualSegments;
-        const segmentSize = 1 / totalVisualSegments;
-        const pointSpan = nextNodePoints - prevNodePoints;
-        const localProgress =
-          pointSpan > 0
-            ? Math.min(Math.max((currentPoints - prevNodePoints) / pointSpan, 0), 1)
+      if (currentPoints <= nextMilestonePoints) {
+        const baseRatio = segmentIdx * segmentSize;
+        const segmentPoints = nextMilestonePoints - previousMilestonePoints;
+        const localSegmentProgress =
+          segmentPoints > 0
+            ? Math.min(
+                Math.max(
+                  (currentPoints - previousMilestonePoints) / segmentPoints,
+                  0
+                ),
+                1
+              )
             : 1;
 
-        return baseRatio + localProgress * segmentSize;
+        return baseRatio + localSegmentProgress * segmentSize;
       }
     }
 
