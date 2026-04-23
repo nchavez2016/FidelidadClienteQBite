@@ -73,26 +73,28 @@ export default function ProgressRoute({
   );
   const maxPoints = milestones[milestones.length - 1].requiredPoints;
   const allCompleted = currentPoints >= maxPoints;
-  const milestoneRouteRatio = (idx: number) => (idx + 1) / milestones.length;
+  const totalVisualSegments = milestones.length;
+  const milestoneRouteRatio = (idx: number) =>
+    totalVisualSegments > 0 ? (idx + 1) / totalVisualSegments : 0;
 
   const getSegmentedRouteRatio = () => {
-    if (currentPoints <= 0) return 0;
+    if (totalVisualSegments === 0 || currentPoints <= 0) return 0;
     if (currentPoints >= maxPoints) return 1;
 
-    for (let i = 0; i < milestones.length; i++) {
-      const milestonePoints = milestones[i].requiredPoints;
-      const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
+    for (let nextIdx = 0; nextIdx < milestones.length; nextIdx++) {
+      const prevNodePoints = nextIdx === 0 ? 0 : milestones[nextIdx - 1].requiredPoints;
+      const nextNodePoints = milestones[nextIdx].requiredPoints;
 
-      if (currentPoints <= milestonePoints) {
-        const segmentStart = i === 0 ? 0 : milestoneRouteRatio(i - 1);
-        const segmentEnd = milestoneRouteRatio(i);
-        const pointsInSegment = milestonePoints - prevPoints;
-        const segmentProgress =
-          pointsInSegment > 0
-            ? (currentPoints - prevPoints) / pointsInSegment
+      if (currentPoints <= nextNodePoints) {
+        const baseRatio = nextIdx / totalVisualSegments;
+        const segmentSize = 1 / totalVisualSegments;
+        const pointSpan = nextNodePoints - prevNodePoints;
+        const localProgress =
+          pointSpan > 0
+            ? Math.min(Math.max((currentPoints - prevNodePoints) / pointSpan, 0), 1)
             : 1;
 
-        return segmentStart + segmentProgress * (segmentEnd - segmentStart);
+        return baseRatio + localProgress * segmentSize;
       }
     }
 
