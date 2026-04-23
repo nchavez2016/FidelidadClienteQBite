@@ -5,10 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProgressRoute from '@/components/ProgressRoute';
 import { Plus, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
+
+const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
 
 interface CampaignsTabProps {
   onRefresh: () => void;
@@ -83,7 +86,16 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               </div>
               <div>
                 <Label>Sucursal *</Label>
-                <Input value={editingCampaign.branch || ''} onChange={e => setEditingCampaign({ ...editingCampaign, branch: e.target.value })} placeholder="Gaviota Azul Express" />
+                <Select value={editingCampaign.branch || ''} onValueChange={value => setEditingCampaign({ ...editingCampaign, branch: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una sucursal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BRANCH_OPTIONS.map(branch => (
+                      <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Inicio</Label>
