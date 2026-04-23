@@ -312,19 +312,10 @@ export default function ProgressRoute({
           transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
         />
 
-        {/*
-          GAVIOTA DESKTOP FIX:
-          - El contenedor se posiciona en left: toLeft(fillRatio)
-            = borde derecho del relleno.
-          - translateX(-100%) mueve la imagen su ancho completo (44px) a la izquierda,
-            de modo que la COLA de la gaviota queda exactamente sobre el final del relleno
-            y el PICO apunta hacia adelante (a la derecha), sobre la barra gris.
-          - Antes era translateX(-85%) lo que dejaba ~6px de la cola fuera del relleno,
-            creando la ilusión de "estar un paso adelante".
-        */}
+        {/* Gaviota anclada al avance real: centrada sobre el final del progreso/hito actual. */}
         <motion.div
           className="absolute z-20"
-          style={{ top: '-2px', transform: 'translateX(-100%)' }}
+          style={{ top: '-2px', transform: 'translateX(-50%)' }}
           initial={animate ? { left: toLeft(0) } : false}
           animate={{ left: toLeft(fillRatio) }}
           transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
