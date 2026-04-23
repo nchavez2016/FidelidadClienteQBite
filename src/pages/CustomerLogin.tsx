@@ -1,0 +1,54 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { loginCustomer } from '@/lib/store';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import BrandHeader from '@/components/BrandHeader';
+import { toast } from 'sonner';
+
+export default function CustomerLogin() {
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const customer = loginCustomer(phone, password);
+    if (customer) {
+      toast.success(`¡Bienvenido, ${customer.name}!`);
+      navigate('/cliente/dashboard');
+    } else {
+      toast.error('Teléfono o contraseña incorrectos');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-navy">
+      <Card className="w-full max-w-md shadow-brand animate-scale-in">
+        <CardHeader className="text-center pb-2">
+          <BrandHeader subtitle="Programa de Fidelidad" />
+          <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <Label htmlFor="phone">Número de teléfono</Label>
+              <Input id="phone" type="tel" placeholder="0991234567" value={phone} onChange={e => setPhone(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="password">Contraseña</Label>
+              <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+            </div>
+            <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">Ingresar</Button>
+            <p className="text-center text-sm text-muted-foreground">
+              ¿No tienes cuenta?{' '}
+              <button type="button" onClick={() => navigate('/cliente/registro')} className="text-secondary underline font-medium">Regístrate aquí</button>
+            </p>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
