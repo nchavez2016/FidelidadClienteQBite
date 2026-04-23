@@ -280,6 +280,19 @@ export default function OperationsTab({
                 </div>
               )}
 
+              <CommentInput category={commentCat} text={commentText} onCategoryChange={setCommentCat} onTextChange={setCommentText} />
+
+              <div className="border-t pt-3 mt-2">
+                <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-secondary" />
+                  Últimos movimientos — {campaign?.branch || 'Sucursal'}
+                </p>
+                {custTx.length === 0
+                  ? <p className="text-xs text-muted-foreground text-center py-2">Sin movimientos aún</p>
+                  : custTx.map(tx => <TransactionItem key={tx.id} tx={tx} compact />)
+                }
+              </div>
+
               <div className="grid grid-cols-3 gap-2">
                 <Button onClick={handleAddPoint} className="bg-success hover:bg-success/90 text-success-foreground gap-1 h-auto py-3 flex-col">
                   <Plus className="w-5 h-5" />
@@ -307,19 +320,6 @@ export default function OperationsTab({
                   <KeyRound className="w-3.5 h-3.5" />
                   <span className="text-xs">Gestionar cuenta</span>
                 </Button>
-              </div>
-
-              <CommentInput category={commentCat} text={commentText} onCategoryChange={setCommentCat} onTextChange={setCommentText} />
-
-              <div className="border-t pt-3 mt-2">
-                <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-secondary" />
-                  Últimos movimientos — {campaign?.branch || 'Sucursal'}
-                </p>
-                {custTx.length === 0
-                  ? <p className="text-xs text-muted-foreground text-center py-2">Sin movimientos aún</p>
-                  : custTx.map(tx => <TransactionItem key={tx.id} tx={tx} compact />)
-                }
               </div>
             </CardContent>
           </Card>
