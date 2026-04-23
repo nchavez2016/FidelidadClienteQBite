@@ -150,10 +150,34 @@ export default function ProgressRoute({
   if (isMobile) {
     const NODE_SPACING = 52;
     const TRACK_START_TOP = 16;
-    const TRACK_LENGTH = milestones.length * NODE_SPACING;
+    const TRACK_LENGTH = totalMilestones * NODE_SPACING;
+    const verticalNodeTops = milestones.map((_, idx) => TRACK_START_TOP + (idx + 1) * NODE_SPACING);
 
     const getVerticalProgressTop = () => {
-      return TRACK_START_TOP + TRACK_LENGTH * getSegmentedRouteRatio();
+      if (currentPoints <= 0) return TRACK_START_TOP;
+      if (currentPoints >= maxPoints) return verticalNodeTops[verticalNodeTops.length - 1];
+
+      for (let segmentIdx = 0; segmentIdx < totalMilestones; segmentIdx++) {
+        const previousMilestonePoints =
+          segmentIdx === 0 ? 0 : milestones[segmentIdx - 1].requiredPoints;
+        const nextMilestonePoints = milestones[segmentIdx].requiredPoints;
+
+        if (currentPoints <= nextMilestonePoints) {
+          const previousTop = segmentIdx === 0 ? TRACK_START_TOP : verticalNodeTops[segmentIdx - 1];
+          const nextTop = verticalNodeTops[segmentIdx];
+          const segmentPoints = nextMilestonePoints - previousMilestonePoints;
+          const localSegmentProgress =
+            segmentPoints > 0
+              ? clampRatio((currentPoints - previousMilestonePoints) / segmentPoints)
+              : 1;
+
+          return currentPoints === nextMilestonePoints
+            ? nextTop
+            : previousTop + localSegmentProgress * (nextTop - previousTop);
+        }
+      }
+
+      return verticalNodeTops[verticalNodeTops.length - 1];
     };
 
     const fillHeight = getVerticalProgressTop();
