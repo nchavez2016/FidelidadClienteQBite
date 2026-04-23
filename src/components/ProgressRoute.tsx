@@ -73,6 +73,31 @@ export default function ProgressRoute({
   );
   const maxPoints = milestones[milestones.length - 1].requiredPoints;
   const allCompleted = currentPoints >= maxPoints;
+  const milestoneRouteRatio = (idx: number) => (idx + 1) / milestones.length;
+
+  const getSegmentedRouteRatio = () => {
+    if (currentPoints <= 0) return 0;
+    if (currentPoints >= maxPoints) return 1;
+
+    for (let i = 0; i < milestones.length; i++) {
+      const milestonePoints = milestones[i].requiredPoints;
+      const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
+
+      if (currentPoints <= milestonePoints) {
+        const segmentStart = i === 0 ? 0 : milestoneRouteRatio(i - 1);
+        const segmentEnd = milestoneRouteRatio(i);
+        const pointsInSegment = milestonePoints - prevPoints;
+        const segmentProgress =
+          pointsInSegment > 0
+            ? (currentPoints - prevPoints) / pointsInSegment
+            : 1;
+
+        return segmentStart + segmentProgress * (segmentEnd - segmentStart);
+      }
+    }
+
+    return 1;
+  };
 
   const getMilestoneState = (
     m: Milestone,
@@ -116,48 +141,18 @@ export default function ProgressRoute({
 
   // LAYOUT VERTICAL (mobile)
   if (isMobile) {
-    const completedCount = milestones.filter(
-      (_, i) => getMilestoneState(milestones[i], i) === 'completed'
-    ).length;
-    const currentIdx = milestones.findIndex(
-      (m, i) => getMilestoneState(m, i) === 'current'
-    );
-    const totalNodes = milestones.length + 1;
-    const NODE_SPACING = 56;
+    const NODE_SPACING = 52;
+    const TRACK_START_TOP = 16;
+    const TRACK_LENGTH = milestones.length * NODE_SPACING;
 
     const getVerticalFillPercent = () => {
-      if (currentPoints <= 0) return 0;
-      if (currentPoints >= maxPoints) return 100;
-      for (let i = 0; i < milestones.length; i++) {
-        const msPoints = milestones[i].requiredPoints;
-        const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
-        if (currentPoints <= msPoints) {
-          const segStart = i / milestones.length;
-          const segEnd = (i + 1) / milestones.length;
-          const segProgress = (currentPoints - prevPoints) / (msPoints - prevPoints);
-          return (segStart + segProgress * (segEnd - segStart)) * 100;
-        }
-      }
-      return 100;
+      return getSegmentedRouteRatio() * 100;
     };
 
     const fillPercent = getVerticalFillPercent();
 
     const getGaviotaTop = () => {
-      const inicioTop = 16;
-      if (currentPoints <= 0) return inicioTop;
-      if (currentPoints >= maxPoints) return inicioTop + totalNodes * NODE_SPACING;
-      for (let i = 0; i < milestones.length; i++) {
-        const msPoints = milestones[i].requiredPoints;
-        const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
-        if (currentPoints <= msPoints) {
-          const segProgress = (currentPoints - prevPoints) / (msPoints - prevPoints);
-          const prevNodeTop = inicioTop + i * NODE_SPACING;
-          const nextNodeTop = inicioTop + (i + 1) * NODE_SPACING;
-          return prevNodeTop + segProgress * (nextNodeTop - prevNodeTop);
-        }
-      }
-      return inicioTop + totalNodes * NODE_SPACING;
+      return TRACK_START_TOP + TRACK_LENGTH * getSegmentedRouteRatio();
     };
 
     const gaviotaTop = getGaviotaTop();
