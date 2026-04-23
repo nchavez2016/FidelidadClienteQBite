@@ -1,9 +1,8 @@
 /**
  * One-time bootstrap: run migrations, then seed empty stores.
  *
- * Seeding is gated by `import.meta.env.DEV` so production builds never
- * insert demo data. When migrating to Supabase, replace seeding with
- * SQL `seed.sql` and remove this guard.
+ * Seeding keeps the local demo usable after preview refreshes or storage resets.
+ * When migrating to Supabase, replace seeding with SQL `seed.sql`.
  */
 import { storage } from './storage/localAdapter';
 import { STORAGE_KEYS } from './storage/keys';
@@ -44,23 +43,12 @@ function seedTransactions(): void {
   if (transactions.length === 0) storage.set(STORAGE_KEYS.transactions, SEED_TRANSACTIONS);
 }
 
-/** True when mock seed data is allowed to populate empty stores. */
-function shouldSeed(): boolean {
-  // Vite injects `import.meta.env.DEV`. Production builds get DEV=false
-  // and therefore never write demo customers/staff/transactions.
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return Boolean(import.meta.env.DEV);
-  }
-  return false;
-}
-
 let bootstrapped = false;
 export function bootstrapStore(): void {
   if (bootstrapped) return;
   bootstrapped = true;
   // Migrations always run — they only normalize existing data, never insert demo rows.
   runAllMigrations();
-  if (!shouldSeed()) return;
   seedCampaigns();
   seedCustomers();
   seedStaff();

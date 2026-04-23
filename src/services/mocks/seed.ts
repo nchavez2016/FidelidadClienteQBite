@@ -34,7 +34,7 @@ export const SEED_CAMPAIGNS: Campaign[] = [
     name: 'Ruta del Sabor Express',
     branch: 'Gaviota Azul Express',
     startDate: '2024-01-01',
-    endDate: '2025-12-31',
+    endDate: '2027-12-31',
     status: 'active',
     milestones: expressMilestones,
     termsAndConditions:
@@ -46,7 +46,7 @@ export const SEED_CAMPAIGNS: Campaign[] = [
     name: 'Ruta del Sabor Matriz',
     branch: 'Gaviota Azul',
     startDate: '2024-01-01',
-    endDate: '2025-12-31',
+    endDate: '2027-12-31',
     status: 'active',
     milestones: matrizMilestones,
     termsAndConditions:
