@@ -154,8 +154,7 @@ export default function ProgressRoute({
           const segProgress = (currentPoints - prevPoints) / (msPoints - prevPoints);
           const prevNodeTop = inicioTop + i * NODE_SPACING;
           const nextNodeTop = inicioTop + (i + 1) * NODE_SPACING;
-          // FIX: -14px so the BASE of the bird sits on fill end, not its center
-          return prevNodeTop + segProgress * (nextNodeTop - prevNodeTop) - 14;
+          return prevNodeTop + segProgress * (nextNodeTop - prevNodeTop);
         }
       }
       return inicioTop + totalNodes * NODE_SPACING;
