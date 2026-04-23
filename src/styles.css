@@ -140,20 +140,18 @@
   --sidebar-ring: oklch(0.68 0.085 186);
 }
 
-@layer base {
-  * {
-    border-color: var(--color-border);
-  }
+* {
+  border-color: var(--color-border);
+}
 
-  html {
-    scroll-behavior: smooth;
-  }
+html {
+  scroll-behavior: smooth;
+}
 
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-sans);
-  }
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
 }
 
 @layer utilities {

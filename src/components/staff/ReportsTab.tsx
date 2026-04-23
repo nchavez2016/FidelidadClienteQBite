@@ -146,7 +146,7 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
     const header = 'Timestamp,Cliente,Teléfono,Acción,Puntos,Balance,Staff,Premio,Categoría,Comentario,Reversado';
     const rows = filtered.map(t => {
       const c = getCustomerById(t.customerId);
-      const action = t.type === 'accumulation' ? 'Compra' : t.type === 'redemption' ? 'Canje' : 'Reversión';
+      const action = t.type === 'accumulation' ? 'Compra' : t.type === 'redemption' ? 'Canje' : t.type === 'reversal' ? 'Reversión' : 'Aceptación T&C';
       return `"${fmtDate(t.createdAt)}","${c?.name || 'N/A'}","${c?.phone || ''}","${action}","${t.points}","${t.balanceAfter}","${t.staffName}","${t.rewardName || ''}","${t.commentCategory ? commentLabels[t.commentCategory] : ''}","${(t.commentText || '').replace(/"/g, '""')}","${t.isReversed ? 'Sí' : ''}"`;
     });
     downloadCSV(`log_transaccional_${new Date().toISOString().slice(0, 10)}.csv`, header, rows);

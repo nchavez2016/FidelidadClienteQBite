@@ -12,6 +12,7 @@ interface TransactionItemProps {
 export default function TransactionItem({ tx, customerName, showStaff, showComment, compact }: TransactionItemProps) {
   const label = getTransactionLabel(tx.type);
   const prefix = customerName ? `${customerName} — ` : '';
+  const pointsClass = tx.points > 0 ? 'text-success' : tx.points < 0 ? 'text-destructive' : 'text-muted-foreground';
 
   return (
     <div className={`flex items-center justify-between border-b last:border-0 ${compact ? 'py-1.5 text-sm' : 'py-2 text-sm'}`}>
@@ -27,7 +28,7 @@ export default function TransactionItem({ tx, customerName, showStaff, showComme
           {showComment && tx.commentCategory && ` · ${tx.commentCategory}`}
         </p>
       </div>
-      <span className={`font-bold shrink-0 ${tx.points > 0 ? 'text-success' : 'text-destructive'} ${compact ? 'text-xs' : ''}`}>
+      <span className={`font-bold shrink-0 ${pointsClass} ${compact ? 'text-xs' : ''}`}>
         {formatPoints(tx.points)}
       </span>
     </div>
