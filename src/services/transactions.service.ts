@@ -51,7 +51,9 @@ export function getLastCustomerTransaction(
   customerId: string,
   campaignId?: string,
 ): Transaction | undefined {
-  const txs = getCustomerTransactions(customerId, campaignId);
+  const txs = getCustomerTransactions(customerId, campaignId).filter(
+    t => t.type !== 'terms_acceptance',
+  );
   return txs[txs.length - 1];
 }
 
