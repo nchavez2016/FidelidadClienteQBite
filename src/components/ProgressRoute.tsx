@@ -125,8 +125,23 @@ export default function ProgressRoute({
     const totalNodes = milestones.length + 1;
     const NODE_SPACING = 56;
 
-    const fillSteps = completedCount + (currentIdx !== -1 ? 0.5 : 0);
-    const fillPercent = (fillSteps / totalNodes) * 100;
+    const getVerticalFillPercent = () => {
+      if (currentPoints <= 0) return 0;
+      if (currentPoints >= maxPoints) return 100;
+      for (let i = 0; i < milestones.length; i++) {
+        const msPoints = milestones[i].requiredPoints;
+        const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
+        if (currentPoints <= msPoints) {
+          const segStart = i / milestones.length;
+          const segEnd = (i + 1) / milestones.length;
+          const segProgress = (currentPoints - prevPoints) / (msPoints - prevPoints);
+          return (segStart + segProgress * (segEnd - segStart)) * 100;
+        }
+      }
+      return 100;
+    };
+
+    const fillPercent = getVerticalFillPercent();
 
     const getGaviotaTop = () => {
       const inicioTop = 16;
@@ -135,12 +150,11 @@ export default function ProgressRoute({
       for (let i = 0; i < milestones.length; i++) {
         const msPoints = milestones[i].requiredPoints;
         const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
-        if (currentPoints < msPoints) {
+        if (currentPoints <= msPoints) {
           const segProgress = (currentPoints - prevPoints) / (msPoints - prevPoints);
           const prevNodeTop = inicioTop + i * NODE_SPACING;
           const nextNodeTop = inicioTop + (i + 1) * NODE_SPACING;
-          // FIX: -14px so the BASE of the bird sits on fill end, not its center
-          return prevNodeTop + segProgress * (nextNodeTop - prevNodeTop) - 14;
+          return prevNodeTop + segProgress * (nextNodeTop - prevNodeTop);
         }
       }
       return inicioTop + totalNodes * NODE_SPACING;
@@ -252,7 +266,7 @@ export default function ProgressRoute({
     for (let i = 0; i < milestones.length; i++) {
       const msPoints = milestones[i].requiredPoints;
       const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
-      if (currentPoints < msPoints) {
+      if (currentPoints <= msPoints) {
         const segStart = i === 0 ? 0 : milestoneRouteRatio(i - 1);
         const segEnd = milestoneRouteRatio(i);
         const segProgress = (currentPoints - prevPoints) / (msPoints - prevPoints);
@@ -274,7 +288,7 @@ export default function ProgressRoute({
     _isFirst: boolean,
     isLast: boolean
   ): React.CSSProperties => {
-    if (isLast) return { right: PAD, top: '12px' };
+    if (isLast) return { right: PAD - 16, top: '12px' };
     return {
       left: `calc(${PAD}px + (100% - ${PAD * 2}px) * ${r})`,
       top: '12px',
