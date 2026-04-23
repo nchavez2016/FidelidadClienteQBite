@@ -73,15 +73,15 @@ export default function ProgressRoute({
   );
   const maxPoints = milestones[milestones.length - 1].requiredPoints;
   const allCompleted = currentPoints >= maxPoints;
-  const totalSegments = milestones.length;
-  const segmentSize = totalSegments > 0 ? 1 / totalSegments : 0;
+  const totalMilestones = milestones.length;
+  const segmentSize = totalMilestones > 0 ? 1 / totalMilestones : 0;
   const milestoneRouteRatio = (idx: number) => (idx + 1) * segmentSize;
 
   const getSegmentedRouteRatio = () => {
-    if (totalSegments === 0 || currentPoints <= 0) return 0;
+    if (totalMilestones === 0 || currentPoints <= 0) return 0;
     if (currentPoints >= maxPoints) return 1;
 
-    for (let segmentIdx = 0; segmentIdx < milestones.length; segmentIdx++) {
+    for (let segmentIdx = 0; segmentIdx < totalMilestones; segmentIdx++) {
       const previousMilestonePoints =
         segmentIdx === 0 ? 0 : milestones[segmentIdx - 1].requiredPoints;
       const nextMilestonePoints = milestones[segmentIdx].requiredPoints;
@@ -100,7 +100,7 @@ export default function ProgressRoute({
               )
             : 1;
 
-        return baseRatio + localSegmentProgress * segmentSize;
+        return Math.min(baseRatio + localSegmentProgress * segmentSize, 1);
       }
     }
 
