@@ -242,6 +242,7 @@ export default function ProgressRoute({
   // LAYOUT HORIZONTAL (desktop >= 640px)
   const PAD = 20;
   const ratio = (pts: number) => (maxPoints > 0 ? pts / maxPoints : 0);
+  const milestoneRouteRatio = (idx: number) => (idx + 1) / milestones.length;
 
   const getFillRatio = () => {
     if (currentPoints <= 0) return 0;
@@ -250,8 +251,8 @@ export default function ProgressRoute({
       const msPoints = milestones[i].requiredPoints;
       const prevPoints = i === 0 ? 0 : milestones[i - 1].requiredPoints;
       if (currentPoints < msPoints) {
-        const segStart = ratio(prevPoints);
-        const segEnd = ratio(msPoints);
+        const segStart = i === 0 ? 0 : milestoneRouteRatio(i - 1);
+        const segEnd = milestoneRouteRatio(i);
         const segProgress = (currentPoints - prevPoints) / (msPoints - prevPoints);
         return segStart + segProgress * (segEnd - segStart);
       }
@@ -351,7 +352,7 @@ export default function ProgressRoute({
 
         {milestones.map((m, i) => {
           const state = getMilestoneState(m, i);
-          const r = ratio(m.requiredPoints);
+          const r = milestoneRouteRatio(i);
           const isLast = i === milestones.length - 1;
           const isFirst = i === 0;
           const posStyle = getNodePositionStyle(r, isFirst, isLast);
