@@ -193,21 +193,21 @@ export default function ProgressRoute({
         <div className="relative" style={{ paddingLeft: 28 }}>
           <div
             className="absolute"
-            style={{ left: 15, top: 0, bottom: 0, width: 3, borderRadius: 2, background: '#001F3F', opacity: 0.15 }}
+            style={{ left: 15, top: TRACK_START_TOP, height: TRACK_LENGTH, width: 3, borderRadius: 2, background: '#001F3F', opacity: 0.15 }}
           />
           <motion.div
             key={`vfill-${currentPoints}`}
             className="absolute"
             style={{
               left: 15,
-              top: 0,
+              top: TRACK_START_TOP,
               width: 3,
               borderRadius: 2,
               background: 'linear-gradient(180deg, #001F3F, #2E6DB4)',
               minHeight: currentPoints > 0 ? '8px' : '0px',
             }}
             initial={animate ? { height: 0 } : false}
-            animate={{ height: fillHeight }}
+            animate={{ height: fillHeight - TRACK_START_TOP }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
           />
 
@@ -230,7 +230,7 @@ export default function ProgressRoute({
             }
           />
 
-          <div className="flex items-center gap-3 mb-5 relative" style={{ minHeight: 32 }}>
+          <div className="flex items-center gap-3 relative" style={{ minHeight: 32, marginBottom: NODE_SPACING - 32 }}>
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0"
               style={{ marginLeft: -20, background: '#001F3F', borderColor: '#001F3F' }}
@@ -248,7 +248,7 @@ export default function ProgressRoute({
             const isLast = i === milestones.length - 1;
             const ptsFaltantes = m.requiredPoints - currentPoints;
             return (
-              <div key={m.id} className="flex items-center gap-3 mb-5 relative" style={{ minHeight: 32 }}>
+              <div key={m.id} className="flex items-center gap-3 relative" style={{ minHeight: 32, marginBottom: i === milestones.length - 1 ? 0 : NODE_SPACING - 32 }}>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${nodeStyles[state]}`}
                   style={{ marginLeft: -20, ...nodeInlineStyles[state] }}
