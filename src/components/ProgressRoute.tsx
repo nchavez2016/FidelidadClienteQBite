@@ -324,7 +324,7 @@ export default function ProgressRoute({
         */}
         <motion.div
           className="absolute z-20"
-          style={{ top: '-2px' }}
+          style={{ top: '-2px', transform: 'translateX(-100%)' }}
           initial={animate ? { left: toLeft(0) } : false}
           animate={{ left: toLeft(fillRatio) }}
           transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
@@ -333,7 +333,6 @@ export default function ProgressRoute({
             src={gaviotaImg}
             alt="Progreso"
             className="w-11 h-11 object-contain drop-shadow-lg"
-            style={{ transform: 'translateX(-100%)' }}
             animate={
               bouncing
                 ? { scale: [1, 1.5, 0.85, 1.2, 1], rotate: [0, -15, 15, -8, 0], y: [0, -10, 0] }
