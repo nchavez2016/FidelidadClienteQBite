@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { getTransactions, getCustomerById, getCustomers, getCampaignById, getCustomerPoints, getCustomerTotalPoints } from '@/lib/store';
-import { Customer, Transaction, CommentCategory } from '@/lib/types';
+import { CommentCategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { FileSpreadsheet, Download, Users, MessageSquare, Gift, List, CalendarDays } from 'lucide-react';
+import { Download, Users, MessageSquare, Gift, List, CalendarDays } from 'lucide-react';
 
 const commentLabels: Record<CommentCategory, string> = {
   positive: '😊 Positivo',
@@ -154,8 +154,6 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
 
   // Stats for preview cards
   const experienceCount = filtered.filter(t => t.commentCategory || t.type === 'reversal').length;
-  const redemptionCount = filtered.filter(t => t.type === 'redemption').length;
-
   const reports = [
     {
       title: 'Experiencia del Cliente',

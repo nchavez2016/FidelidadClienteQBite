@@ -154,25 +154,23 @@ body {
   font-family: var(--font-sans);
 }
 
-@layer utilities {
-  .machined-grid {
-    background-image: linear-gradient(color-mix(in oklab, var(--border) 62%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--border) 62%, transparent) 1px, transparent 1px);
-    background-size: 36px 36px;
-  }
+.machined-grid {
+  background-image: linear-gradient(color-mix(in oklab, var(--border) 62%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--border) 62%, transparent) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
 
+.precision-scan {
+  animation: precision-scan 4.8s ease-in-out infinite;
+}
+
+@keyframes precision-scan {
+  0%, 100% { transform: translateX(-18%); opacity: 0.1; }
+  45%, 55% { opacity: 0.9; }
+  100% { transform: translateX(118%); opacity: 0.1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
   .precision-scan {
-    animation: precision-scan 4.8s ease-in-out infinite;
-  }
-
-  @keyframes precision-scan {
-    0%, 100% { transform: translateX(-18%); opacity: 0.1; }
-    45%, 55% { opacity: 0.9; }
-    100% { transform: translateX(118%); opacity: 0.1; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .precision-scan {
-      animation: none;
-    }
+    animation: none;
   }
 }
