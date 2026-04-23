@@ -145,14 +145,14 @@ export default function ProgressRoute({
     const TRACK_START_TOP = 16;
     const TRACK_LENGTH = milestones.length * NODE_SPACING;
 
-    const getVerticalFillPercent = () => {
-      return getSegmentedRouteRatio() * 100;
+    const getVerticalProgressTop = () => {
+      return TRACK_START_TOP + TRACK_LENGTH * getSegmentedRouteRatio();
     };
 
-    const fillPercent = getVerticalFillPercent();
+    const fillHeight = getVerticalProgressTop();
 
     const getGaviotaTop = () => {
-      return TRACK_START_TOP + TRACK_LENGTH * getSegmentedRouteRatio();
+      return getVerticalProgressTop();
     };
 
     const gaviotaTop = getGaviotaTop();
@@ -176,7 +176,7 @@ export default function ProgressRoute({
               minHeight: currentPoints > 0 ? '8px' : '0px',
             }}
             initial={animate ? { height: 0 } : false}
-            animate={{ height: `${fillPercent}%` }}
+            animate={{ height: fillHeight }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
           />
 
