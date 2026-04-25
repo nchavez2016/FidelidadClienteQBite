@@ -66,7 +66,7 @@ export interface Milestone {
   order: number;
 }
 
-export type CampaignStatus = 'draft' | 'active' | 'finished';
+export type CampaignStatus = 'draft' | 'active' | 'paused' | 'finished';
 
 export interface Campaign {
   id: string;

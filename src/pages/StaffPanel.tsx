@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getActiveCampaigns, getCampaignById, setStaffBranch } from '@/lib/store';
+import { getOperableCampaigns, getCampaignById, setStaffBranch } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -44,7 +44,7 @@ export default function StaffPanel() {
     return () => clearInterval(interval);
   }, []);
 
-  const activeCampaigns = getActiveCampaigns();
+  const activeCampaigns = getOperableCampaigns();
   const initialBranchId = staff?.branchCampaignId && activeCampaigns.find(c => c.id === staff.branchCampaignId)
     ? staff.branchCampaignId
     : activeCampaigns[0]?.id || '';
