@@ -164,7 +164,6 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     if (!selectedCustomer || !currentCampaignId) return;
     const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
     if (!pending) { toast.error('No hay solicitud pendiente'); return; }
-    const reward = (selectedCustomer && getCustomerById(selectedCustomer.id)) ? null : null;
     // Construye Milestone-like a partir de la solicitud para reusar el flujo
     const milestone: Milestone = {
       id: pending.rewardId,
