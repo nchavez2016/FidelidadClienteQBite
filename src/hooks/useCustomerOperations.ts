@@ -4,8 +4,9 @@ import {
   setCustomerPoints, getCustomerPoints, canAddPoint, getAvailableRewards,
   getLastCustomerTransaction, markTransactionReversed,
   getCustomerTransactions,
+  getPendingRequest, approveRedemptionRequest, cancelRedemptionRequestByStaff,
 } from '@/lib/store';
-import { Customer, CommentCategory, Milestone, StaffUser } from '@/lib/types';
+import { Customer, CommentCategory, Milestone, StaffUser, RedemptionRequest } from '@/lib/types';
 import { toast } from 'sonner';
 
 export function useCustomerOperations(staff: StaffUser, currentCampaignId: string) {
@@ -20,6 +21,14 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
   const [tick, setTick] = useState(0);
 
   const refresh = useCallback(() => setTick(t => t + 1), []);
+
+  // Polling para detectar nuevas solicitudes del cliente.
+  // Usamos un interval ligero porque storage events no se disparan en la misma pestaña.
+  // El consumidor (panel staff) ya re-renderiza con cada `tick`.
+  // Se mantiene aquí para reusar en cualquier consumer.
+  // (Se intencionalmente NO incluye en deps para evitar resets).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // ↓ pollers
 
   const refreshCustomer = useCallback(() => {
     if (selectedCustomer) {
@@ -67,6 +76,10 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     if (!selectedCustomer || !selectedReward) return;
     if (!currentCampaignId) { toast.error('Selecciona una sucursal'); return; }
     const current = getCustomerPoints(selectedCustomer, currentCampaignId);
+    if (current < selectedReward.requiredPoints) {
+      toast.error('El cliente no tiene puntos suficientes');
+      return;
+    }
     const remaining = current - selectedReward.requiredPoints;
     setCustomerPoints(selectedCustomer.id, currentCampaignId, remaining);
     addTransaction({
@@ -82,6 +95,11 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       commentCategory: commentCat || undefined,
       commentText: commentText || undefined,
     });
+    // Si el canje provino de una solicitud pendiente, marcarla como aprobada.
+    const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
+    if (pending && pending.rewardId === selectedReward.id) {
+      approveRedemptionRequest(pending.id, staff.id, staff.name);
+    }
     setShowRedeemDialog(false);
     setSelectedReward(null);
     setCommentCat('');
@@ -137,6 +155,35 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
   const customerTransactions = selectedCustomer
     ? getCustomerTransactions(selectedCustomer.id, currentCampaignId).slice(-5).reverse()
     : [];
+  const pendingRequest: RedemptionRequest | undefined =
+    selectedCustomer && currentCampaignId
+      ? getPendingRequest(selectedCustomer.id, currentCampaignId)
+      : undefined;
+
+  const approvePendingRequest = useCallback(() => {
+    if (!selectedCustomer || !currentCampaignId) return;
+    const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
+    if (!pending) { toast.error('No hay solicitud pendiente'); return; }
+    const reward = (selectedCustomer && getCustomerById(selectedCustomer.id)) ? null : null;
+    // Construye Milestone-like a partir de la solicitud para reusar el flujo
+    const milestone: Milestone = {
+      id: pending.rewardId,
+      requiredPoints: pending.requiredPoints,
+      rewardName: pending.rewardName,
+      order: 0,
+    };
+    setSelectedReward(milestone);
+    setShowRedeemDialog(true);
+  }, [selectedCustomer, currentCampaignId]);
+
+  const rejectPendingRequest = useCallback(() => {
+    if (!selectedCustomer || !currentCampaignId) return;
+    const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
+    if (!pending) return;
+    cancelRedemptionRequestByStaff(pending.id, staff.id, staff.name);
+    toast.success('Solicitud del cliente rechazada');
+    refresh();
+  }, [selectedCustomer, currentCampaignId, staff, refresh]);
 
   return {
     phoneSearch, setPhoneSearch,
@@ -150,5 +197,6 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     searchCustomer, handleAddPoint, handleRedeem, handleReverse,
     refreshCustomer, refresh, tick,
     rewards, customerTransactions, currentPoints,
+    pendingRequest, approvePendingRequest, rejectPendingRequest,
   };
 }
