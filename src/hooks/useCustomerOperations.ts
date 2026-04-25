@@ -82,6 +82,12 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     }
     const remaining = current - selectedReward.requiredPoints;
     setCustomerPoints(selectedCustomer.id, currentCampaignId, remaining);
+    // Detecta si el canje viene de una solicitud del cliente para enriquecer la traza.
+    const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
+    const fromRequest = pending && pending.rewardId === selectedReward.id ? pending : null;
+    const traceComment = fromRequest
+      ? `Canje aprobado desde solicitud del cliente · req:${fromRequest.id}${commentText ? ` · ${commentText}` : ''}`
+      : commentText || undefined;
     addTransaction({
       customerId: selectedCustomer.id,
       campaignId: currentCampaignId,
@@ -92,13 +98,11 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       rewardName: selectedReward.rewardName,
       staffId: staff.id,
       staffName: staff.name,
-      commentCategory: commentCat || undefined,
-      commentText: commentText || undefined,
+      commentCategory: commentCat || (fromRequest ? 'observation' : undefined),
+      commentText: traceComment,
     });
-    // Si el canje provino de una solicitud pendiente, marcarla como aprobada.
-    const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
-    if (pending && pending.rewardId === selectedReward.id) {
-      approveRedemptionRequest(pending.id, staff.id, staff.name);
+    if (fromRequest) {
+      approveRedemptionRequest(fromRequest.id, staff.id, staff.name);
     }
     setShowRedeemDialog(false);
     setSelectedReward(null);
