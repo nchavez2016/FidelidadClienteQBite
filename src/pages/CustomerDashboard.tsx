@@ -93,7 +93,7 @@ export default function CustomerDashboard() {
     ? getPendingRequest(customer.id, selectedCampaignId)
     : undefined;
 
-  const handleRequestReward = (m: Parameters<typeof createRedemptionRequest>[0] extends never ? never : import('@/lib/types').Milestone) => {
+  const handleRequestReward = (m: import('@/lib/types').Milestone) => {
     if (!customer || !selectedCampaignId) return;
     if (currentPoints < m.requiredPoints) {
       toast.error('Aún no tienes suficientes puntos para este premio');
