@@ -61,6 +61,8 @@ export const transactionCreationSchema = z.object({
   customerId: z.string().min(1),
   campaignId: z.string().min(1, 'Sucursal requerida'),
   type: z.enum(['accumulation', 'redemption', 'reversal', 'terms_acceptance']),
+  // ↑ legacy enum mantenido por compat. La validación real acepta también
+  // los tipos de trazabilidad de solicitudes:
   points: z.number().int(),
   balanceAfter: z.number().int().nonnegative(),
   rewardId: z.string().optional(),
