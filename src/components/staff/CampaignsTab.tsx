@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProgressRoute from '@/components/ProgressRoute';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, Pause, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
 
@@ -49,9 +49,14 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     c.status === 'active' ? 'bg-success/10 text-success' :
+                    c.status === 'paused' ? 'bg-amber-100 text-amber-700 border border-amber-300' :
                     c.status === 'draft' ? 'bg-muted text-muted-foreground' :
                     'bg-destructive/10 text-destructive'
-                  }`}>{c.status === 'active' ? 'Activa' : c.status === 'draft' ? 'Borrador' : 'Finalizada'}</span>
+                  }`}>{
+                    c.status === 'active' ? 'Activa' :
+                    c.status === 'paused' ? '⏸ En pausa' :
+                    c.status === 'draft' ? 'Borrador' : 'Finalizada'
+                  }</span>
                 </div>
                 <ProgressRoute currentPoints={0} animate={false} />
                 <div className="flex gap-2 mt-3">
@@ -60,7 +65,37 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                     <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground" onClick={() => { setCampaignStatus(c.id, 'active'); onRefresh(); toast.success('Campaña activada'); }}>Activar</Button>
                   )}
                   {c.status === 'active' && (
-                    <Button size="sm" variant="outline" className="border-destructive/30 text-destructive" onClick={() => onFinishCampaign(c.id)}>Finalizar</Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-amber-400 text-amber-700 hover:bg-amber-50 gap-1"
+                        onClick={() => {
+                          setCampaignStatus(c.id, 'paused');
+                          onRefresh();
+                          toast.success('Campaña pausada — los clientes no la verán');
+                        }}
+                      >
+                        <Pause className="w-3.5 h-3.5" />Pausar
+                      </Button>
+                      <Button size="sm" variant="outline" className="border-destructive/30 text-destructive" onClick={() => onFinishCampaign(c.id)}>Finalizar</Button>
+                    </>
+                  )}
+                  {c.status === 'paused' && (
+                    <>
+                      <Button
+                        size="sm"
+                        className="bg-success hover:bg-success/90 text-success-foreground gap-1"
+                        onClick={() => {
+                          setCampaignStatus(c.id, 'active');
+                          onRefresh();
+                          toast.success('Campaña reanudada — visible para los clientes');
+                        }}
+                      >
+                        <Play className="w-3.5 h-3.5" />Reanudar
+                      </Button>
+                      <Button size="sm" variant="outline" className="border-destructive/30 text-destructive" onClick={() => onFinishCampaign(c.id)}>Finalizar</Button>
+                    </>
                   )}
                   {c.status === 'finished' && (
                     <Button size="sm" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => onReactivateCampaign(c.id)}>Reactivar</Button>
