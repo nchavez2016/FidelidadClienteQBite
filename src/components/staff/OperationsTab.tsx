@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Customer, CommentCategory, Milestone, Campaign } from '@/lib/types';
+import { Customer, CommentCategory, Milestone, Campaign, RedemptionRequest } from '@/lib/types';
 import { getCustomerTransactions, resetCustomerPassword, updateCustomerPhone, getCustomerById, getCustomerPoints } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,7 @@ import RegisterCustomerDialog from '@/components/staff/RegisterCustomerDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset } from 'lucide-react';
+import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 const IDLE_TIMEOUT_MS = 60_000; // 60s para limpiar pantalla
@@ -35,6 +35,10 @@ interface OperationsTabProps {
   currentPoints: number;
   activeCampaigns: Campaign[];
   currentCampaignId: string;
+  pendingRequest?: RedemptionRequest;
+  onApproveRequest?: () => void;
+  onRejectRequest?: () => void;
+  onRefresh?: () => void;
 }
 
 export default function OperationsTab({
@@ -42,6 +46,7 @@ export default function OperationsTab({
   handleAddPoint, rewards, setShowRedeemDialog, setShowReverseDialog,
   commentCat, commentText, setCommentCat, setCommentText, campaign,
   currentPoints, activeCampaigns, currentCampaignId,
+  pendingRequest, onApproveRequest, onRejectRequest, onRefresh,
 }: OperationsTabProps) {
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
