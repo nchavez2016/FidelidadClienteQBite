@@ -108,6 +108,20 @@ export default function OperationsTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCustomer?.id]);
 
+  // Poll para detectar nuevas solicitudes de canje creadas por el cliente
+  // (otra pestaña / dispositivo). Storage events sólo viajan entre pestañas,
+  // así que combinamos ambos.
+  useEffect(() => {
+    if (!onRefresh) return;
+    const interval = setInterval(onRefresh, 2500);
+    const onStorage = () => onRefresh();
+    window.addEventListener('storage', onStorage);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [onRefresh]);
+
   const handleResetPassword = () => {
     if (!selectedCustomer || !newPassword.trim() || newPassword.length < 4) {
       toast.error('La clave debe tener al menos 4 caracteres');
