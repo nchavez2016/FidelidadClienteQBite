@@ -302,17 +302,72 @@ export default function OperationsTab({
 
               <CommentInput category={commentCat} text={commentText} onCategoryChange={setCommentCat} onTextChange={setCommentText} />
 
+              {pendingRequest && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-lg p-3 flex flex-col gap-2"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(46,109,180,0.10) 0%, rgba(197,160,89,0.10) 100%)',
+                    border: '1.5px solid #2E6DB4',
+                    boxShadow: '0 4px 16px -6px rgba(46,109,180,0.35)',
+                  }}
+                >
+                  <div className="flex items-start gap-2">
+                    <Hourglass className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#2E6DB4' }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#1B3A6B' }}>
+                        El cliente solicitó un canje
+                      </p>
+                      <p className="text-sm font-semibold mt-0.5" style={{ color: '#1B3A6B' }}>
+                        🎁 {pendingRequest.rewardName}
+                        <span className="ml-2 text-xs font-normal" style={{ color: '#2E6DB4' }}>
+                          ({pendingRequest.requiredPoints} pts)
+                        </span>
+                      </p>
+                      <p className="text-[10px] mt-0.5 text-muted-foreground">
+                        Confirma para entregar el premio o rechaza si el cliente quiere cambiarlo.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      onClick={onApproveRequest}
+                      className="gap-1.5 text-white"
+                      style={{ background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)' }}
+                    >
+                      <Check className="w-4 h-4" />
+                      Confirmar canje
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={onRejectRequest}
+                      className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/5"
+                    >
+                      <X className="w-4 h-4" />
+                      Rechazar
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
               <div className="grid grid-cols-3 gap-2">
                 <Button onClick={handleAddPoint} className="bg-success hover:bg-success/90 text-success-foreground gap-1 h-auto py-3 flex-col">
                   <Plus className="w-5 h-5" />
                   <span className="text-[10px] leading-tight text-center">+1 Punto<br/>{campaign?.branch ? `(${campaign.branch})` : ''}</span>
                 </Button>
                 <Button
-                  onClick={() => { if (rewards.length > 0) setShowRedeemDialog(true); else toast.error('No hay premios disponibles'); }}
+                  onClick={() => {
+                    if (pendingRequest && onApproveRequest) { onApproveRequest(); return; }
+                    if (rewards.length > 0) setShowRedeemDialog(true);
+                    else toast.error('No hay premios disponibles');
+                  }}
                   className="bg-accent hover:bg-accent/90 text-accent-foreground gap-1 h-auto py-3 flex-col"
                 >
                   <Gift className="w-5 h-5" />
-                  <span className="text-xs">Canjear</span>
+                  <span className="text-xs">{pendingRequest ? 'Canjear pedido' : 'Canjear'}</span>
                 </Button>
                 <Button
                   variant="outline"
