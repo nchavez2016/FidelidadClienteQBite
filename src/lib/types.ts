@@ -74,3 +74,25 @@ export interface Campaign {
   termsAndConditions: string;
   createdAt: string;
 }
+
+export type RedemptionRequestStatus = 'pending' | 'approved' | 'cancelled';
+
+/**
+ * Solicitud de canje iniciada por el cliente.
+ * El cajero/admin debe aprobarla para que se materialice como transacción.
+ */
+export interface RedemptionRequest {
+  id: string;
+  customerId: string;
+  campaignId: string;
+  rewardId: string;
+  rewardName: string;
+  requiredPoints: number;
+  status: RedemptionRequestStatus;
+  /** Quién resolvió la solicitud (staff o el propio cliente al cancelar). */
+  resolvedBy?: 'customer' | 'staff';
+  resolvedByStaffId?: string;
+  resolvedByStaffName?: string;
+  resolvedAt?: string;
+  createdAt: string;
+}

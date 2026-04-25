@@ -239,6 +239,10 @@ export default function StaffPanel() {
               currentPoints={ops.currentPoints}
               activeCampaigns={activeCampaigns}
               currentCampaignId={branchCampaignId}
+              pendingRequest={ops.pendingRequest}
+              onApproveRequest={ops.approvePendingRequest}
+              onRejectRequest={ops.rejectPendingRequest}
+              onRefresh={ops.refresh}
             />
           </TabsContent>
 

@@ -8,6 +8,7 @@ import {
   getCurrentCustomer, getCustomerById, getActiveCampaigns,
   getCustomerTransactions, logoutCustomer, resetCustomerPassword,
   acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints, addTransaction,
+  getPendingRequest, createRedemptionRequest, cancelRedemptionRequestByCustomer,
 } from '@/lib/store';
 
 import ProgressRoute from '@/components/ProgressRoute';
@@ -76,6 +77,48 @@ export default function CustomerDashboard() {
     const interval = setInterval(() => setHeroImgIdx(prev => (prev + 1) % 3), 3500);
     return () => clearInterval(interval);
   }, []);
+
+  // Polling para detectar resoluciones del cajero (aprobado/rechazado).
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 2500);
+    const onStorage = () => setTick(t => t + 1);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
+  const pendingRequest = customer && selectedCampaignId
+    ? getPendingRequest(customer.id, selectedCampaignId)
+    : undefined;
+
+  const handleRequestReward = (m: import('@/lib/types').Milestone) => {
+    if (!customer || !selectedCampaignId) return;
+    if (currentPoints < m.requiredPoints) {
+      toast.error('Aún no tienes suficientes puntos para este premio');
+      return;
+    }
+    try {
+      createRedemptionRequest({
+        customerId: customer.id,
+        campaignId: selectedCampaignId,
+        rewardId: m.id,
+        rewardName: m.rewardName,
+        requiredPoints: m.requiredPoints,
+      });
+      toast.success('Solicitud enviada. Acércate al cajero para confirmar 🎁');
+      setTick(t => t + 1);
+    } catch (e: any) {
+      toast.error(e?.message || 'No se pudo crear la solicitud');
+    }
+  };
+
+  const handleCancelRequest = (req: import('@/lib/types').RedemptionRequest) => {
+    cancelRedemptionRequestByCustomer(req.id);
+    toast.success('Solicitud cancelada');
+    setTick(t => t + 1);
+  };
 
   const handleLogout = () => { logoutCustomer(); navigate('/cliente/login'); };
 
@@ -193,7 +236,14 @@ export default function CustomerDashboard() {
             </motion.div>
 
             <StatsGrid currentPoints={currentPoints} pointsToNext={pointsToNext} maxPoints={maxPoints} nextMilestone={nextMilestone} />
-            <RewardsCard milestones={milestones} currentPoints={currentPoints} nextMilestoneId={nextMilestone?.id} />
+            <RewardsCard
+              milestones={milestones}
+              currentPoints={currentPoints}
+              nextMilestoneId={nextMilestone?.id}
+              pendingRequest={pendingRequest}
+              onRequest={handleRequestReward}
+              onCancelRequest={handleCancelRequest}
+            />
 
             {selectedCampaign && (
               <TermsSection campaign={selectedCampaign} hasAcceptedTerms={hasAcceptedTerms} onAcceptTerms={handleAcceptTerms} cardShadow={cardShadow} />
