@@ -82,6 +82,12 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     }
     const remaining = current - selectedReward.requiredPoints;
     setCustomerPoints(selectedCustomer.id, currentCampaignId, remaining);
+    // Detecta si el canje viene de una solicitud del cliente para enriquecer la traza.
+    const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
+    const fromRequest = pending && pending.rewardId === selectedReward.id ? pending : null;
+    const traceComment = fromRequest
+      ? `Canje aprobado desde solicitud del cliente · req:${fromRequest.id}${commentText ? ` · ${commentText}` : ''}`
+      : commentText || undefined;
     addTransaction({
       customerId: selectedCustomer.id,
       campaignId: currentCampaignId,
@@ -92,13 +98,11 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       rewardName: selectedReward.rewardName,
       staffId: staff.id,
       staffName: staff.name,
-      commentCategory: commentCat || undefined,
-      commentText: commentText || undefined,
+      commentCategory: commentCat || (fromRequest ? 'observation' : undefined),
+      commentText: traceComment,
     });
-    // Si el canje provino de una solicitud pendiente, marcarla como aprobada.
-    const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
-    if (pending && pending.rewardId === selectedReward.id) {
-      approveRedemptionRequest(pending.id, staff.id, staff.name);
+    if (fromRequest) {
+      approveRedemptionRequest(fromRequest.id, staff.id, staff.name);
     }
     setShowRedeemDialog(false);
     setSelectedReward(null);
@@ -180,6 +184,20 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
     if (!pending) return;
     cancelRedemptionRequestByStaff(pending.id, staff.id, staff.name);
+    const balance = getCustomerPoints(selectedCustomer, currentCampaignId);
+    addTransaction({
+      customerId: selectedCustomer.id,
+      campaignId: currentCampaignId,
+      type: 'redemption_request_cancelled',
+      points: 0,
+      balanceAfter: balance,
+      rewardId: pending.rewardId,
+      rewardName: pending.rewardName,
+      staffId: staff.id,
+      staffName: staff.name,
+      commentCategory: 'observation',
+      commentText: `Cajero rechazó la solicitud de "${pending.rewardName}" · req:${pending.id}`,
+    });
     toast.success('Solicitud del cliente rechazada');
     refresh();
   }, [selectedCustomer, currentCampaignId, staff, refresh]);

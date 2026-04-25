@@ -60,7 +60,14 @@ export const campaignSchema = z.object({
 export const transactionCreationSchema = z.object({
   customerId: z.string().min(1),
   campaignId: z.string().min(1, 'Sucursal requerida'),
-  type: z.enum(['accumulation', 'redemption', 'reversal', 'terms_acceptance']),
+  type: z.enum([
+    'accumulation',
+    'redemption',
+    'reversal',
+    'terms_acceptance',
+    'redemption_request',
+    'redemption_request_cancelled',
+  ]),
   points: z.number().int(),
   balanceAfter: z.number().int().nonnegative(),
   rewardId: z.string().optional(),

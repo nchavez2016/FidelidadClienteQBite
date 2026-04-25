@@ -52,7 +52,10 @@ export function getLastCustomerTransaction(
   campaignId?: string,
 ): Transaction | undefined {
   const txs = getCustomerTransactions(customerId, campaignId).filter(
-    t => t.type !== 'terms_acceptance',
+    t =>
+      t.type !== 'terms_acceptance' &&
+      t.type !== 'redemption_request' &&
+      t.type !== 'redemption_request_cancelled',
   );
   return txs[txs.length - 1];
 }

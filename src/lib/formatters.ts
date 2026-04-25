@@ -20,6 +20,8 @@ export function getTransactionLabel(type: TransactionType): string {
     case 'redemption': return '🎁 Canje';
     case 'reversal': return '🔄 Reversión';
     case 'terms_acceptance': return '📋 T&C aceptados';
+    case 'redemption_request': return '⏳ Premio solicitado';
+    case 'redemption_request_cancelled': return '↩️ Solicitud cancelada';
   }
 }
 
@@ -29,5 +31,7 @@ export function getTransactionLabelFull(type: TransactionType): string {
     case 'redemption': return '🎁 Premio canjeado';
     case 'reversal': return '🔄 Reversión';
     case 'terms_acceptance': return '📋 Términos y condiciones aceptados';
+    case 'redemption_request': return '⏳ Cliente solicitó un premio';
+    case 'redemption_request_cancelled': return '↩️ Solicitud de canje cancelada';
   }
 }
