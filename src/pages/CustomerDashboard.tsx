@@ -100,12 +100,26 @@ export default function CustomerDashboard() {
       return;
     }
     try {
-      createRedemptionRequest({
+      const req = createRedemptionRequest({
         customerId: customer.id,
         campaignId: selectedCampaignId,
         rewardId: m.id,
         rewardName: m.rewardName,
         requiredPoints: m.requiredPoints,
+      });
+      // Trazabilidad: registra la solicitud sin afectar el saldo.
+      addTransaction({
+        customerId: customer.id,
+        campaignId: selectedCampaignId,
+        type: 'redemption_request',
+        points: 0,
+        balanceAfter: currentPoints,
+        rewardId: m.id,
+        rewardName: m.rewardName,
+        staffId: customer.id,
+        staffName: customer.name,
+        commentCategory: 'observation',
+        commentText: `Cliente solicitó canjear "${m.rewardName}" (${m.requiredPoints} pts) · req:${req.id}`,
       });
       toast.success('Solicitud enviada. Acércate al cajero para confirmar 🎁');
       setTick(t => t + 1);
@@ -116,6 +130,21 @@ export default function CustomerDashboard() {
 
   const handleCancelRequest = (req: import('@/lib/types').RedemptionRequest) => {
     cancelRedemptionRequestByCustomer(req.id);
+    if (customer && selectedCampaignId) {
+      addTransaction({
+        customerId: customer.id,
+        campaignId: selectedCampaignId,
+        type: 'redemption_request_cancelled',
+        points: 0,
+        balanceAfter: currentPoints,
+        rewardId: req.rewardId,
+        rewardName: req.rewardName,
+        staffId: customer.id,
+        staffName: customer.name,
+        commentCategory: 'observation',
+        commentText: `Cliente canceló la solicitud de "${req.rewardName}" · req:${req.id}`,
+      });
+    }
     toast.success('Solicitud cancelada');
     setTick(t => t + 1);
   };
