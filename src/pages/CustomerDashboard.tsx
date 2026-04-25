@@ -194,6 +194,47 @@ export default function CustomerDashboard() {
 
   const cardShadow = '0 4px 20px -6px rgba(27,58,107,0.10)';
 
+  // Estado vacío: no hay ninguna sucursal con campaña configurada.
+  if (activeCampaigns.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col" style={{ background: '#f0f4f8' }}>
+        <HeroSection
+          customer={customer}
+          campaign={undefined}
+          points={0}
+          heroImgIdx={heroImgIdx}
+          onLogout={handleLogout}
+          activeCampaigns={[]}
+        />
+        <div className="max-w-[560px] mx-auto px-5 mt-8 text-center">
+          <div
+            className="bg-white p-6"
+            style={{ borderRadius: 16, border: '1px solid #e8edf3', boxShadow: cardShadow }}
+          >
+            <div className="text-4xl mb-2">🌊</div>
+            <h2 className="font-heading font-bold text-base mb-1" style={{ color: '#1B3A6B' }}>
+              No hay promociones activas
+            </h2>
+            <p className="font-body text-xs leading-relaxed" style={{ color: '#6b7a8c' }}>
+              Por ahora ninguna sucursal tiene una campaña de premios configurada.
+              Vuelve pronto para descubrir nuevas rutas de recompensas.
+            </p>
+          </div>
+        </div>
+        <PasswordChangeModal
+          open={showPasswordModal}
+          onOpenChange={setShowPasswordModal}
+          needsPasswordChange={needsPasswordChange}
+          newPwd={newPwd}
+          confirmPwd={confirmPwd}
+          onNewPwdChange={setNewPwd}
+          onConfirmPwdChange={setConfirmPwd}
+          onSubmit={handleChangePassword}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen" style={{ background: '#f0f4f8' }}>
       <HeroSection
