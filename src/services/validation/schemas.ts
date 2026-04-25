@@ -51,7 +51,7 @@ export const campaignSchema = z.object({
   branch: z.string().trim().min(2).max(80),
   startDate: z.string().min(1, 'Fecha inicial requerida'),
   endDate: z.string().min(1, 'Fecha final requerida'),
-  status: z.enum(['draft', 'active', 'finished']),
+  status: z.enum(['draft', 'active', 'paused', 'finished']),
   milestones: z.array(milestoneSchema).min(1, 'Define al menos un hito'),
   termsAndConditions: z.string().trim().min(10, 'T&C demasiado breves'),
   createdAt: z.string().min(1),

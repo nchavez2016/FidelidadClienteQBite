@@ -16,6 +16,15 @@ export function getActiveCampaigns(): Campaign[] {
   return getCampaigns().filter(c => c.status === 'active');
 }
 
+/**
+ * Campañas operables por el staff (incluye pausadas).
+ * Una campaña pausada NO es visible para el cliente, pero el staff
+ * sí debe poder seguir consultándola, gestionarla y reanudarla.
+ */
+export function getOperableCampaigns(): Campaign[] {
+  return getCampaigns().filter(c => c.status === 'active' || c.status === 'paused');
+}
+
 /** @deprecated use getActiveCampaigns(); returns the first active for compat. */
 export function getActiveCampaign(): Campaign | undefined {
   return getActiveCampaigns()[0];
