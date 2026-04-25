@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   campaigns: 'gaviota_campaigns',
   currentCustomer: 'gaviota_current_customer',
   currentStaff: 'gaviota_current_staff',
+  redemptionRequests: 'gaviota_redemption_requests',
 } as const;
 
 export const LEGACY_CAMPAIGN_ID = 'campaign-1';
