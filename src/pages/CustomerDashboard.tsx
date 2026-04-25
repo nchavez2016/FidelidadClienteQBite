@@ -33,7 +33,12 @@ export default function CustomerDashboard() {
 
   const stored = getCurrentCustomer();
   const customer = stored ? (getCustomerById(stored.id) || stored) : null;
-  const activeCampaigns = getActiveCampaigns();
+  // Solo mostramos al cliente campañas activas que estén realmente configuradas
+  // (con al menos un hito). Una campaña activa sin hitos es indistinguible de
+  // "sin promoción" para el cliente y no debe aparecer en el switcher ni en el hero.
+  const activeCampaigns = getActiveCampaigns().filter(
+    c => Array.isArray(c.milestones) && c.milestones.length > 0,
+  );
 
   // Default: la primera campaña con puntos del cliente, o la primera activa
   const defaultCampaignId = (() => {
@@ -44,9 +49,12 @@ export default function CustomerDashboard() {
   })();
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>(defaultCampaignId);
 
+  // Si la campaña seleccionada deja de ser válida (p.ej. el admin la finalizó
+  // o le quitó los hitos), reasignamos a otra activa o limpiamos la selección.
   useEffect(() => {
-    if (!selectedCampaignId && activeCampaigns.length > 0) {
-      setSelectedCampaignId(activeCampaigns[0].id);
+    const stillValid = activeCampaigns.some(c => c.id === selectedCampaignId);
+    if (!stillValid) {
+      setSelectedCampaignId(activeCampaigns[0]?.id ?? '');
     }
   }, [activeCampaigns, selectedCampaignId]);
 
