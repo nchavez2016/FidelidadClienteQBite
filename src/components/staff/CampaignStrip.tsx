@@ -1,5 +1,5 @@
 interface Props {
-  campaign: { id: string; name: string } | undefined;
+  campaign: { id: string; name: string; status?: string } | undefined;
   selectedCustomer: { acceptedCampaigns?: string[] } | null;
 }
 
@@ -10,6 +10,7 @@ export default function CampaignStrip({ campaign, selectedCustomer }: Props) {
     selectedCustomer &&
     !selectedCustomer.acceptedCampaigns?.includes(campaign.id)
   );
+  const isPaused = campaign?.status === 'paused';
 
   return (
     <div
@@ -26,7 +27,7 @@ export default function CampaignStrip({ campaign, selectedCustomer }: Props) {
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
           <span style={{ fontSize: '11px', fontWeight: 400, color: 'rgba(197,160,89,0.5)' }}>
-            Campaña activa
+            {isPaused ? 'Campaña en pausa' : 'Campaña activa'}
           </span>
           <span
             style={{
@@ -40,6 +41,18 @@ export default function CampaignStrip({ campaign, selectedCustomer }: Props) {
           <span className="truncate" style={{ fontSize: '13px', fontWeight: 600, color: '#C5A059' }}>
             {campaign?.name || 'Sin campaña activa'}
           </span>
+          {isPaused && (
+            <span
+              className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+              style={{
+                background: 'rgba(245,158,11,0.15)',
+                color: '#b45309',
+                border: '1px solid rgba(245,158,11,0.4)',
+              }}
+            >
+              ⏸ Pausada
+            </span>
+          )}
         </div>
         {termsPending && (
           <span
