@@ -13,6 +13,7 @@
 import { RedemptionRequest } from '@/lib/types';
 import { storage } from './storage/localAdapter';
 import { STORAGE_KEYS } from './storage/keys';
+import { addTransaction } from './transactions.service';
 
 function load(): RedemptionRequest[] {
   return storage.get<RedemptionRequest[]>(STORAGE_KEYS.redemptionRequests, []);
@@ -123,5 +124,55 @@ export function approveRedemptionRequest(
     resolvedBy: 'staff',
     resolvedByStaffId: staffId,
     resolvedByStaffName: staffName,
+  });
+}
+
+/**
+ * Helpers de trazabilidad: registran movimientos de auditoría (0 pts)
+ * para cada solicitud / cancelación. Centralizan el formato del
+ * `commentText` para que cliente, cajero y reportes lean el mismo log.
+ */
+interface AuditCtx {
+  customerId: string;
+  campaignId: string;
+  balanceAfter: number;
+  staffId: string;
+  staffName: string;
+}
+
+export function logRequestCreated(req: RedemptionRequest, ctx: AuditCtx): void {
+  addTransaction({
+    customerId: ctx.customerId,
+    campaignId: ctx.campaignId,
+    type: 'redemption_request',
+    points: 0,
+    balanceAfter: ctx.balanceAfter,
+    rewardId: req.rewardId,
+    rewardName: req.rewardName,
+    staffId: ctx.staffId,
+    staffName: ctx.staffName,
+    commentCategory: 'observation',
+    commentText: `Cliente solicitó canjear "${req.rewardName}" (${req.requiredPoints} pts) · req:${req.id}`,
+  });
+}
+
+export function logRequestCancelled(
+  req: RedemptionRequest,
+  ctx: AuditCtx,
+  cancelledBy: 'customer' | 'staff',
+): void {
+  const who = cancelledBy === 'customer' ? 'Cliente canceló' : 'Cajero rechazó';
+  addTransaction({
+    customerId: ctx.customerId,
+    campaignId: ctx.campaignId,
+    type: 'redemption_request_cancelled',
+    points: 0,
+    balanceAfter: ctx.balanceAfter,
+    rewardId: req.rewardId,
+    rewardName: req.rewardName,
+    staffId: ctx.staffId,
+    staffName: ctx.staffName,
+    commentCategory: 'observation',
+    commentText: `${who} la solicitud de "${req.rewardName}" · req:${req.id}`,
   });
 }
