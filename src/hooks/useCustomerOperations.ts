@@ -5,6 +5,7 @@ import {
   getLastCustomerTransaction, markTransactionReversed,
   getCustomerTransactions,
   getPendingRequest, approveRedemptionRequest, cancelRedemptionRequestByStaff,
+  logRequestCancelled, REVERSAL_WINDOW_MS,
 } from '@/lib/store';
 import { Customer, CommentCategory, Milestone, StaffUser, RedemptionRequest } from '@/lib/types';
 import { toast } from 'sonner';
@@ -21,14 +22,6 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
   const [tick, setTick] = useState(0);
 
   const refresh = useCallback(() => setTick(t => t + 1), []);
-
-  // Polling para detectar nuevas solicitudes del cliente.
-  // Usamos un interval ligero porque storage events no se disparan en la misma pestaña.
-  // El consumidor (panel staff) ya re-renderiza con cada `tick`.
-  // Se mantiene aquí para reusar en cualquier consumer.
-  // (Se intencionalmente NO incluye en deps para evitar resets).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // ↓ pollers
 
   const refreshCustomer = useCallback(() => {
     if (selectedCustomer) {
@@ -125,7 +118,7 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       toast.error('No hay movimiento para revertir en esta sucursal');
       return;
     }
-    if (Date.now() - new Date(lastTx.createdAt).getTime() > 300000) {
+    if (Date.now() - new Date(lastTx.createdAt).getTime() > REVERSAL_WINDOW_MS) {
       toast.error('Solo puedes revertir dentro de los 5 minutos');
       return;
     }
@@ -185,19 +178,17 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     if (!pending) return;
     cancelRedemptionRequestByStaff(pending.id, staff.id, staff.name);
     const balance = getCustomerPoints(selectedCustomer, currentCampaignId);
-    addTransaction({
-      customerId: selectedCustomer.id,
-      campaignId: currentCampaignId,
-      type: 'redemption_request_cancelled',
-      points: 0,
-      balanceAfter: balance,
-      rewardId: pending.rewardId,
-      rewardName: pending.rewardName,
-      staffId: staff.id,
-      staffName: staff.name,
-      commentCategory: 'observation',
-      commentText: `Cajero rechazó la solicitud de "${pending.rewardName}" · req:${pending.id}`,
-    });
+    logRequestCancelled(
+      pending,
+      {
+        customerId: selectedCustomer.id,
+        campaignId: currentCampaignId,
+        balanceAfter: balance,
+        staffId: staff.id,
+        staffName: staff.name,
+      },
+      'staff',
+    );
     toast.success('Solicitud del cliente rechazada');
     refresh();
   }, [selectedCustomer, currentCampaignId, staff, refresh]);
