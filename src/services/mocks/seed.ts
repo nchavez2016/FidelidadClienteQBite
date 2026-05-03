@@ -37,6 +37,10 @@ export const SEED_CAMPAIGNS: Campaign[] = [
     endDate: '2027-12-31',
     status: 'active',
     milestones: expressMilestones,
+    bonusRules: [
+      { id: 'bonus-express-1', label: 'Doble gaviota L-M-X mañana', multiplier: 2, days: [1, 2, 3], startTime: '09:00', endTime: '12:00', active: true },
+      { id: 'bonus-express-2', label: 'Sábado doble', multiplier: 2, days: [6], startTime: '10:00', endTime: '14:00', active: true },
+    ],
     termsAndConditions:
       'Cada compra mayor a $5 acumula 1 punto en la sucursal Express. Los puntos no son transferibles entre sucursales. Premios sujetos a disponibilidad.',
     createdAt: new Date().toISOString(),
@@ -49,6 +53,9 @@ export const SEED_CAMPAIGNS: Campaign[] = [
     endDate: '2027-12-31',
     status: 'active',
     milestones: matrizMilestones,
+    bonusRules: [
+      { id: 'bonus-matriz-1', label: 'Triple martes noche', multiplier: 3, days: [2], startTime: '19:00', endTime: '22:00', active: true },
+    ],
     termsAndConditions:
       'Cada compra mayor a $8 acumula 1 punto en la sucursal Matriz. Los puntos son independientes por sucursal. Premios sujetos a disponibilidad.',
     createdAt: new Date().toISOString(),
