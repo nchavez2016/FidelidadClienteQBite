@@ -50,10 +50,10 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     const earned = bonus.multiplier; // 1 punto base * multiplicador
     const newPoints = current + earned;
     setCustomerPoints(selectedCustomer.id, currentCampaignId, newPoints);
-    const bonusComment = bonus.rule
-      ? `Bonus x${bonus.multiplier} aplicado (${bonus.rule.label || 'regla activa'}) · rule:${bonus.rule.id}`
-      : undefined;
-    const finalCommentText = [commentText, bonusComment].filter(Boolean).join(' · ') || undefined;
+    const baseComment = bonus.rule
+      ? `Compra acreditada en horario promocional “${bonus.rule.label || 'Bonus activo'}” (${bonus.rule.startTime}–${bonus.rule.endTime}) · Bonus x${bonus.multiplier} → +${earned} pts · rule:${bonus.rule.id}`
+      : `Compra registrada · +${earned} pt acumulado`;
+    const finalCommentText = [commentText, baseComment].filter(Boolean).join(' · ');
     addTransaction({
       customerId: selectedCustomer.id,
       campaignId: currentCampaignId,
