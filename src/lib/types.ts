@@ -68,6 +68,28 @@ export interface Milestone {
 
 export type CampaignStatus = 'draft' | 'active' | 'paused' | 'finished';
 
+/**
+ * Regla de bonificación de puntos (acelerador de hábito).
+ * Aplica un multiplicador (x2, x3, etc.) a las acumulaciones que ocurran
+ * en los días y franja horaria configurados. Es opcional y no obligatoria;
+ * si ninguna regla activa coincide, se acumula el punto base (x1).
+ */
+export interface BonusRule {
+  id: string;
+  /** Etiqueta descriptiva opcional (ej: "Doble gaviota lunes 9-12"). */
+  label?: string;
+  /** Multiplicador entero (>=2). */
+  multiplier: number;
+  /** Días de la semana (0=Domingo, 1=Lunes, ... 6=Sábado). */
+  days: number[];
+  /** Hora de inicio en formato HH:mm (24h, hora local). */
+  startTime: string;
+  /** Hora de fin en formato HH:mm (24h, hora local). Exclusivo. */
+  endTime: string;
+  /** Si está activa. Permite pausar reglas sin borrarlas. */
+  active: boolean;
+}
+
 export interface Campaign {
   id: string;
   name: string;
@@ -77,6 +99,8 @@ export interface Campaign {
   endDate: string;
   status: CampaignStatus;
   milestones: Milestone[];
+  /** Reglas de bonificación opcionales (días/horas con multiplicador). */
+  bonusRules?: BonusRule[];
   termsAndConditions: string;
   createdAt: string;
 }
