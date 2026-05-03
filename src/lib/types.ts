@@ -27,6 +27,8 @@ export interface StaffUser {
   name: string;
   /** Sucursal/campaña activa de la sesión del staff. */
   branchCampaignId?: string;
+  /** Si está activo. Inactivo = no puede iniciar sesión. Default true. */
+  active?: boolean;
 }
 
 export type TransactionType =

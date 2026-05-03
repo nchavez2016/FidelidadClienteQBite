@@ -1,63 +1,82 @@
+# Gestión de Usuarios del Staff (Admin)
 
-Aplicaré el ajuste en `src/components/ProgressRoute.tsx`, específicamente en la versión horizontal/desktop de la barra de progreso.
+## Objetivo
+Agregar al panel del administrador una nueva sección "Usuarios" donde podrá administrar a los miembros del staff (admins y cajeros): crear, editar, asignar sucursal, cambiar contraseña, activar/desactivar y eliminar.
 
-## Cambio exacto
+## Alcance funcional
 
-Actualmente el contenedor de la Gaviota ya está posicionado con:
+**Roles soportados:** `admin` y `cashier` (los únicos que existen hoy).
 
-```tsx
-className="absolute z-20"
-```
+**Reglas de negocio:**
+- Solo el `admin` puede acceder a esta sección.
+- Un cajero **debe** tener una sucursal asignada (`branchCampaignId`).
+- Un admin **puede** tener sucursal por defecto (opcional) y puede cambiar entre sucursales libremente.
+- El `username` es único (validación al crear/editar).
+- No se puede eliminar ni desactivar al usuario actualmente logueado (auto-protección).
+- Debe quedar siempre al menos **un admin activo** en el sistema (no se puede eliminar el último).
+- Soporta múltiples admins y múltiples cajeros por sucursal.
+- Al "dar de baja" (desactivar) un usuario, no podrá iniciar sesión, pero su historial transaccional se conserva.
 
-pero el `translateX(-100%)` está aplicado en la imagen interna. Lo moveré al contenedor para que el punto `left: toLeft(fillRatio)` represente el borde real del progreso y el contenedor completo se desplace hacia la izquierda por el ancho de la Gaviota.
+## Cambios técnicos
 
-## Implementación
+### 1. Modelo (`src/lib/types.ts`)
+Agregar campo opcional `active?: boolean` a `StaffUser` (default `true` por compatibilidad con datos existentes).
 
-Actualizaré este bloque:
+### 2. Servicio (`src/services/staff.service.ts`)
+Añadir funciones:
+- `createStaff(input)` — valida unicidad de username, genera id, default `active: true`.
+- `updateStaff(id, patch)` — edita name/role/branch/active; valida unicidad si cambia username.
+- `changeStaffPassword(id, newPassword)` — actualiza password aislado.
+- `deleteStaff(id)` — elimina, bloquea si es el último admin o el usuario actual.
+- `setStaffActive(id, active)` — activar/desactivar, mismas protecciones.
+- Modificar `loginStaff` para rechazar usuarios con `active === false`.
 
-```tsx
-<motion.div
-  className="absolute z-20"
-  style={{ top: '-2px' }}
-  initial={animate ? { left: toLeft(0) } : false}
-  animate={{ left: toLeft(fillRatio) }}
->
-  <motion.img
-    style={{ transform: 'translateX(-100%)' }}
-  />
-</motion.div>
-```
+### 3. Validación (`src/services/validation/schemas.ts`)
+Nuevo `staffUpsertSchema` (username, name, role, password opcional en update, branchCampaignId opcional para admin / requerido para cashier).
 
-para que quede conceptualmente así:
+### 4. UI
 
-```tsx
-<motion.div
-  className="absolute z-20"
-  style={{
-    top: '-2px',
-    transform: 'translateX(-100%)',
-  }}
-  initial={animate ? { left: toLeft(0) } : false}
-  animate={{ left: toLeft(fillRatio) }}
->
-  <motion.img
-    src={gaviotaImg}
-    alt="Progreso"
-    className="w-11 h-11 object-contain drop-shadow-lg"
-  />
-</motion.div>
-```
+**Nuevo tab "Usuarios"** en `StaffPanel.tsx` (visible solo si `isAdmin`), agregando un quinto `TabsTrigger` con icono `Users`. Cambiar `grid-cols-4` → `grid-cols-5`.
 
-## Cuidado con las animaciones
+**Nuevo componente `src/components/staff/UsersTab.tsx`:**
+- Tabla/lista de staff con columnas: Nombre, Usuario, Rol (badge), Sucursal asignada, Estado (Activo/Inactivo), Acciones.
+- Botón "Nuevo usuario" arriba a la derecha.
+- Acciones por fila: Editar, Cambiar contraseña, Activar/Desactivar (toggle), Eliminar (con confirmación).
+- Filtros simples por rol y por estado.
 
-Mantendré las animaciones de `scale`, `rotate` y `y` en la imagen interna para que no sobrescriban el `translateX(-100%)` del contenedor. Así se evita que `framer-motion` mezcle el desplazamiento horizontal con el rebote o flotación de la Gaviota.
+**Nuevo componente `src/components/staff/StaffUserDialog.tsx`** (crear/editar):
+- Campos: Nombre, Usuario, Rol (select admin/cashier), Sucursal (select de campañas operables; obligatorio si rol=cashier), Contraseña (requerida en crear, opcional en editar), Estado activo (switch en modo edición).
+- Validación con zod.
 
-## Resultado esperado
+**Nuevo componente `src/components/staff/ChangePasswordDialog.tsx`** — input nueva contraseña + confirmación.
 
-Cuando el cliente tenga pocos puntos, por ejemplo 1 punto, la Gaviota dejará de verse adelantada respecto al progreso. El avance seguirá calculándose con `fillRatio`, pero la Gaviota quedará visualmente pegada al final real del relleno de la barra.
+**Diálogo de confirmación de eliminación** reutilizando `AlertDialog`.
 
-## Archivo a modificar
+### 5. Comportamiento al cambiar rol/sucursal de un usuario logueado en otra sesión
+No aplica para esta iteración (localStorage); los cambios surten efecto en su próximo login.
+
+## Layout (referencia)
 
 ```text
-src/components/ProgressRoute.tsx
++------------------------------------------------------+
+| Operaciones | Dashboard | Campañas | Reportes | Usuarios |
++------------------------------------------------------+
+| Usuarios del staff                  [+ Nuevo usuario]|
+| [Filtro rol ▾] [Filtro estado ▾]                     |
++------------------------------------------------------+
+| Nombre     Usuario   Rol     Sucursal   Estado  ⋯    |
+| Ana López  ana       Admin   —          Activo  ⋯    |
+| Juan Paz   juanp     Cajero  Express    Activo  ⋯    |
+| Luis Mora  luism     Cajero  Matriz     Inactivo⋯    |
++------------------------------------------------------+
 ```
+
+## Archivos a crear/modificar
+- modificar: `src/lib/types.ts`, `src/services/staff.service.ts`, `src/services/validation/schemas.ts`, `src/pages/StaffPanel.tsx`
+- crear: `src/components/staff/UsersTab.tsx`, `src/components/staff/StaffUserDialog.tsx`, `src/components/staff/ChangePasswordDialog.tsx`
+
+## Fuera de alcance
+- Recuperación de contraseña por el propio usuario.
+- Auditoría de cambios sobre usuarios (quién editó a quién).
+- Roles adicionales más allá de admin/cashier.
+- Hash de contraseñas (sigue siendo texto plano hasta migrar a Supabase Auth, igual que el resto del sistema).
