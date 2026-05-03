@@ -48,11 +48,16 @@ export function migrateCampaigns(): void {
   if (raw.length === 0) return;
   let changed = false;
   const migrated = raw.map((c: any) => {
-    if (!c.branch) {
+    let next = c;
+    if (!next.branch) {
       changed = true;
-      return { ...c, branch: c.name || 'Sucursal Principal' };
+      next = { ...next, branch: next.name || 'Sucursal Principal' };
     }
-    return c;
+    if (!Array.isArray(next.bonusRules)) {
+      changed = true;
+      next = { ...next, bonusRules: [] };
+    }
+    return next;
   });
   if (changed) storage.set(STORAGE_KEYS.campaigns, migrated);
 }
