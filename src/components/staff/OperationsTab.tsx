@@ -11,7 +11,8 @@ import RegisterCustomerDialog from '@/components/staff/RegisterCustomerDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check } from 'lucide-react';
+import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check, Flame } from 'lucide-react';
+import { evaluateBonus } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 
 const IDLE_TIMEOUT_MS = 60_000; // 60s para limpiar pantalla
@@ -49,6 +50,7 @@ export default function OperationsTab({
   pendingRequest, onApproveRequest, onRejectRequest, onRefresh,
 }: OperationsTabProps) {
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const bonus = evaluateBonus(campaign);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [newPhone, setNewPhone] = useState('');
