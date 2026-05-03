@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProgressRoute from '@/components/ProgressRoute';
-import { Plus, Settings, Pause, Play } from 'lucide-react';
+import { Plus, Settings, Pause, Play, Flame, Trash2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
 
@@ -27,6 +29,7 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
     newMilestoneDesc, setNewMilestoneDesc,
     addMilestone, removeMilestone, saveCampaignChanges,
     startNewCampaign, startEditCampaign, cancelEdit,
+    addBonusRule, updateBonusRule, removeBonusRule,
   } = useCampaignEditor(onRefresh);
 
   return (
