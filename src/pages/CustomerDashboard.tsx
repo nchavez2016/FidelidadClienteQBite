@@ -21,6 +21,7 @@ import RewardsCard from '@/components/customer/RewardsCard';
 import TermsSection from '@/components/customer/TermsSection';
 import PasswordChangeModal from '@/components/customer/PasswordChangeModal';
 import StatsGrid from '@/components/customer/StatsGrid';
+import BonusRuleBadge from '@/components/BonusRuleBadge';
 
 
 export default function CustomerDashboard() {
@@ -306,6 +307,7 @@ export default function CustomerDashboard() {
             </motion.div>
 
             <StatsGrid currentPoints={currentPoints} pointsToNext={pointsToNext} maxPoints={maxPoints} nextMilestone={nextMilestone} />
+            {selectedCampaign && <BonusRuleBadge campaign={selectedCampaign} variant="card" />}
             <RewardsCard
               milestones={milestones}
               currentPoints={currentPoints}
