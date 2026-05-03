@@ -70,7 +70,12 @@ export default function StaffPanel() {
 
   return (
     <div className="min-h-screen bg-background">
-      <FloatingPoint show={ops.showFloating} onDone={() => ops.setShowFloating(false)} />
+      <FloatingPoint
+        show={ops.showFloating}
+        onDone={() => ops.setShowFloating(false)}
+        amount={ops.floatingAmount}
+        multiplier={ops.floatingMultiplier}
+      />
 
       <div className="relative overflow-hidden px-4 py-6" style={{ background: '#001F3F' }}>
         <svg className="absolute inset-0 w-full h-full opacity-[0.07]" preserveAspectRatio="none" viewBox="0 0 800 200">

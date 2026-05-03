@@ -15,6 +15,8 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
   const [phoneSearch, setPhoneSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showFloating, setShowFloating] = useState(false);
+  const [floatingAmount, setFloatingAmount] = useState(1);
+  const [floatingMultiplier, setFloatingMultiplier] = useState(1);
   const [showRedeemDialog, setShowRedeemDialog] = useState(false);
   const [showReverseDialog, setShowReverseDialog] = useState(false);
   const [selectedReward, setSelectedReward] = useState<Milestone | null>(null);
@@ -68,6 +70,8 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       bonusRuleId: bonus.rule?.id,
       bonusRuleLabel: bonus.rule?.label,
     });
+    setFloatingAmount(earned);
+    setFloatingMultiplier(bonus.multiplier);
     setShowFloating(true);
     setCommentCat('');
     setCommentText('');
@@ -212,6 +216,7 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     phoneSearch, setPhoneSearch,
     selectedCustomer, setSelectedCustomer,
     showFloating, setShowFloating,
+    floatingAmount, floatingMultiplier,
     showRedeemDialog, setShowRedeemDialog,
     showReverseDialog, setShowReverseDialog,
     selectedReward, setSelectedReward,
