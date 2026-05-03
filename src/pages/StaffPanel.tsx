@@ -9,13 +9,14 @@ import OperationsTab from '@/components/staff/OperationsTab';
 import DashboardTab from '@/components/staff/DashboardTab';
 import CampaignsTab from '@/components/staff/CampaignsTab';
 import ReportsTab from '@/components/staff/ReportsTab';
+import UsersTab from '@/components/staff/UsersTab';
 import RedeemDialog from '@/components/staff/RedeemDialog';
 import ReverseDialog from '@/components/staff/ReverseDialog';
 import CampaignDialogs from '@/components/staff/CampaignDialogs';
 import FloatingPoint from '@/components/FloatingPoint';
 import StaffShiftStats from '@/components/staff/StaffShiftStats';
 import CampaignStrip from '@/components/staff/CampaignStrip';
-import { LogOut, Activity, BarChart3, Settings, TrendingUp, MapPin, ArrowLeftRight } from 'lucide-react';
+import { LogOut, Activity, BarChart3, Settings, TrendingUp, MapPin, ArrowLeftRight, Users } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import logo from '@/assets/logo-gaviota.png';
 import dishImg1 from '@/assets/papa_ahogada.png';
@@ -225,11 +226,12 @@ export default function StaffPanel() {
 
       <div className="max-w-4xl mx-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-1'} bg-muted/60`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-1'} bg-muted/60`}>
             <TabsTrigger value="operations" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'operations' ? '#C5A059' : 'transparent' }}><Activity className="w-4 h-4" />Operaciones</TabsTrigger>
             {isAdmin && <TabsTrigger value="dashboard" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'dashboard' ? '#C5A059' : 'transparent' }}><BarChart3 className="w-4 h-4" />Dashboard</TabsTrigger>}
             {isAdmin && <TabsTrigger value="campaigns" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'campaigns' ? '#C5A059' : 'transparent' }}><Settings className="w-4 h-4" />Campañas</TabsTrigger>}
             {isAdmin && <TabsTrigger value="reports" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'reports' ? '#C5A059' : 'transparent' }}><TrendingUp className="w-4 h-4" />Reportes</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="users" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'users' ? '#C5A059' : 'transparent' }}><Users className="w-4 h-4" />Usuarios</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="operations">
@@ -264,6 +266,8 @@ export default function StaffPanel() {
           )}
 
           {isAdmin && <TabsContent value="reports"><ReportsTab branchCampaignId={branchCampaignId} /></TabsContent>}
+
+          {isAdmin && <TabsContent value="users"><UsersTab /></TabsContent>}
         </Tabs>
       </div>
 
