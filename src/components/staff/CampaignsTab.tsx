@@ -239,17 +239,34 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                 <div className="space-y-2">
                   {(editingCampaign.bonusRules || []).map(rule => (
                     <div key={rule.id} className="rounded-lg p-3" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                      <div className="flex flex-wrap gap-2 items-end">
-                        <div className="flex-1 min-w-[180px]">
+                      {/* Fila 1: etiqueta a ancho completo + acciones */}
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
                           <Label className="text-[10px]">Etiqueta</Label>
                           <Input
                             value={rule.label || ''}
                             placeholder="Doble gaviota lunes 9-12"
                             onChange={e => updateBonusRule(rule.id, { label: e.target.value })}
-                            className="h-8 text-sm"
+                            className="h-9 text-sm"
                           />
                         </div>
-                        <div className="w-24">
+                        <div className="flex flex-col items-center gap-1 pt-0.5">
+                          <Label className="text-[10px]">Activa</Label>
+                          <Switch checked={rule.active} onCheckedChange={v => updateBonusRule(rule.id, { active: v })} />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive h-9 mt-4"
+                          onClick={() => removeBonusRule(rule.id)}
+                          aria-label="Eliminar regla"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      {/* Fila 2: multiplicador + horas (grid responsive, no se aprietan) */}
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div>
                           <Label className="text-[10px]">Multiplicador</Label>
                           <Input
                             type="number"
@@ -257,34 +274,29 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                             max={10}
                             value={rule.multiplier}
                             onChange={e => updateBonusRule(rule.id, { multiplier: Math.max(2, parseInt(e.target.value) || 2) })}
-                            className="h-8 text-sm"
+                            className="h-9 text-sm w-full"
                           />
                         </div>
-                        <div className="w-24">
+                        <div>
                           <Label className="text-[10px]">Desde</Label>
                           <Input
                             type="time"
+                            step={300}
                             value={rule.startTime}
                             onChange={e => updateBonusRule(rule.id, { startTime: e.target.value })}
-                            className="h-8 text-sm"
+                            className="h-9 text-sm w-full"
                           />
                         </div>
-                        <div className="w-24">
+                        <div>
                           <Label className="text-[10px]">Hasta</Label>
                           <Input
                             type="time"
+                            step={300}
                             value={rule.endTime}
                             onChange={e => updateBonusRule(rule.id, { endTime: e.target.value })}
-                            className="h-8 text-sm"
+                            className="h-9 text-sm w-full"
                           />
                         </div>
-                        <div className="flex flex-col items-center gap-1">
-                          <Label className="text-[10px]">Activa</Label>
-                          <Switch checked={rule.active} onCheckedChange={v => updateBonusRule(rule.id, { active: v })} />
-                        </div>
-                        <Button size="sm" variant="ghost" className="text-destructive h-8" onClick={() => removeBonusRule(rule.id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
                       </div>
                       <div className="mt-2">
                         <Label className="text-[10px]">Días de la semana</Label>
