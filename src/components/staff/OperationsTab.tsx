@@ -11,7 +11,8 @@ import RegisterCustomerDialog from '@/components/staff/RegisterCustomerDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check } from 'lucide-react';
+import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check, Flame } from 'lucide-react';
+import { evaluateBonus } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 
 const IDLE_TIMEOUT_MS = 60_000; // 60s para limpiar pantalla
@@ -49,6 +50,7 @@ export default function OperationsTab({
   pendingRequest, onApproveRequest, onRejectRequest, onRefresh,
 }: OperationsTabProps) {
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const bonus = evaluateBonus(campaign);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [newPhone, setNewPhone] = useState('');
@@ -356,7 +358,12 @@ export default function OperationsTab({
               <div className="grid grid-cols-3 gap-2">
                 <Button onClick={handleAddPoint} className="bg-success hover:bg-success/90 text-success-foreground gap-1 h-auto py-3 flex-col">
                   <Plus className="w-5 h-5" />
-                  <span className="text-[10px] leading-tight text-center">+1 Punto<br/>{campaign?.branch ? `(${campaign.branch})` : ''}</span>
+                  <span className="text-[10px] leading-tight text-center">
+                    {bonus.multiplier > 1 ? (
+                      <span className="inline-flex items-center gap-0.5"><Flame className="w-3 h-3" />+{bonus.multiplier} Pts (x{bonus.multiplier})</span>
+                    ) : '+1 Punto'}
+                    <br/>{campaign?.branch ? `(${campaign.branch})` : ''}
+                  </span>
                 </Button>
                 <Button
                   onClick={() => {

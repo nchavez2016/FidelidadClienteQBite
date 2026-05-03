@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProgressRoute from '@/components/ProgressRoute';
-import { Plus, Settings, Pause, Play } from 'lucide-react';
+import { Plus, Settings, Pause, Play, Flame, Trash2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
 
@@ -27,6 +29,7 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
     newMilestoneDesc, setNewMilestoneDesc,
     addMilestone, removeMilestone, saveCampaignChanges,
     startNewCampaign, startEditCampaign, cancelEdit,
+    addBonusRule, updateBonusRule, removeBonusRule,
   } = useCampaignEditor(onRefresh);
 
   return (
@@ -212,6 +215,109 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                 <Input placeholder="Descripción (opc.)" value={newMilestoneDesc} onChange={e => setNewMilestoneDesc(e.target.value)} className="flex-1 min-w-[150px]" />
                 <Button onClick={addMilestone} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1"><Plus className="w-4 h-4" />Agregar</Button>
               </div>
+            </div>
+
+            {/* Bonus rules */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-heading font-bold flex items-center gap-1.5">
+                  <Flame className="w-4 h-4" style={{ color: '#d97706' }} />
+                  Bonus de puntos (opcional)
+                </h3>
+                <Button size="sm" variant="outline" onClick={addBonusRule} className="gap-1 border-amber-400 text-amber-700 hover:bg-amber-50">
+                  <Plus className="w-3.5 h-3.5" />Nueva regla
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                Define multiplicadores (x2, x3...) por día y franja horaria para acelerar la frecuencia de visita. Ejemplo: doble gaviota lunes a miércoles de 9:00 a 12:00.
+              </p>
+              {(editingCampaign.bonusRules || []).length === 0 ? (
+                <div className="text-[11px] text-center text-muted-foreground py-3 rounded-lg" style={{ border: '1px dashed rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.04)' }}>
+                  Aún no hay reglas bonus. Agrega una para premiar visitas en horarios estratégicos.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {(editingCampaign.bonusRules || []).map(rule => (
+                    <div key={rule.id} className="rounded-lg p-3" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                      <div className="flex flex-wrap gap-2 items-end">
+                        <div className="flex-1 min-w-[180px]">
+                          <Label className="text-[10px]">Etiqueta</Label>
+                          <Input
+                            value={rule.label || ''}
+                            placeholder="Doble gaviota lunes 9-12"
+                            onChange={e => updateBonusRule(rule.id, { label: e.target.value })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="w-24">
+                          <Label className="text-[10px]">Multiplicador</Label>
+                          <Input
+                            type="number"
+                            min={2}
+                            max={10}
+                            value={rule.multiplier}
+                            onChange={e => updateBonusRule(rule.id, { multiplier: Math.max(2, parseInt(e.target.value) || 2) })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="w-24">
+                          <Label className="text-[10px]">Desde</Label>
+                          <Input
+                            type="time"
+                            value={rule.startTime}
+                            onChange={e => updateBonusRule(rule.id, { startTime: e.target.value })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="w-24">
+                          <Label className="text-[10px]">Hasta</Label>
+                          <Input
+                            type="time"
+                            value={rule.endTime}
+                            onChange={e => updateBonusRule(rule.id, { endTime: e.target.value })}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                          <Label className="text-[10px]">Activa</Label>
+                          <Switch checked={rule.active} onCheckedChange={v => updateBonusRule(rule.id, { active: v })} />
+                        </div>
+                        <Button size="sm" variant="ghost" className="text-destructive h-8" onClick={() => removeBonusRule(rule.id)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      <div className="mt-2">
+                        <Label className="text-[10px]">Días de la semana</Label>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {DAY_LABELS.map((d, idx) => {
+                            const selected = rule.days.includes(idx);
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  const next = selected
+                                    ? rule.days.filter(x => x !== idx)
+                                    : [...rule.days, idx].sort();
+                                  updateBonusRule(rule.id, { days: next });
+                                }}
+                                className="text-[10px] px-2 py-1 rounded-md font-semibold transition-colors"
+                                style={{
+                                  background: selected ? '#d97706' : '#fff',
+                                  color: selected ? '#fff' : '#92400e',
+                                  border: `1px solid ${selected ? '#d97706' : 'rgba(245,158,11,0.4)'}`,
+                                }}
+                              >
+                                {d}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Preview */}

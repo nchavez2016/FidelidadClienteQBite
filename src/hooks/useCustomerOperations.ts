@@ -6,6 +6,7 @@ import {
   getCustomerTransactions,
   getPendingRequest, approveRedemptionRequest, cancelRedemptionRequestByStaff,
   logRequestCancelled, REVERSAL_WINDOW_MS,
+  evaluateBonus, getCampaignById,
 } from '@/lib/store';
 import { Customer, CommentCategory, Milestone, StaffUser, RedemptionRequest } from '@/lib/types';
 import { toast } from 'sonner';
@@ -44,23 +45,37 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       return;
     }
     const current = getCustomerPoints(selectedCustomer, currentCampaignId);
-    const newPoints = current + 1;
+    const campaign = getCampaignById(currentCampaignId);
+    const bonus = evaluateBonus(campaign);
+    const earned = bonus.multiplier; // 1 punto base * multiplicador
+    const newPoints = current + earned;
     setCustomerPoints(selectedCustomer.id, currentCampaignId, newPoints);
+    const bonusComment = bonus.rule
+      ? `Bonus x${bonus.multiplier} aplicado (${bonus.rule.label || 'regla activa'}) · rule:${bonus.rule.id}`
+      : undefined;
+    const finalCommentText = [commentText, bonusComment].filter(Boolean).join(' · ') || undefined;
     addTransaction({
       customerId: selectedCustomer.id,
       campaignId: currentCampaignId,
       type: 'accumulation',
-      points: 1,
+      points: earned,
       balanceAfter: newPoints,
       staffId: staff.id,
       staffName: staff.name,
-      commentCategory: commentCat || undefined,
-      commentText: commentText || undefined,
+      commentCategory: commentCat || (bonus.rule ? 'promotion' : undefined),
+      commentText: finalCommentText,
+      bonusMultiplier: bonus.multiplier > 1 ? bonus.multiplier : undefined,
+      bonusRuleId: bonus.rule?.id,
+      bonusRuleLabel: bonus.rule?.label,
     });
     setShowFloating(true);
     setCommentCat('');
     setCommentText('');
-    toast.success('Listo, sumamos 1 punto 🎉');
+    toast.success(
+      bonus.multiplier > 1
+        ? `🔥 Bonus x${bonus.multiplier} · sumamos ${earned} puntos`
+        : 'Listo, sumamos 1 punto 🎉',
+    );
     setSelectedCustomer(getCustomerById(selectedCustomer.id) || null);
     refresh();
   }, [selectedCustomer, staff, commentCat, commentText, refresh, currentCampaignId]);

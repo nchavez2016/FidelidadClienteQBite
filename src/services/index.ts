@@ -18,6 +18,7 @@ export * from './transactions.service';
 export * from './campaigns.service';
 export * from './branches.service';
 export * from './redemptionRequests.service';
+export * from './bonusRules.service';
 export * from './auth';
 export * from './rules';
 export * from './analytics';
