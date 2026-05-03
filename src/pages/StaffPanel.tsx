@@ -275,6 +275,7 @@ export default function StaffPanel() {
         commentCat={ops.commentCat} commentText={ops.commentText}
         setCommentCat={ops.setCommentCat} setCommentText={ops.setCommentText}
         onRedeem={ops.handleRedeem}
+        lockedFromRequest={!!ops.pendingRequest && ops.selectedReward?.id === ops.pendingRequest.rewardId}
       />
 
       <ReverseDialog
