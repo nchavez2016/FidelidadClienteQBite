@@ -2,7 +2,7 @@ import { Customer, CommentCategory, Milestone, Campaign } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import CommentInput from '@/components/CommentInput';
-import { Gift, CheckCircle, Lock } from 'lucide-react';
+import { Gift, CheckCircle, Lock, Hourglass } from 'lucide-react';
 
 interface RedeemDialogProps {
   open: boolean;
@@ -17,23 +17,41 @@ interface RedeemDialogProps {
   setCommentCat: (v: CommentCategory | '') => void;
   setCommentText: (v: string) => void;
   onRedeem: () => void;
+  /** Si viene de una solicitud del cliente, bloquea la selección. */
+  lockedFromRequest?: boolean;
 }
 
 export default function RedeemDialog({
   open, onOpenChange, customer, campaign, currentPoints, selectedReward, setSelectedReward,
-  commentCat, commentText, setCommentCat, setCommentText, onRedeem,
+  commentCat, commentText, setCommentCat, setCommentText, onRedeem, lockedFromRequest,
 }: RedeemDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Gift className="w-5 h-5 text-accent" />Canjear Premio</DialogTitle>
-          <DialogDescription>Selecciona el premio a canjear {campaign?.branch ? `(${campaign.branch})` : ''}</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><Gift className="w-5 h-5 text-accent" />
+            {lockedFromRequest ? 'Confirmar canje solicitado' : 'Canjear Premio'}
+          </DialogTitle>
+          <DialogDescription>
+            {lockedFromRequest
+              ? `El cliente ya seleccionó este premio. Confirma la entrega ${campaign?.branch ? `(${campaign.branch})` : ''}.`
+              : `Selecciona el premio a canjear ${campaign?.branch ? `(${campaign.branch})` : ''}`}
+          </DialogDescription>
         </DialogHeader>
         {customer && (
           <div className="space-y-4">
             <p className="text-sm">Puntos actuales en {campaign?.branch || 'sucursal'}: <strong className="text-accent">{currentPoints}</strong></p>
-            <div className="space-y-2">
+            {lockedFromRequest && selectedReward ? (
+              <div className="rounded-lg p-3 flex items-start gap-3" style={{ background: 'rgba(46,109,180,0.08)', border: '1.5px solid #2E6DB4' }}>
+                <Hourglass className="w-5 h-5 mt-0.5" style={{ color: '#2E6DB4' }} />
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#1B3A6B' }}>Premio solicitado por el cliente</p>
+                  <p className="text-sm font-semibold mt-0.5" style={{ color: '#1B3A6B' }}>🎁 {selectedReward.rewardName}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Costo: {selectedReward.requiredPoints} pts</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
               {campaign?.milestones.sort((a, b) => a.requiredPoints - b.requiredPoints).map(m => {
                 const available = currentPoints >= m.requiredPoints;
                 return (
@@ -54,7 +72,8 @@ export default function RedeemDialog({
                   </button>
                 );
               })}
-            </div>
+              </div>
+            )}
             {selectedReward && (
               <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 text-sm space-y-1">
                 <p>Tienes <strong>{currentPoints}</strong> puntos</p>
