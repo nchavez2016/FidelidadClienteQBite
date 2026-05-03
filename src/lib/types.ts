@@ -55,6 +55,12 @@ export interface Transaction {
   commentText?: string;
   reversedTransactionId?: string;
   isReversed?: boolean;
+  /** Multiplicador aplicado a una acumulación (>1 indica bonus activo). */
+  bonusMultiplier?: number;
+  /** Id de la regla de bonus aplicada (para trazabilidad/auditoría). */
+  bonusRuleId?: string;
+  /** Etiqueta legible de la regla de bonus aplicada. */
+  bonusRuleLabel?: string;
   createdAt: string;
 }
 
