@@ -5,15 +5,15 @@
  * reversal flag, and the per-campaign anti-abuse window.
  */
 import { Transaction } from '@/lib/types';
-import { storage } from './storage/localAdapter';
-import { POINT_COOLDOWN_MS, STORAGE_KEYS } from './storage/keys';
+import { db, TABLES } from './dbAdapter';
+import { POINT_COOLDOWN_MS } from './storage/keys';
 import {
   validateOrThrow,
   transactionCreationSchema,
 } from './validation';
 
 export function getTransactions(): Transaction[] {
-  return storage.get<Transaction[]>(STORAGE_KEYS.transactions, []);
+  return db.readSync<Transaction>(TABLES.transactions);
 }
 
 /** List transactions; if `campaignId` is given filter to that campaign. */
@@ -36,7 +36,7 @@ export function addTransaction(t: Omit<Transaction, 'id' | 'createdAt'>): Transa
     id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     createdAt: new Date().toISOString(),
   };
-  storage.set(STORAGE_KEYS.transactions, [...getTransactions(), transaction]);
+  db.writeSync(TABLES.transactions, [...getTransactions(), transaction]);
   return transaction;
 }
 
@@ -44,7 +44,7 @@ export function markTransactionReversed(txId: string): void {
   const txs = getTransactions().map(t =>
     t.id === txId ? { ...t, isReversed: true } : t,
   );
-  storage.set(STORAGE_KEYS.transactions, txs);
+  db.writeSync(TABLES.transactions, txs);
 }
 
 export function getLastCustomerTransaction(

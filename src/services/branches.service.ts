@@ -13,7 +13,7 @@
  *   - staff_profiles.branch_id → branches.id
  *   - transactions.branch_id (denormalized for analytics)
  */
-import { storage } from './storage/localAdapter';
+import { db, TABLES } from './dbAdapter';
 import { getCampaigns } from './campaigns.service';
 
 export interface Branch {
@@ -22,8 +22,6 @@ export interface Branch {
   /** First campaign that introduced this branch (legacy link). */
   legacyCampaignId?: string;
 }
-
-const BRANCHES_KEY = 'gaviota_branches';
 
 function deriveFromCampaigns(): Branch[] {
   const campaigns = getCampaigns();
@@ -37,10 +35,10 @@ function deriveFromCampaigns(): Branch[] {
 }
 
 export function getBranches(): Branch[] {
-  const stored = storage.get<Branch[]>(BRANCHES_KEY, []);
+  const stored = db.readSync<Branch>(TABLES.branches);
   if (stored.length > 0) return stored;
   const derived = deriveFromCampaigns();
-  if (derived.length > 0) storage.set(BRANCHES_KEY, derived);
+  if (derived.length > 0) db.writeSync(TABLES.branches, derived);
   return derived;
 }
 
@@ -58,5 +56,5 @@ export function saveBranch(branch: Branch): void {
   const idx = all.findIndex(b => b.id === branch.id);
   if (idx >= 0) all[idx] = branch;
   else all.push(branch);
-  storage.set(BRANCHES_KEY, all);
+  db.writeSync(TABLES.branches, all);
 }
