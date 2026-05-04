@@ -277,7 +277,7 @@ export default function OperationsTab({
                     </span>
                   );
                 })()}
-                {selectedCustomer.password === selectedCustomer.phone && (
+                {customerNeedsPasswordChange(selectedCustomer) && (
                   <span
                     className="inline-flex items-center gap-1 text-[10px] font-body font-semibold px-2.5 py-1 rounded-full"
                     style={{
