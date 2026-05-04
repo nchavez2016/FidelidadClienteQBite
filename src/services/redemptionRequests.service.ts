@@ -11,16 +11,15 @@
  *  - Aprobar valida nuevamente que los puntos sigan siendo suficientes.
  */
 import { RedemptionRequest } from '@/lib/types';
-import { storage } from './storage/localAdapter';
-import { STORAGE_KEYS } from './storage/keys';
+import { db, TABLES } from './dbAdapter';
 import { addTransaction } from './transactions.service';
 
 function load(): RedemptionRequest[] {
-  return storage.get<RedemptionRequest[]>(STORAGE_KEYS.redemptionRequests, []);
+  return db.readSync<RedemptionRequest>(TABLES.redemptionRequests);
 }
 
 function save(list: RedemptionRequest[]): void {
-  storage.set(STORAGE_KEYS.redemptionRequests, list);
+  db.writeSync(TABLES.redemptionRequests, list);
 }
 
 export function getRedemptionRequests(): RedemptionRequest[] {

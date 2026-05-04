@@ -10,6 +10,7 @@ import {
   acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints, addTransaction,
   getPendingRequest, createRedemptionRequest, cancelRedemptionRequestByCustomer,
   logRequestCreated, logRequestCancelled,
+  revokeConsent, getConsentStatus,
 } from '@/lib/store';
 
 import ProgressRoute from '@/components/ProgressRoute';
@@ -151,6 +152,16 @@ export default function CustomerDashboard() {
   };
 
   const handleLogout = () => { logoutCustomer(); navigate('/cliente/login'); };
+
+  const handleRevokeConsent = () => {
+    if (!customer) return;
+    if (!window.confirm('¿Revocar el consentimiento de uso de tu número? Tu cuenta dejará de ser usada por el programa.')) return;
+    revokeConsent(customer.id);
+    toast.success('Consentimiento revocado. Cerraremos tu sesión.');
+    setTimeout(() => { logoutCustomer(); navigate('/cliente/login'); }, 800);
+  };
+
+  const consentStatus = customer ? getConsentStatus(customer.id) : { hasActiveConsent: false };
 
   if (!customer) return null;
 
@@ -360,6 +371,17 @@ export default function CustomerDashboard() {
         onConfirmPwdChange={setConfirmPwd}
         onSubmit={handleChangePassword}
       />
+
+      {consentStatus.hasActiveConsent && (
+        <div className="max-w-[720px] mx-auto px-3 sm:px-4 pb-6">
+          <button
+            onClick={handleRevokeConsent}
+            className="w-full text-[11px] font-body text-muted-foreground underline hover:text-destructive py-2"
+          >
+            Revocar consentimiento de uso de mi número (LOPDP)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,12 +3,11 @@
  * CRUD for campaigns/milestones plus reward eligibility helpers.
  */
 import { Campaign, Milestone } from '@/lib/types';
-import { storage } from './storage/localAdapter';
-import { STORAGE_KEYS } from './storage/keys';
+import { db, TABLES } from './dbAdapter';
 
 export function getCampaigns(): Campaign[] {
-  return storage
-    .get<Campaign[]>(STORAGE_KEYS.campaigns, [])
+  return db
+    .readSync<Campaign>(TABLES.campaigns)
     .map((c: any) => ({ ...c, branch: c.branch || c.name }));
 }
 
@@ -39,14 +38,14 @@ export function saveCampaign(campaign: Campaign): void {
   const idx = campaigns.findIndex(c => c.id === campaign.id);
   if (idx >= 0) campaigns[idx] = campaign;
   else campaigns.push(campaign);
-  storage.set(STORAGE_KEYS.campaigns, campaigns);
+  db.writeSync(TABLES.campaigns, campaigns);
 }
 
 export function setCampaignStatus(id: string, status: Campaign['status']): void {
   const campaigns = getCampaigns().map(c =>
     c.id === id ? { ...c, status } : c,
   );
-  storage.set(STORAGE_KEYS.campaigns, campaigns);
+  db.writeSync(TABLES.campaigns, campaigns);
 }
 
 /** Rewards available for a given campaign at N points. */

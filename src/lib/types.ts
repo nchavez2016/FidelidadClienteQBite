@@ -6,9 +6,13 @@ export interface Customer {
   id: string;
   phone: string;
   name: string;
-  password: string;
   gender: Gender;
   /** Puntos por campaña (clave = campaignId). Reemplaza al antiguo `points`. */
+  /**
+   * @deprecated Los puntos viven ahora en la tabla `customer_campaign_points`.
+   * Se mantiene esta propiedad sólo como caché de lectura para no romper la UI
+   * actual; será eliminada cuando los componentes consuman el servicio async.
+   */
   pointsByCampaign: Record<string, number>;
   /** IDs de campañas cuyos T&C ya fueron aceptados. */
   acceptedCampaigns: string[];
@@ -16,13 +20,16 @@ export interface Customer {
   points?: number;
   /** @deprecated migrado a acceptedCampaigns */
   acceptedCampaignId?: string;
+  /** Soft-delete: false = cuenta dada de baja. Default true. */
+  isActive?: boolean;
+  /** Marca temporal de la baja lógica (ISO). */
+  deletedAt?: string;
   createdAt: string;
 }
 
 export interface StaffUser {
   id: string;
   username: string;
-  password: string;
   role: 'cashier' | 'admin';
   name: string;
   /** Sucursal/campaña activa de la sesión del staff. */
@@ -133,4 +140,53 @@ export interface RedemptionRequest {
   resolvedByStaffName?: string;
   resolvedAt?: string;
   createdAt: string;
+}
+
+// ===== LOPDP: consentimiento explícito =====
+
+export type ConsentType = 'fidelity_phone_usage';
+
+export interface ConsentRecord {
+  id: string;
+  userId: string;
+  consentType: ConsentType;
+  accepted: boolean;
+  legalVersion: string;
+  acceptedAt: string;
+  revokedAt?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  channel: 'web' | 'staff' | 'mobile';
+}
+
+// ===== Audit log básico =====
+
+export type AuditAction =
+  | 'consent_accepted'
+  | 'consent_revoked'
+  | 'customer_deactivated'
+  | 'customer_reactivated'
+  | 'staff_login'
+  | 'customer_login';
+
+export interface AuditLogEntry {
+  id: string;
+  action: AuditAction;
+  actorId?: string;
+  actorRole?: UserRole;
+  targetUserId?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+/**
+ * Puntos por (cliente, campaña) — fila normalizada.
+ * Reemplaza el embedido `customer.pointsByCampaign`.
+ */
+export interface CustomerCampaignPoints {
+  id: string; // `${customerId}:${campaignId}`
+  customerId: string;
+  campaignId: string;
+  points: number;
+  updatedAt: string;
 }

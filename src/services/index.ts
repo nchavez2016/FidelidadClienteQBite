@@ -22,6 +22,9 @@ export * from './bonusRules.service';
 export * from './auth';
 export * from './rules';
 export * from './analytics';
+export * from './consent.service';
+export * from './audit.service';
+export { db, TABLES } from './dbAdapter';
 export * as Validation from './validation';
 export {
   STORAGE_KEYS,

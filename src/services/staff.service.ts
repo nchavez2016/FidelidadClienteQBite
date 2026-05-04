@@ -1,34 +1,47 @@
 /**
  * Staff domain service.
  * Handles staff CRUD, session, and active branch persistence.
+ *
+ * Passwords no longer live on the staff row — they go through
+ * `credentials.service`. Persistence routes through `dbAdapter`.
+ *
+ * TODO(Supabase): replace local reads/writes with `supabase.from('staff_profiles')`,
+ * and replace `verifyCredential` with `supabase.auth.signInWithPassword`.
  */
 import { StaffUser } from '@/lib/types';
-import { storage } from './storage/localAdapter';
-import { STORAGE_KEYS } from './storage/keys';
+import { db, TABLES } from './dbAdapter';
+import {
+  setCredential,
+  verifyCredential,
+  deleteCredential,
+  updateCredentialIdentifier,
+} from './credentials.service';
+import { logAudit } from './audit.service';
+
+function normalize(s: any): StaffUser {
+  return { ...s, active: s.active !== false };
+}
 
 export function getStaff(): StaffUser[] {
-  const all = storage.get<StaffUser[]>(STORAGE_KEYS.staff, []);
-  // Backfill `active` for legacy rows.
-  return all.map(s => ({ ...s, active: s.active !== false }));
+  return db.readSync<any>(TABLES.staff).map(normalize);
 }
 
 export function loginStaff(username: string, password: string): StaffUser | null {
-  const s = getStaff().find(
-    u => u.username === username && u.password === password && u.active !== false,
-  );
-  if (s) {
-    storage.set(STORAGE_KEYS.currentStaff, s);
-    return s;
-  }
-  return null;
+  const userId = verifyCredential('username', username, password);
+  if (!userId) return null;
+  const s = getStaff().find(u => u.id === userId && u.active !== false);
+  if (!s) return null;
+  db.writeValueSync(TABLES.sessionStaff, s);
+  logAudit({ action: 'staff_login', actorId: s.id, actorRole: s.role, targetUserId: s.id });
+  return s;
 }
 
 export function getCurrentStaff(): StaffUser | null {
-  return storage.get<StaffUser | null>(STORAGE_KEYS.currentStaff, null);
+  return db.readValueSync<StaffUser | null>(TABLES.sessionStaff, null);
 }
 
 export function logoutStaff(): void {
-  storage.remove(STORAGE_KEYS.currentStaff);
+  db.removeSync(TABLES.sessionStaff);
 }
 
 /** Persist the active branch/campaign for a staff member. */
@@ -36,10 +49,10 @@ export function setStaffBranch(staffId: string, campaignId: string): void {
   const all = getStaff().map(s =>
     s.id === staffId ? { ...s, branchCampaignId: campaignId } : s,
   );
-  storage.set(STORAGE_KEYS.staff, all);
+  db.writeSync(TABLES.staff, all);
   const current = getCurrentStaff();
   if (current && current.id === staffId) {
-    storage.set(STORAGE_KEYS.currentStaff, { ...current, branchCampaignId: campaignId });
+    db.writeValueSync(TABLES.sessionStaff, { ...current, branchCampaignId: campaignId });
   }
 }
 
@@ -88,13 +101,11 @@ export function createStaff(input: StaffUpsertInput): StaffUser {
     username: input.username.trim(),
     name: input.name.trim(),
     role: input.role,
-    password: input.password,
     branchCampaignId: input.branchCampaignId,
     active: input.active !== false,
   };
-  const all = getStaff();
-  all.push(newStaff);
-  storage.set(STORAGE_KEYS.staff, all);
+  setCredential(newStaff.id, 'username', newStaff.username, input.password);
+  db.writeSync(TABLES.staff, [...getStaff(), newStaff]);
   return newStaff;
 }
 
@@ -114,7 +125,6 @@ export function updateStaff(id: string, patch: Partial<StaffUpsertInput>): Staff
   if (patch.username && patch.username !== current.username) {
     assertUniqueUsername(patch.username, id);
   }
-  // Si se quiere cambiar de admin a cashier o desactivar, proteger último admin.
   const wasActiveAdmin = current.role === 'admin' && current.active !== false;
   const stillActiveAdmin = nextRole === 'admin' && nextActive !== false;
   if (wasActiveAdmin && !stillActiveAdmin) {
@@ -131,13 +141,18 @@ export function updateStaff(id: string, patch: Partial<StaffUpsertInput>): Staff
     role: nextRole,
     branchCampaignId: nextRole === 'admin' ? patch.branchCampaignId ?? current.branchCampaignId : nextBranch,
     active: nextActive,
-    password: patch.password && patch.password.length >= 4 ? patch.password : current.password,
   };
   all[idx] = updated;
-  storage.set(STORAGE_KEYS.staff, all);
+  db.writeSync(TABLES.staff, all);
+  if (patch.username && patch.username !== current.username) {
+    updateCredentialIdentifier(id, updated.username);
+  }
+  if (patch.password && patch.password.length >= 4) {
+    setCredential(id, 'username', updated.username, patch.password);
+  }
   const session = getCurrentStaff();
   if (session && session.id === id) {
-    storage.set(STORAGE_KEYS.currentStaff, updated);
+    db.writeValueSync(TABLES.sessionStaff, updated);
   }
   return updated;
 }
@@ -146,15 +161,9 @@ export function changeStaffPassword(id: string, newPassword: string): void {
   if (!newPassword || newPassword.length < 4) {
     throw new Error('La contraseña debe tener al menos 4 caracteres');
   }
-  const all = getStaff();
-  const idx = all.findIndex(s => s.id === id);
-  if (idx < 0) throw new Error('Usuario no encontrado');
-  all[idx] = { ...all[idx], password: newPassword };
-  storage.set(STORAGE_KEYS.staff, all);
-  const session = getCurrentStaff();
-  if (session && session.id === id) {
-    storage.set(STORAGE_KEYS.currentStaff, all[idx]);
-  }
+  const target = getStaff().find(s => s.id === id);
+  if (!target) throw new Error('Usuario no encontrado');
+  setCredential(id, 'username', target.username, newPassword);
 }
 
 export function setStaffActive(id: string, active: boolean): void {
@@ -164,7 +173,7 @@ export function setStaffActive(id: string, active: boolean): void {
     if (target?.role === 'admin') assertNotLastActiveAdmin(id);
   }
   const all = getStaff().map(s => (s.id === id ? { ...s, active } : s));
-  storage.set(STORAGE_KEYS.staff, all);
+  db.writeSync(TABLES.staff, all);
 }
 
 export function deleteStaff(id: string): void {
@@ -172,6 +181,6 @@ export function deleteStaff(id: string): void {
   const target = getStaff().find(s => s.id === id);
   if (!target) return;
   if (target.role === 'admin') assertNotLastActiveAdmin(id);
-  const all = getStaff().filter(s => s.id !== id);
-  storage.set(STORAGE_KEYS.staff, all);
+  db.writeSync(TABLES.staff, getStaff().filter(s => s.id !== id));
+  deleteCredential(id);
 }
