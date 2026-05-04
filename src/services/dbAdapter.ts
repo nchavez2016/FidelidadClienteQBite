@@ -115,7 +115,7 @@ export const db = {
   // ===== Sync helpers (TRANSITIONAL — remove after async migration) =====
 
   /** @transitional Sync collection read. */
-  readSync<T extends RowLike = RowLike>(table: string): T[] {
+  readSync<T = unknown>(table: string): T[] {
     return rawRead<T[]>(table, []);
   },
   /** @transitional Sync collection write (replace whole array). */

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Customer, CommentCategory, Milestone, Campaign, RedemptionRequest } from '@/lib/types';
-import { getCustomerTransactions, resetCustomerPassword, updateCustomerPhone, getCustomerById, getCustomerPoints } from '@/lib/store';
+import { getCustomerTransactions, resetCustomerPassword, updateCustomerPhone, getCustomerById, getCustomerPoints, customerNeedsPasswordChange } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
