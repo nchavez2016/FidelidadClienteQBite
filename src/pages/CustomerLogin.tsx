@@ -16,12 +16,12 @@ export default function CustomerLogin() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const result = loginCustomerDetailed(phone, password);
-    if (result.ok) {
+    if (result.ok === true) {
       toast.success(`¡Bienvenido, ${result.customer.name}!`);
       navigate('/cliente/dashboard');
       return;
     }
-    if (result.reason === 'account_revoked') {
+    if (result.reason === 'account_revoked' || result.reason === 'account_inactive') {
       toast.error(
         'Esta cuenta fue dada de baja por revocación del consentimiento. ' +
         'Si deseas volver a participar, debes registrarte como cliente nuevo.',
