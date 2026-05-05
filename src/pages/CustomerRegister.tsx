@@ -72,7 +72,7 @@ export default function CustomerRegister() {
               <label className="flex items-start gap-2 cursor-pointer">
                 <Checkbox checked={consent} onCheckedChange={(v) => setConsent(v === true)} className="mt-1" />
                 <span className="text-xs leading-relaxed">
-                  Acepto que mi número celular sea usado <strong>EXCLUSIVAMENTE</strong> para el programa de fidelidad: registro, acumulación/asignación de puntos, notificaciones de saldo y redención de beneficios. <strong>NO</strong> se usará para marketing, publicidad ni compartido con terceros.
+                  Acepto que mi número celular sea usado <strong>EXCLUSIVAMENTE</strong> para el programa de fidelidad: registro, acumulación/asignación de puntos y redención de beneficios. <strong>NO</strong> se usará para marketing, publicidad ni compartido con terceros.
                   <br /><br />
                   <span className="text-muted-foreground">Puedo revocar este consentimiento cuando quiera desde mi perfil o contactando al admin.</span>
                 </span>
