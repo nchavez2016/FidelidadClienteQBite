@@ -7,6 +7,7 @@ import {
   getPendingRequest, approveRedemptionRequest, cancelRedemptionRequestByStaff,
   logRequestCancelled, REVERSAL_WINDOW_MS,
   evaluateBonus, getCampaignById,
+  getInactiveAccountsForPhone,
 } from '@/lib/store';
 import { Customer, CommentCategory, Milestone, StaffUser, RedemptionRequest } from '@/lib/types';
 import { toast } from 'sonner';
@@ -35,8 +36,32 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
 
   const searchCustomer = useCallback(() => {
     const c = getCustomerByPhone(phoneSearch);
-    if (c) { setSelectedCustomer(c); toast.success(`Cliente encontrado: ${c.name}`); }
-    else toast.error('Cliente no encontrado');
+    const inactive = getInactiveAccountsForPhone(phoneSearch);
+    if (c) {
+      setSelectedCustomer(c);
+      if (inactive.length > 0) {
+        // Cuenta activa + historial de bajas previas con el mismo número.
+        toast.warning(
+          `Cliente encontrado: ${c.name}. Aviso: este número tuvo ${inactive.length} cuenta(s) ` +
+          `previa(s) dada(s) de baja por revocación. Esta es una cuenta NUEVA, sin puntos heredados.`,
+          { duration: 7000 },
+        );
+      } else {
+        toast.success(`Cliente encontrado: ${c.name}`);
+      }
+      return;
+    }
+    if (inactive.length > 0) {
+      const last = inactive[inactive.length - 1];
+      toast.error(
+        `No hay cuenta activa con este número. Existió la cuenta de "${last.name}" ` +
+        `que fue dada de baja por revocación de consentimiento. Si el cliente desea ` +
+        `participar, debe registrarse nuevamente como cliente nuevo (sin puntos previos).`,
+        { duration: 9000 },
+      );
+      return;
+    }
+    toast.error('Cliente no encontrado');
   }, [phoneSearch]);
 
   const handleAddPoint = useCallback(() => {
