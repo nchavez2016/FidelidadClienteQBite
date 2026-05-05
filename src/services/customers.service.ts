@@ -35,7 +35,6 @@ import {
 import { registerConsent, revokeConsent as revokeConsentRecord } from './consent.service';
 import { logAudit } from './audit.service';
 import { addTransaction } from './transactions.service';
-import { getActiveCampaigns as _getActiveCampaigns } from './campaigns.service';
 
 function withDerivedFields(c: any): Customer {
   const base: Customer = {
