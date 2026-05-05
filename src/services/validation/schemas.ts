@@ -67,6 +67,7 @@ export const transactionCreationSchema = z.object({
     'terms_acceptance',
     'redemption_request',
     'redemption_request_cancelled',
+    'consent_revocation',
   ]),
   points: z.number().int(),
   balanceAfter: z.number().int().nonnegative(),
