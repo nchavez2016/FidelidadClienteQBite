@@ -32,8 +32,10 @@ import {
   setPoints,
   clearAllPoints,
 } from './customerPoints.service';
-import { registerConsent } from './consent.service';
+import { registerConsent, revokeConsent as revokeConsentRecord } from './consent.service';
 import { logAudit } from './audit.service';
+import { addTransaction } from './transactions.service';
+import { getActiveCampaigns as _getActiveCampaigns } from './campaigns.service';
 
 function withDerivedFields(c: any): Customer {
   const base: Customer = {
@@ -57,7 +59,23 @@ export function getActiveCustomers(): Customer[] {
 }
 
 export function getCustomerByPhone(phone: string): Customer | undefined {
-  return getCustomers().find(c => c.phone === phone);
+  // Solo devuelve cuentas activas. Las cuentas dadas de baja liberaron el
+  // teléfono (renombrado con sufijo), así que no compiten por el número.
+  return getCustomers().find(c => c.phone === phone && c.isActive !== false);
+}
+
+/** Incluye cuentas dadas de baja (uso interno: auditoría / staff). */
+export function findCustomersByOriginalPhone(phone: string): Customer[] {
+  return getCustomers().filter(
+    c => c.phone === phone || c.revokedFromPhone === phone,
+  );
+}
+
+/** Historial de cuentas previas dadas de baja para un teléfono. */
+export function getInactiveAccountsForPhone(phone: string): Customer[] {
+  return getCustomers().filter(
+    c => c.isActive === false && (c.revokedFromPhone === phone || c.phone === phone),
+  );
 }
 
 export function getCustomerById(id: string): Customer | undefined {
@@ -165,17 +183,57 @@ export function loginCustomer(phone: string, password: string): Customer | null 
   if (!userId) return null;
   const c = getCustomerById(userId);
   if (!c) return null;
-  if (c.isActive === false) return null; // soft-deleted cannot login
+  if (c.isActive === false) return null; // soft-deleted/revocado: no puede iniciar sesión
   db.writeValueSync(TABLES.sessionCustomer, c);
   logAudit({ action: 'customer_login', actorId: c.id, actorRole: 'customer', targetUserId: c.id });
   return c;
+}
+
+/**
+ * Resultado detallado de un intento de login. Permite a la UI distinguir
+ * entre credenciales inválidas y cuentas dadas de baja por revocación.
+ */
+export type CustomerLoginResult =
+  | { ok: true; customer: Customer }
+  | { ok: false; reason: 'invalid_credentials' | 'account_revoked' | 'account_inactive' };
+
+export function loginCustomerDetailed(phone: string, password: string): CustomerLoginResult {
+  try {
+    validateOrThrow(customerLoginSchema, { phone, password });
+  } catch {
+    return { ok: false, reason: 'invalid_credentials' };
+  }
+  // 1) ¿Existe alguna cuenta dada de baja con este número como teléfono original?
+  const revoked = getInactiveAccountsForPhone(phone);
+  // 2) Verificar credenciales contra cuentas activas.
+  const userId = verifyCredential('phone', phone, password);
+  if (!userId) {
+    if (revoked.length > 0) {
+      // No hay cuenta activa pero sí cuenta(s) revocada(s) con ese número.
+      return { ok: false, reason: 'account_revoked' };
+    }
+    return { ok: false, reason: 'invalid_credentials' };
+  }
+  const c = getCustomerById(userId);
+  if (!c) return { ok: false, reason: 'invalid_credentials' };
+  if (c.isActive === false) return { ok: false, reason: 'account_revoked' };
+  db.writeValueSync(TABLES.sessionCustomer, c);
+  logAudit({ action: 'customer_login', actorId: c.id, actorRole: 'customer', targetUserId: c.id });
+  return { ok: true, customer: c };
 }
 
 export function getCurrentCustomer(): Customer | null {
   const stored = db.readValueSync<any>(TABLES.sessionCustomer, null);
   if (!stored) return null;
   // Re-hydrate fresh state (could be soft-deleted server-side).
-  return getCustomerById(stored.id) ?? withDerivedFields(stored);
+  const fresh = getCustomerById(stored.id);
+  if (!fresh) return null;
+  if (fresh.isActive === false) {
+    // Cuenta revocada en otra pestaña / por admin → invalidar sesión.
+    db.removeSync(TABLES.sessionCustomer);
+    return null;
+  }
+  return fresh;
 }
 
 export function logoutCustomer(): void {
@@ -235,4 +293,94 @@ export function reactivateCustomer(customerId: string, actor: { id: string; role
 export function customerNeedsPasswordChange(customer: Customer): boolean {
   // TODO(Supabase Auth): replace with a `must_change_password` flag on the profile.
   return getCredentialPassword(customer.id) === customer.phone;
+}
+
+/**
+ * Revocación de consentimiento LOPDP iniciada por el cliente.
+ *
+ * Flujo:
+ *  1. Registra una transacción `consent_revocation` por cada campaña con
+ *     puntos > 0 (deja traza histórica de los puntos perdidos).
+ *  2. Pone los puntos en 0 en todas las campañas.
+ *  3. Marca la cuenta como inactiva (soft-delete) y libera el número:
+ *     guarda el original en `revokedFromPhone` y reescribe `phone` con un
+ *     sufijo único para que el cliente pueda registrarse de nuevo.
+ *  4. Inhabilita las credenciales (cambia identifier para que no haga match).
+ *  5. Registra el record de consentimiento revocado y un audit_log.
+ *  6. Cierra la sesión.
+ */
+export function revokeCustomerConsent(customerId: string): {
+  pointsLostByCampaign: Record<string, number>;
+  totalPointsLost: number;
+} | null {
+  const customer = getCustomerById(customerId);
+  if (!customer || customer.isActive === false) return null;
+
+  const pointsByCampaign = getPointsByCustomer(customerId);
+  const totalPointsLost = Object.values(pointsByCampaign).reduce((s, n) => s + (n || 0), 0);
+
+  // 1) Transacción por cada campaña con saldo (queda en el log del cliente).
+  for (const [campaignId, pts] of Object.entries(pointsByCampaign)) {
+    if (!pts || pts <= 0) continue;
+    try {
+      addTransaction({
+        customerId,
+        campaignId,
+        type: 'consent_revocation',
+        points: -pts,
+        balanceAfter: 0,
+        staffId: customerId,
+        staffName: customer.name,
+        commentCategory: 'observation',
+        commentText: `LOPDP: el cliente revocó el consentimiento. Se anulan ${pts} pt(s) acumulados en esta campaña. Cuenta dada de baja.`,
+      });
+    } catch {
+      // Si la validación falla por alguna razón, seguimos con el resto.
+    }
+  }
+
+  // 2) Puntos a 0 en todas las campañas.
+  for (const campaignId of Object.keys(pointsByCampaign)) {
+    setPoints(customerId, campaignId, 0);
+  }
+
+  // 3) Liberar el teléfono y desactivar.
+  const originalPhone = customer.phone;
+  const releasedPhone = `revoked:${originalPhone}:${Date.now()}`;
+  const list = db.readSync<any>(TABLES.customers).map((c: any) =>
+    c.id === customerId
+      ? {
+          ...c,
+          isActive: false,
+          deletedAt: new Date().toISOString(),
+          revokedFromPhone: originalPhone,
+          phone: releasedPhone,
+          pointsByCampaign: {},
+        }
+      : c,
+  );
+  db.writeSync(TABLES.customers, list);
+
+  // 4) Inhabilitar credenciales.
+  updateCredentialIdentifier(customerId, releasedPhone);
+
+  // 5) Record de consentimiento + audit.
+  revokeConsentRecord(customerId);
+  logAudit({
+    action: 'customer_deactivated',
+    actorId: customerId,
+    actorRole: 'customer',
+    targetUserId: customerId,
+    metadata: {
+      reason: 'consent_revocation',
+      originalPhone,
+      pointsLost: totalPointsLost,
+      campaignsAffected: Object.keys(pointsByCampaign).length,
+    },
+  });
+
+  // 6) Cerrar sesión local.
+  db.removeSync(TABLES.sessionCustomer);
+
+  return { pointsLostByCampaign: pointsByCampaign, totalPointsLost };
 }
