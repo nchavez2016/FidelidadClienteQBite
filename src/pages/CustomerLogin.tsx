@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginCustomer } from '@/lib/store';
+import { loginCustomerDetailed } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,13 +15,21 @@ export default function CustomerLogin() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const customer = loginCustomer(phone, password);
-    if (customer) {
-      toast.success(`¡Bienvenido, ${customer.name}!`);
+    const result = loginCustomerDetailed(phone, password);
+    if (result.ok) {
+      toast.success(`¡Bienvenido, ${result.customer.name}!`);
       navigate('/cliente/dashboard');
-    } else {
-      toast.error('Teléfono o contraseña incorrectos');
+      return;
     }
+    if (result.reason === 'account_revoked') {
+      toast.error(
+        'Esta cuenta fue dada de baja por revocación del consentimiento. ' +
+        'Si deseas volver a participar, debes registrarte como cliente nuevo.',
+        { duration: 7000 },
+      );
+      return;
+    }
+    toast.error('Teléfono o contraseña incorrectos');
   };
 
   return (
