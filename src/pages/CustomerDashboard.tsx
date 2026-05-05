@@ -10,7 +10,7 @@ import {
   acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints, addTransaction,
   getPendingRequest, createRedemptionRequest, cancelRedemptionRequestByCustomer,
   logRequestCreated, logRequestCancelled,
-  revokeConsent, getConsentStatus,
+  getConsentStatus, revokeCustomerConsent, getCustomerTotalPoints,
 } from '@/lib/store';
 
 import ProgressRoute from '@/components/ProgressRoute';
@@ -155,10 +155,29 @@ export default function CustomerDashboard() {
 
   const handleRevokeConsent = () => {
     if (!customer) return;
-    if (!window.confirm('¿Revocar el consentimiento de uso de tu número? Tu cuenta dejará de ser usada por el programa.')) return;
-    revokeConsent(customer.id);
-    toast.success('Consentimiento revocado. Cerraremos tu sesión.');
-    setTimeout(() => { logoutCustomer(); navigate('/cliente/login'); }, 800);
+    const totalPts = getCustomerTotalPoints(customer);
+    const warning =
+      `⚠️ ATENCIÓN — Esta acción es IRREVERSIBLE.\n\n` +
+      `Si continúas:\n` +
+      `  • Tu cuenta será DADA DE BAJA y dejará de funcionar.\n` +
+      `  • Perderás TODOS tus puntos acumulados (${totalPts} pts en total) en todas las sucursales.\n` +
+      `  • Perderás los beneficios y premios pendientes.\n` +
+      `  • No podrás iniciar sesión nuevamente con esta cuenta.\n` +
+      `  • Si te registras de nuevo en el futuro, será como un cliente NUEVO ` +
+      `(sin los puntos ni beneficios anteriores).\n\n` +
+      `¿Confirmas que deseas revocar tu consentimiento y dar de baja tu cuenta?`;
+    if (!window.confirm(warning)) return;
+    const result = revokeCustomerConsent(customer.id);
+    if (!result) {
+      toast.error('No se pudo revocar el consentimiento. Intenta de nuevo.');
+      return;
+    }
+    toast.success(
+      `Consentimiento revocado. Tu cuenta fue dada de baja${
+        result.totalPointsLost > 0 ? ` y se anularon ${result.totalPointsLost} pt(s)` : ''
+      }.`,
+    );
+    setTimeout(() => { logoutCustomer(); navigate('/cliente/login'); }, 1200);
   };
 
   const consentStatus = customer ? getConsentStatus(customer.id) : { hasActiveConsent: false };

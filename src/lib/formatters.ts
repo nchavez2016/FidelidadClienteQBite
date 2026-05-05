@@ -22,6 +22,7 @@ export function getTransactionLabel(type: TransactionType): string {
     case 'terms_acceptance': return '📋 T&C aceptados';
     case 'redemption_request': return '⏳ Premio solicitado';
     case 'redemption_request_cancelled': return '↩️ Solicitud cancelada';
+    case 'consent_revocation': return '🚫 Cuenta dada de baja';
   }
 }
 
@@ -33,5 +34,6 @@ export function getTransactionLabelFull(type: TransactionType): string {
     case 'terms_acceptance': return '📋 Términos y condiciones aceptados';
     case 'redemption_request': return '⏳ Cliente solicitó un premio';
     case 'redemption_request_cancelled': return '↩️ Solicitud de canje cancelada';
+    case 'consent_revocation': return '🚫 Consentimiento revocado · cuenta dada de baja';
   }
 }

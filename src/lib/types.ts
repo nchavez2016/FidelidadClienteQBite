@@ -24,6 +24,12 @@ export interface Customer {
   isActive?: boolean;
   /** Marca temporal de la baja lógica (ISO). */
   deletedAt?: string;
+  /**
+   * Si el cliente revocó el consentimiento (LOPDP), aquí se preserva el
+   * teléfono original para auditoría. El `phone` actual queda renombrado
+   * con un sufijo para liberar el número y permitir un nuevo registro.
+   */
+  revokedFromPhone?: string;
   createdAt: string;
 }
 
@@ -44,7 +50,8 @@ export type TransactionType =
   | 'reversal'
   | 'terms_acceptance'
   | 'redemption_request'
-  | 'redemption_request_cancelled';
+  | 'redemption_request_cancelled'
+  | 'consent_revocation';
 
 export type CommentCategory = 'positive' | 'complaint' | 'observation' | 'promotion' | 'suggestion' | 'other';
 
