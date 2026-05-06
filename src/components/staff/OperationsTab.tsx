@@ -368,10 +368,11 @@ export default function OperationsTab({
                 <Button
                   onClick={() => {
                     if (pendingRequest && onApproveRequest) { onApproveRequest(); return; }
-                    if (rewards.length > 0) setShowRedeemDialog(true);
-                    else toast.error('No hay premios disponibles');
+                    toast.info('El canje sólo se habilita cuando el cliente solicita un premio desde su pantalla.');
                   }}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground gap-1 h-auto py-3 flex-col"
+                  disabled={!pendingRequest}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground gap-1 h-auto py-3 flex-col disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={pendingRequest ? 'Confirmar el canje solicitado por el cliente' : 'Esperando que el cliente seleccione un premio en su pantalla'}
                 >
                   <Gift className="w-5 h-5" />
                   <span className="text-xs">{pendingRequest ? 'Canjear pedido' : 'Canjear'}</span>
