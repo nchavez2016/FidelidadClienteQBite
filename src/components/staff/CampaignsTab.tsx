@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProgressRoute from '@/components/ProgressRoute';
-import { Plus, Settings, Pause, Play, Flame, Trash2 } from 'lucide-react';
+import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { DAY_LABELS } from '@/services/bonusRules.service';
+import BonusRuleBadge from '@/components/BonusRuleBadge';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
 
@@ -62,6 +63,57 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                   }</span>
                 </div>
                 <ProgressRoute currentPoints={0} animate={false} />
+
+                {/* Vista previa rápida de configuración (sin necesidad de editar) */}
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {/* Hitos */}
+                  <div className="rounded-lg p-2.5 bg-muted/50 border border-border">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Trophy className="w-3.5 h-3.5 text-accent" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Hitos ({c.milestones.length})
+                      </span>
+                    </div>
+                    {c.milestones.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground">Sin hitos configurados.</p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {[...c.milestones]
+                          .sort((a, b) => a.requiredPoints - b.requiredPoints)
+                          .map(m => (
+                            <li key={m.id} className="text-[11px] flex items-center justify-between gap-2">
+                              <span className="truncate">
+                                <span className="font-semibold">{m.requiredPoints} pts</span> · {m.rewardName}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </div>
+                  {/* Bonus rules */}
+                  {c.bonusRules && c.bonusRules.length > 0 ? (
+                    <BonusRuleBadge campaign={c} variant="card" />
+                  ) : (
+                    <div className="rounded-lg p-2.5 bg-muted/50 border border-border">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Flame className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Bonus de puntos
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Sin reglas bonus configuradas.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* T&C preview */}
+                {c.termsAndConditions && (
+                  <div className="mt-2 text-[11px] text-muted-foreground">
+                    <span className="font-semibold">T&C:</span>{' '}
+                    <span className="line-clamp-2">{c.termsAndConditions}</span>
+                  </div>
+                )}
+
                 <div className="flex gap-2 mt-3">
                   <Button size="sm" variant="outline" onClick={() => startEditCampaign(c)}>Editar</Button>
                   {c.status === 'draft' && (
