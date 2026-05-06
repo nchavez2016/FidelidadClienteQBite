@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProgressRoute from '@/components/ProgressRoute';
-import { Plus, Settings, Pause, Play, Flame, Trash2 } from 'lucide-react';
+import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
@@ -62,6 +62,80 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                   }</span>
                 </div>
                 <ProgressRoute currentPoints={0} animate={false} />
+
+                {/* Vista previa rápida de configuración (sin necesidad de editar) */}
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {/* Hitos */}
+                  <div className="rounded-lg p-2.5 bg-muted/50 border border-border">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Trophy className="w-3.5 h-3.5 text-accent" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Hitos ({c.milestones.length})
+                      </span>
+                    </div>
+                    {c.milestones.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground">Sin hitos configurados.</p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {[...c.milestones]
+                          .sort((a, b) => a.requiredPoints - b.requiredPoints)
+                          .map(m => (
+                            <li key={m.id} className="text-[11px] flex items-center justify-between gap-2">
+                              <span className="truncate">
+                                <span className="font-semibold">{m.requiredPoints} pts</span> · {m.rewardName}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </div>
+                  {/* Bonus rules */}
+                  <div
+                    className="rounded-lg p-2.5"
+                    style={{
+                      background: (c.bonusRules?.length ?? 0) > 0 ? 'rgba(245,158,11,0.06)' : undefined,
+                      border: (c.bonusRules?.length ?? 0) > 0 ? '1px solid rgba(245,158,11,0.25)' : '1px solid hsl(var(--border))',
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Flame className="w-3.5 h-3.5" style={{ color: (c.bonusRules?.length ?? 0) > 0 ? '#d97706' : undefined }} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: (c.bonusRules?.length ?? 0) > 0 ? '#92400e' : undefined }}>
+                        Bonus de puntos ({c.bonusRules?.length ?? 0})
+                      </span>
+                    </div>
+                    {(c.bonusRules?.length ?? 0) === 0 ? (
+                      <p className="text-[11px] text-muted-foreground">Sin reglas bonus configuradas.</p>
+                    ) : (
+                      <ul className="space-y-1">
+                        {c.bonusRules!.map(r => (
+                          <li key={r.id} className="text-[11px] flex items-center justify-between gap-2">
+                            <span className="truncate" style={{ color: r.active ? '#92400e' : '#94a3b8', textDecoration: r.active ? 'none' : 'line-through' }}>
+                              {r.label || `Bonus x${r.multiplier}`} · {r.days.map(d => DAY_LABELS[d]).join(',')} · {r.startTime}-{r.endTime}
+                            </span>
+                            <span
+                              className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                              style={{
+                                background: r.active ? 'rgba(217,119,6,0.18)' : 'rgba(0,0,0,0.04)',
+                                color: r.active ? '#b45309' : '#94a3b8',
+                              }}
+                            >
+                              x{r.multiplier}{r.active ? '' : ' · off'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* T&C preview */}
+                {c.termsAndConditions && (
+                  <div className="mt-2 text-[11px] text-muted-foreground">
+                    <span className="font-semibold">T&C:</span>{' '}
+                    <span className="line-clamp-2">{c.termsAndConditions}</span>
+                  </div>
+                )}
+
                 <div className="flex gap-2 mt-3">
                   <Button size="sm" variant="outline" onClick={() => startEditCampaign(c)}>Editar</Button>
                   {c.status === 'draft' && (
