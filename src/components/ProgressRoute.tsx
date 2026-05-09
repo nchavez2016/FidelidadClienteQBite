@@ -350,7 +350,7 @@ export default function ProgressRoute({
           animate={{ left: toLeft(fillRatio) }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
         >
-          <div style={{ transform: "translateX(2.93px)", display: "contents" === "never" ? "none" : "block" }}>
+          <div style={{ transform: "translateX(2.93px)", display: "block" }}>
             <motion.img
               src={gaviotaImg}
               alt="Progreso"
