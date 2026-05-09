@@ -197,7 +197,7 @@ export default function ProgressRoute({
             src={gaviotaImg}
             alt="Progreso"
             className="absolute w-7 h-7 object-contain drop-shadow-md z-10"
-            style={{ left: -10, transform: "translateY(-100% + 8.22px)" }}
+            style={{ left: -10, transform: "translateY(calc(-100% + 8.22px))" }}
             initial={animate ? { top: 16, opacity: 0 } : false}
             animate={
               bouncing
@@ -335,7 +335,7 @@ export default function ProgressRoute({
         {/* Gaviota anclada al avance real: centrada sobre el final del progreso/hito actual. */}
         <motion.div
           className="absolute z-20"
-          style={{ top: "-2px", transform: "translateX(-50% + 2.93px)" }}
+          style={{ top: "-2px", transform: "translateX(calc(-50% + 2.93px))" }}
           initial={animate ? { left: toLeft(0) } : false}
           animate={{ left: toLeft(fillRatio) }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
