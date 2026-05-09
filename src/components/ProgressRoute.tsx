@@ -192,11 +192,12 @@ export default function ProgressRoute({
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
           />
 
+          {/* GAVIOTA MOBILE FIX: translateY(-100%) = la BASE de la imagen toca el punto de progreso */}
           <motion.img
             src={gaviotaImg}
             alt="Progreso"
             className="absolute w-7 h-7 object-contain drop-shadow-md z-10"
-            style={{ left: -10 }}
+            style={{ left: -10, transform: "translateY(calc(-100% + 8.22px))" }}
             initial={animate ? { top: 16, opacity: 0 } : false}
             animate={
               bouncing
