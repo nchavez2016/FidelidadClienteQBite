@@ -275,11 +275,46 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
       {/* ═══ NIVEL 1 — Resumen Operativo ═══ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         {[
-          { label: 'Clientes Totales', value: allCustomers.length, icon: Users, trend: null },
-          { label: 'Visitas del Período', value: analytics.totalVisits, icon: ShoppingBag, trend: visitsTrend },
-          { label: 'Puntos Emitidos', value: analytics.totalPoints, icon: TrendingUp, trend: null },
-          { label: 'Canjes Realizados', value: analytics.totalRedeemed, icon: Award, trend: null },
-          { label: 'Pts. Pendientes', value: analytics.pendingPoints, icon: Coins, trend: null },
+          {
+            label: 'Clientes Totales',
+            value: allCustomers.length,
+            icon: Users,
+            trend: null,
+            description: 'Total de clientes registrados en el programa',
+            info: 'Número acumulado de clientes que se han registrado alguna vez en la campaña. No depende del filtro de fechas.',
+          },
+          {
+            label: 'Visitas del Período',
+            value: analytics.totalVisits,
+            icon: ShoppingBag,
+            trend: visitsTrend,
+            description: 'Compras registradas en el rango filtrado',
+            info: 'Cantidad de acumulaciones de puntos válidas (compras) realizadas dentro del rango de fechas y sucursal seleccionados. La flecha compara contra el período anterior de igual duración.',
+          },
+          {
+            label: 'Puntos Emitidos',
+            value: analytics.totalPoints,
+            icon: TrendingUp,
+            trend: null,
+            description: 'Suma de puntos entregados en el período',
+            info: 'Total de puntos otorgados a los clientes por las compras del período. Mide cuánto valor de fidelidad estás liberando al mercado.',
+          },
+          {
+            label: 'Canjes Realizados',
+            value: analytics.totalRedeemed,
+            icon: Award,
+            trend: null,
+            description: 'Premios entregados a los clientes',
+            info: 'Número de premios efectivamente canjeados en el período. Indica qué tanto los clientes están reclamando los beneficios de la campaña.',
+          },
+          {
+            label: 'Pts. Pendientes',
+            value: analytics.pendingPoints,
+            icon: Coins,
+            trend: null,
+            description: 'Puntos vivos en manos de los clientes',
+            info: 'Saldo total de puntos que los clientes aún no han canjeado. Representa una obligación futura de la campaña: tarde o temprano se traducirán en premios.',
+          },
         ].map((s, i) => (
           <Card key={i} className="border-[0.5px] shadow-md hover:shadow-lg transition-shadow" style={{ borderColor: 'rgba(197,160,89,0.35)' }}>
             <CardContent className="pt-4 pb-3 text-center relative">
@@ -290,7 +325,11 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
                 {s.trend === 'down' && <ArrowDownRight className="w-4 h-4 text-destructive" />}
                 {s.trend === 'neutral' && dateFrom && dateTo && <Minus className="w-4 h-4 text-muted-foreground" />}
               </div>
-              <p className="text-[11px] text-muted-foreground">{s.label}</p>
+              <div className="flex items-center justify-center gap-1">
+                <p className="text-[11px] font-medium text-muted-foreground">{s.label}</p>
+                <InfoHint label={`Interpretación de ${s.label}`} content={<p>{s.info}</p>} />
+              </div>
+              <p className="mt-1 text-[10px] leading-snug text-muted-foreground">{s.description}</p>
             </CardContent>
           </Card>
         ))}
