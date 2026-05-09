@@ -328,7 +328,7 @@ export default function ProgressRoute({
             minWidth: currentPoints > 0 ? "8px" : "0px",
           }}
           initial={animate ? { width: 0 } : false}
-          animate={{ width: `calc((100% - ${PAD * 2}px) * ${fillRatio})` }}
+          animate={{ width: `calc((100% - ${PAD * 2}px) * ${fillRatio} + 16px)` }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
         />
 
