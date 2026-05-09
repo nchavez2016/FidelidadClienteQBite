@@ -192,30 +192,19 @@ export default function ProgressRoute({
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
           />
 
-          {/* GAVIOTA MOBILE FIX: translateY(-100%) = la BASE de la imagen toca el punto de progreso */}
-          <motion.div
-            className="absolute z-10"
-            style={{ left: -10, transform: "translateY(calc(-100% + 8.22px))" }}
+          <motion.img
+            src={gaviotaImg}
+            alt="Progreso"
+            className="absolute w-7 h-7 object-contain drop-shadow-md z-10"
+            style={{ left: -10 }}
             initial={animate ? { top: 16, opacity: 0 } : false}
             animate={
               bouncing
-                ? { top: gaviotaTop, opacity: 1 }
+                ? { top: gaviotaTop, opacity: 1, scale: [1, 1.4, 0.9, 1.15, 1], rotate: [0, -10, 10, -5, 0] }
                 : { top: gaviotaTop, opacity: 1 }
             }
             transition={bouncing ? { duration: 1, ease: "easeOut" } : { duration: 0.8, ease: "easeOut", delay: 0.3 }}
-          >
-            <motion.img
-              src={gaviotaImg}
-              alt="Progreso"
-              className="w-7 h-7 object-contain drop-shadow-md"
-              animate={
-                bouncing
-                  ? { scale: [1, 1.4, 0.9, 1.15, 1], rotate: [0, -10, 10, -5, 0] }
-                  : {}
-              }
-              transition={bouncing ? { duration: 1, ease: "easeOut" } : {}}
-            />
-          </motion.div>
+          />
 
           <div className="flex items-center gap-3 relative" style={{ minHeight: 32, marginBottom: NODE_SPACING - 32 }}>
             <div
@@ -345,30 +334,28 @@ export default function ProgressRoute({
         {/* Gaviota anclada al avance real: centrada sobre el final del progreso/hito actual. */}
         <motion.div
           className="absolute z-20"
-          style={{ top: "-2px", transform: "translateX(-50%)" }}
+          style={{ top: "-2px", transform: "translateX(calc(-50% - 2.93px))" }}
           initial={animate ? { left: toLeft(0) } : false}
           animate={{ left: toLeft(fillRatio) }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
         >
-          <div style={{ transform: "translateX(2.93px)", display: "block" }}>
-            <motion.img
-              src={gaviotaImg}
-              alt="Progreso"
-              className="w-11 h-11 object-contain drop-shadow-lg"
-              animate={
-                bouncing
-                  ? { scale: [1, 1.5, 0.85, 1.2, 1], rotate: [0, -15, 15, -8, 0], y: [0, -10, 0] }
-                  : allCompleted
-                    ? { scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }
-                    : { y: [0, -3, 0] }
-              }
-              transition={
-                bouncing
-                  ? { duration: 1, ease: "easeOut", repeat: 0 }
-                  : { duration: 2, repeat: Infinity, ease: "easeInOut" }
-              }
-            />
-          </div>
+          <motion.img
+            src={gaviotaImg}
+            alt="Progreso"
+            className="w-11 h-11 object-contain drop-shadow-lg"
+            animate={
+              bouncing
+                ? { scale: [1, 1.5, 0.85, 1.2, 1], rotate: [0, -15, 15, -8, 0], y: [0, -10, 0] }
+                : allCompleted
+                  ? { scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }
+                  : { y: [0, -3, 0] }
+            }
+            transition={
+              bouncing
+                ? { duration: 1, ease: "easeOut", repeat: 0 }
+                : { duration: 2, repeat: Infinity, ease: "easeInOut" }
+            }
+          />
         </motion.div>
 
         <div className="absolute flex flex-col items-start" style={{ left: PAD, top: "12px" }}>
