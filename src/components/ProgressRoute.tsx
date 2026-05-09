@@ -274,7 +274,7 @@ export default function ProgressRoute({
     return getSegmentedRouteRatio();
   };
 
-  const fillRatio = getFillRatio();
+  const fillRatio = Math.min(1, getFillRatio());
   const fixturePoints = [0, 1, 2, 3];
 
   // toLeft = borde derecho exacto del relleno
@@ -328,7 +328,12 @@ export default function ProgressRoute({
             minWidth: currentPoints > 0 ? "8px" : "0px",
           }}
           initial={animate ? { width: 0 } : false}
-          animate={{ width: `calc((100% - ${PAD * 2}px) * ${fillRatio} + 32px)` }}
+          animate={{
+            width:
+              fillRatio >= 1
+                ? `calc(100% - ${PAD * 2}px)`
+                : `calc((100% - ${PAD * 2}px) * ${fillRatio} + 32px)`,
+          }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
         />
 
