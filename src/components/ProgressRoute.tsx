@@ -340,7 +340,13 @@ export default function ProgressRoute({
         {/* Gaviota anclada al avance real: centrada sobre el final del progreso/hito actual. */}
         <motion.div
           className="absolute z-20"
-          style={{ top: "-2px", transform: "translateX(calc(-50% + 34px))" }}
+          style={{
+            top: "-2px",
+            transform:
+              fillRatio >= 1
+                ? "translateX(calc(-50% + 18px))"
+                : "translateX(calc(-50% + 34px))",
+          }}
           initial={animate ? { left: toLeft(0) } : false}
           animate={{ left: toLeft(fillRatio) }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
