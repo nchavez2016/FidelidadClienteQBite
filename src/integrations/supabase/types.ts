@@ -14,16 +14,168 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      branches: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_active: boolean
+          legacy_campaign_id: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          legacy_campaign_id?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_active?: boolean
+          legacy_campaign_id?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      campaigns: {
+        Row: {
+          branch_id: string
+          created_at: string
+          deleted_at: string | null
+          end_date: string
+          id: string
+          legacy_id: string | null
+          name: string
+          start_date: string
+          status: Database["public"]["Enums"]["campaign_status"]
+          terms_and_conditions: string
+          updated_at: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          deleted_at?: string | null
+          end_date: string
+          id?: string
+          legacy_id?: string | null
+          name: string
+          start_date: string
+          status?: Database["public"]["Enums"]["campaign_status"]
+          terms_and_conditions?: string
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          end_date?: string
+          id?: string
+          legacy_id?: string | null
+          name?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["campaign_status"]
+          terms_and_conditions?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          deleted_at: string | null
+          display_name: string
+          gender: Database["public"]["Enums"]["gender_type"] | null
+          id: string
+          is_active: boolean
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          display_name?: string
+          gender?: Database["public"]["Enums"]["gender_type"] | null
+          id: string
+          is_active?: boolean
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          display_name?: string
+          gender?: Database["public"]["Enums"]["gender_type"] | null
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "cashier" | "customer"
+      campaign_status: "draft" | "active" | "paused" | "finished"
+      gender_type: "masculino" | "femenino" | "otro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +302,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "cashier", "customer"],
+      campaign_status: ["draft", "active", "paused", "finished"],
+      gender_type: ["masculino", "femenino", "otro"],
+    },
   },
 } as const
