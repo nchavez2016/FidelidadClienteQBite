@@ -46,12 +46,14 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          bonus_rules: Json
           branch_id: string
           created_at: string
           deleted_at: string | null
           end_date: string
           id: string
           legacy_id: string | null
+          milestones: Json
           name: string
           start_date: string
           status: Database["public"]["Enums"]["campaign_status"]
@@ -59,12 +61,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bonus_rules?: Json
           branch_id: string
           created_at?: string
           deleted_at?: string | null
           end_date: string
           id?: string
           legacy_id?: string | null
+          milestones?: Json
           name: string
           start_date: string
           status?: Database["public"]["Enums"]["campaign_status"]
@@ -72,12 +76,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bonus_rules?: Json
           branch_id?: string
           created_at?: string
           deleted_at?: string | null
           end_date?: string
           id?: string
           legacy_id?: string | null
+          milestones?: Json
           name?: string
           start_date?: string
           status?: Database["public"]["Enums"]["campaign_status"]
