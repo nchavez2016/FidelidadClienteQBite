@@ -457,6 +457,12 @@ export function revokeCustomerConsent(customerId: string): {
       : c,
   );
   db.writeSync(TABLES.customers, list);
+  void persistProfilePatch(customerId, {
+    is_active: false,
+    deleted_at: new Date().toISOString(),
+    revoked_from_phone: originalPhone,
+    phone: releasedPhone,
+  });
 
   // 4) Inhabilitar credenciales.
   updateCredentialIdentifier(customerId, releasedPhone);
