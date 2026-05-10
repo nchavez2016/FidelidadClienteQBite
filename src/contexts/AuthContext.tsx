@@ -16,6 +16,11 @@ import {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  syncLegacyCustomerSession,
+  syncLegacyStaffSession,
+  clearLegacySessions,
+} from '@/services/auth/legacyBridge';
 
 export type AppRole = 'admin' | 'cashier' | 'customer';
 
@@ -67,6 +72,15 @@ async function fetchRoles(userId: string): Promise<AppRole[]> {
   return data.map((r) => r.role as AppRole);
 }
 
+function bridgeLegacy(user: User, roles: AppRole[]): void {
+  const audience = (user.user_metadata?.audience as string | undefined) ?? 'customer';
+  if (audience === 'staff' || roles.includes('admin') || roles.includes('cashier')) {
+    syncLegacyStaffSession(user, roles);
+  } else {
+    syncLegacyCustomerSession(user);
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -81,10 +95,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (nextSession?.user) {
         // Defer Supabase calls to avoid deadlocks inside the listener.
         setTimeout(() => {
-          fetchRoles(nextSession.user.id).then(setRoles);
+          fetchRoles(nextSession.user.id).then((r) => {
+            setRoles(r);
+            bridgeLegacy(nextSession.user, r);
+          });
         }, 0);
       } else {
         setRoles([]);
+        clearLegacySessions();
       }
     });
 
@@ -95,9 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.session?.user) {
         fetchRoles(data.session.user.id).then((r) => {
           setRoles(r);
+          bridgeLegacy(data.session!.user, r);
           setLoading(false);
         });
       } else {
+        clearLegacySessions();
         setLoading(false);
       }
     });
@@ -107,13 +127,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback<AuthContextValue['signIn']>(async (identifier, password, audience) => {
     const email = toEmail(identifier, audience);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (data?.session && data.user) {
+      // Set state synchronously so callers can navigate immediately
+      // without racing the onAuthStateChange listener.
+      setSession(data.session);
+      setUser(data.user);
+      const r = await fetchRoles(data.user.id);
+      setRoles(r);
+      bridgeLegacy(data.user, r);
+    }
     return { error: error?.message ?? null };
   }, []);
 
   const signUp = useCallback<AuthContextValue['signUp']>(async (identifier, password, audience, metadata) => {
     const email = toEmail(identifier, audience);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -121,11 +150,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { ...metadata, audience, identifier },
       },
     });
+    if (data?.session && data.user) {
+      setSession(data.session);
+      setUser(data.user);
+      const r = await fetchRoles(data.user.id);
+      setRoles(r);
+      bridgeLegacy(data.user, r);
+    }
     return { error: error?.message ?? null };
   }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    clearLegacySessions();
+    setSession(null);
+    setUser(null);
+    setRoles([]);
   }, []);
 
   const hasRole = useCallback(

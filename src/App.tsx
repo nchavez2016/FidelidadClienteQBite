@@ -10,6 +10,7 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import StaffLogin from "./pages/StaffLogin";
 import StaffPanel from "./pages/StaffPanel";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -23,9 +24,23 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/cliente/login" element={<CustomerLogin />} />
           <Route path="/cliente/registro" element={<CustomerRegister />} />
-          <Route path="/cliente/dashboard" element={<CustomerDashboard />} />
+          <Route
+            path="/cliente/dashboard"
+            element={
+              <ProtectedRoute roles={["customer"]} redirectTo="/cliente/login">
+                <CustomerDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/staff/login" element={<StaffLogin />} />
-          <Route path="/staff/panel" element={<StaffPanel />} />
+          <Route
+            path="/staff/panel"
+            element={
+              <ProtectedRoute roles={["admin", "cashier"]} redirectTo="/staff/login">
+                <StaffPanel />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
