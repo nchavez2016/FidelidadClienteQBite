@@ -22,7 +22,22 @@ function meta(user: User): Record<string, unknown> {
   return (user.user_metadata ?? {}) as Record<string, unknown>;
 }
 
+function resolveAudience(user: User, roles: AppRole[]): 'staff' | 'customer' {
+  // Prefer the explicit audience the user signed in with.
+  // Only fall back to roles when audience metadata is missing.
+  const audience = (meta(user).audience as string | undefined) ?? null;
+  if (audience === 'staff') return 'staff';
+  if (audience === 'customer') return 'customer';
+  if (roles.includes('admin') || roles.includes('cashier')) return 'staff';
+  return 'customer';
+}
+
+export { resolveAudience };
+
 export function syncLegacyCustomerSession(user: User): Customer | null {
+  // Defensive: if some other slot is set from a previous session of a
+  // different audience, clear it so legacy reads don't pick the wrong one.
+  db.removeSync(TABLES.sessionStaff);
   const m = meta(user);
   const phone = String(m.identifier ?? '').trim();
   if (!phone) return null;
@@ -58,6 +73,7 @@ export function syncLegacyCustomerSession(user: User): Customer | null {
 }
 
 export function syncLegacyStaffSession(user: User, roles: AppRole[]): StaffUser | null {
+  db.removeSync(TABLES.sessionCustomer);
   const m = meta(user);
   const username = String(m.identifier ?? '').trim();
   if (!username) return null;

@@ -20,6 +20,7 @@ import {
   syncLegacyCustomerSession,
   syncLegacyStaffSession,
   clearLegacySessions,
+  resolveAudience,
 } from '@/services/auth/legacyBridge';
 
 export type AppRole = 'admin' | 'cashier' | 'customer';
@@ -28,6 +29,8 @@ export interface AuthContextValue {
   user: User | null;
   session: Session | null;
   roles: AppRole[];
+  /** True once roles have been fetched for the current user (or when signed out). */
+  rolesLoaded: boolean;
   loading: boolean;
   signIn: (
     identifier: string,
@@ -73,35 +76,39 @@ async function fetchRoles(userId: string): Promise<AppRole[]> {
 }
 
 function bridgeLegacy(user: User, roles: AppRole[]): void {
-  const audience = (user.user_metadata?.audience as string | undefined) ?? 'customer';
-  if (audience === 'staff' || roles.includes('admin') || roles.includes('cashier')) {
-    syncLegacyStaffSession(user, roles);
-  } else {
-    syncLegacyCustomerSession(user);
-  }
+  const audience = resolveAudience(user, roles);
+  console.debug('[Auth] bridgeLegacy', { uid: user.id, audience, roles });
+  if (audience === 'staff') syncLegacyStaffSession(user, roles);
+  else syncLegacyCustomerSession(user);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // 1. Subscribe FIRST so we never miss an event.
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      console.debug('[Auth] onAuthStateChange', { event, hasSession: !!nextSession });
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       if (nextSession?.user) {
+        setRolesLoaded(false);
         // Defer Supabase calls to avoid deadlocks inside the listener.
         setTimeout(() => {
           fetchRoles(nextSession.user.id).then((r) => {
+            console.debug('[Auth] roles fetched (listener)', r);
             setRoles(r);
+            setRolesLoaded(true);
             bridgeLegacy(nextSession.user, r);
           });
         }, 0);
       } else {
         setRoles([]);
+        setRolesLoaded(true);
         clearLegacySessions();
       }
     });
@@ -112,12 +119,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.session?.user ?? null);
       if (data.session?.user) {
         fetchRoles(data.session.user.id).then((r) => {
+          console.debug('[Auth] roles fetched (init)', r);
           setRoles(r);
+          setRolesLoaded(true);
           bridgeLegacy(data.session!.user, r);
           setLoading(false);
         });
       } else {
         clearLegacySessions();
+        setRolesLoaded(true);
         setLoading(false);
       }
     });
@@ -133,8 +143,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // without racing the onAuthStateChange listener.
       setSession(data.session);
       setUser(data.user);
+      setRolesLoaded(false);
       const r = await fetchRoles(data.user.id);
+      console.debug('[Auth] signIn roles', { audience, r });
       setRoles(r);
+      setRolesLoaded(true);
       bridgeLegacy(data.user, r);
     }
     return { error: error?.message ?? null };
@@ -153,8 +166,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data?.session && data.user) {
       setSession(data.session);
       setUser(data.user);
+      setRolesLoaded(false);
       const r = await fetchRoles(data.user.id);
       setRoles(r);
+      setRolesLoaded(true);
       bridgeLegacy(data.user, r);
     }
     return { error: error?.message ?? null };
@@ -166,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setUser(null);
     setRoles([]);
+    setRolesLoaded(true);
   }, []);
 
   const hasRole = useCallback(
@@ -174,8 +190,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, session, roles, loading, signIn, signUp, signOut, hasRole }),
-    [user, session, roles, loading, signIn, signUp, signOut, hasRole],
+    () => ({ user, session, roles, rolesLoaded, loading, signIn, signUp, signOut, hasRole }),
+    [user, session, roles, rolesLoaded, loading, signIn, signUp, signOut, hasRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
