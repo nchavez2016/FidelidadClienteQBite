@@ -35,12 +35,17 @@ function resolveAudience(user: User, roles: AppRole[]): 'staff' | 'customer' {
 export { resolveAudience };
 
 export function syncLegacyCustomerSession(user: User): Customer | null {
+  try {
+  console.info('🚨 [legacyBridge] syncLegacyCustomerSession:start', { uid: user.id, metadata: meta(user) });
   // Defensive: if some other slot is set from a previous session of a
   // different audience, clear it so legacy reads don't pick the wrong one.
   db.removeSync(TABLES.sessionStaff);
   const m = meta(user);
   const phone = String(m.identifier ?? '').trim();
-  if (!phone) return null;
+  if (!phone) {
+    console.warn('🚨 [legacyBridge] customer session missing identifier', { uid: user.id });
+    return null;
+  }
   let customer = getCustomerByPhone(phone);
   if (!customer) {
     customer = {
@@ -67,16 +72,28 @@ export function syncLegacyCustomerSession(user: User): Customer | null {
     } as never)
     .eq('id', user.id)
     .then(({ error }) => {
-      if (error) console.error('[legacyBridge] profile sync failed', error);
+      if (error) console.error('🚨 [legacyBridge] profile sync failed', error);
+      else console.info('🚨 [legacyBridge] profile sync ok', { uid: user.id });
     });
+  console.info('🚨 [legacyBridge] syncLegacyCustomerSession:done', { customer });
   return customer;
+  } catch (error) {
+    console.error('🚨 [legacyBridge] syncLegacyCustomerSession crashed', error);
+    return null;
+  }
 }
 
 export function syncLegacyStaffSession(user: User, roles: AppRole[]): StaffUser | null {
+  try {
+  console.info('🚨 [legacyBridge] syncLegacyStaffSession:start', { uid: user.id, roles, metadata: meta(user) });
   db.removeSync(TABLES.sessionCustomer);
   const m = meta(user);
-  const username = String(m.identifier ?? '').trim();
-  if (!username) return null;
+  const emailPrefix = String(user.email ?? '').split('@')[0];
+  const username = String(m.staff_username ?? m.identifier ?? emailPrefix ?? user.id).trim();
+  if (!username) {
+    console.warn('🚨 [legacyBridge] staff session missing identifier', { uid: user.id });
+    return null;
+  }
   const role: 'admin' | 'cashier' = roles.includes('admin') ? 'admin' : 'cashier';
   let staff = getStaff().find(s => s.username.toLowerCase() === username.toLowerCase());
   if (!staff) {
@@ -95,10 +112,20 @@ export function syncLegacyStaffSession(user: User, roles: AppRole[]): StaffUser 
     db.writeSync(TABLES.staff, all);
   }
   db.writeValueSync(TABLES.sessionStaff, staff);
+  console.info('🚨 [legacyBridge] syncLegacyStaffSession:done', { staff });
   return staff;
+  } catch (error) {
+    console.error('🚨 [legacyBridge] syncLegacyStaffSession crashed', error);
+    return null;
+  }
 }
 
 export function clearLegacySessions(): void {
-  db.removeSync(TABLES.sessionCustomer);
-  db.removeSync(TABLES.sessionStaff);
+  try {
+    console.info('🚨 [legacyBridge] clearLegacySessions');
+    db.removeSync(TABLES.sessionCustomer);
+    db.removeSync(TABLES.sessionStaff);
+  } catch (error) {
+    console.error('🚨 [legacyBridge] clearLegacySessions crashed', error);
+  }
 }
