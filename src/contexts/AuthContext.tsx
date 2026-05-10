@@ -67,19 +67,40 @@ function toEmail(identifier: string, audience: 'customer' | 'staff'): string {
 }
 
 async function fetchRoles(userId: string): Promise<AppRole[]> {
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId);
-  if (error || !data) return [];
-  return data.map((r) => r.role as AppRole);
+  try {
+    console.info('🚨 [Auth] fetchRoles:start', { userId });
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+    if (error) {
+      console.error('🚨 [Auth] fetchRoles:error', error);
+      return [];
+    }
+    const result = (data ?? []).map((r) => r.role as AppRole);
+    console.info('🚨 [Auth] fetchRoles:done', { userId, roles: result });
+    return result;
+  } catch (error) {
+    console.error('🚨 [Auth] fetchRoles:crashed', error);
+    return [];
+  }
+}
+
+async function fetchProfile(userId: string): Promise<void> {
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+  if (error) console.error('🚨 [Auth] fetchProfile:error', error);
+  else console.info('🚨 [Auth] fetchProfile:done', { profile: data });
 }
 
 function bridgeLegacy(user: User, roles: AppRole[]): void {
-  const audience = resolveAudience(user, roles);
-  console.debug('[Auth] bridgeLegacy', { uid: user.id, audience, roles });
-  if (audience === 'staff') syncLegacyStaffSession(user, roles);
-  else syncLegacyCustomerSession(user);
+  try {
+    const audience = resolveAudience(user, roles);
+    console.info('🚨 [Auth] audience resolution / bridgeLegacy', { uid: user.id, audience, roles, metadata: user.user_metadata });
+    if (audience === 'staff') syncLegacyStaffSession(user, roles);
+    else syncLegacyCustomerSession(user);
+  } catch (error) {
+    console.error('🚨 [Auth] bridgeLegacy crashed', error);
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -99,11 +120,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRolesLoaded(false);
         // Defer Supabase calls to avoid deadlocks inside the listener.
         setTimeout(() => {
+          fetchProfile(nextSession.user.id).catch((error) => console.error('🚨 [Auth] listener profile rejected', error));
           fetchRoles(nextSession.user.id).then((r) => {
-            console.debug('[Auth] roles fetched (listener)', r);
+            console.info('🚨 [Auth] roles fetched (listener)', r);
             setRoles(r);
             setRolesLoaded(true);
             bridgeLegacy(nextSession.user, r);
+          }).catch((error) => {
+            console.error('🚨 [Auth] listener roles rejected', error);
+            setRoles([]);
+            setRolesLoaded(true);
           });
         }, 0);
       } else {
@@ -117,12 +143,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
+      console.info('🚨 [Auth] getSession:done', { hasSession: !!data.session, uid: data.session?.user?.id });
       if (data.session?.user) {
+        fetchProfile(data.session.user.id).catch((error) => console.error('🚨 [Auth] init profile rejected', error));
         fetchRoles(data.session.user.id).then((r) => {
-          console.debug('[Auth] roles fetched (init)', r);
+          console.info('🚨 [Auth] roles fetched (init)', r);
           setRoles(r);
           setRolesLoaded(true);
           bridgeLegacy(data.session!.user, r);
+          setLoading(false);
+        }).catch((error) => {
+          console.error('🚨 [Auth] init roles rejected', error);
+          setRoles([]);
+          setRolesLoaded(true);
           setLoading(false);
         });
       } else {
@@ -137,15 +170,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback<AuthContextValue['signIn']>(async (identifier, password, audience) => {
     const email = toEmail(identifier, audience);
+    console.info('🚨 [Auth] login request', { audience, identifier, email });
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    console.info('🚨 [Auth] login response', { hasSession: !!data.session, uid: data.user?.id, error });
     if (data?.session && data.user) {
       // Set state synchronously so callers can navigate immediately
       // without racing the onAuthStateChange listener.
       setSession(data.session);
       setUser(data.user);
       setRolesLoaded(false);
+      await fetchProfile(data.user.id);
       const r = await fetchRoles(data.user.id);
-      console.debug('[Auth] signIn roles', { audience, r });
+      console.info('🚨 [Auth] signIn roles', { audience, r });
       setRoles(r);
       setRolesLoaded(true);
       bridgeLegacy(data.user, r);
