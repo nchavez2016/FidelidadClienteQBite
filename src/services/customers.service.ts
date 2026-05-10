@@ -258,6 +258,7 @@ export function updateCustomerPhone(id: string, newPhone: string): boolean {
   );
   db.writeSync(TABLES.customers, list);
   updateCredentialIdentifier(id, newPhone);
+  void persistProfilePatch(id, { phone: newPhone });
   return true;
 }
 
@@ -336,24 +337,31 @@ export function resetAllCustomerPoints(): void {
 
 /** Idempotent: append a campaignId to the accepted-terms list. */
 export function acceptCampaignTerms(customerId: string, campaignId: string): void {
+  let nextAccepted: string[] | null = null;
   const list = db.readSync<any>(TABLES.customers).map((c: any) => {
     if (c.id !== customerId) return c;
     const accepted = c.acceptedCampaigns || [];
     if (accepted.includes(campaignId)) return c;
-    return { ...c, acceptedCampaigns: [...accepted, campaignId] };
+    nextAccepted = [...accepted, campaignId];
+    return { ...c, acceptedCampaigns: nextAccepted };
   });
   db.writeSync(TABLES.customers, list);
+  if (nextAccepted && isUuid(customerId) && isUuid(campaignId)) {
+    void persistProfilePatch(customerId, { accepted_campaigns: nextAccepted });
+  }
 }
 
 /** Soft-delete: only admins may call this. Throws if caller lacks privilege. */
 export function deactivateCustomer(customerId: string, actor: { id: string; role: 'admin' | 'cashier' }): void {
   if (actor.role !== 'admin') throw new Error('Solo un administrador puede desactivar clientes');
+  const deletedAt = new Date().toISOString();
   const list = db.readSync<any>(TABLES.customers).map((c: any) =>
     c.id === customerId
-      ? { ...c, isActive: false, deletedAt: new Date().toISOString() }
+      ? { ...c, isActive: false, deletedAt }
       : c,
   );
   db.writeSync(TABLES.customers, list);
+  void persistProfilePatch(customerId, { is_active: false, deleted_at: deletedAt });
   logAudit({
     action: 'customer_deactivated',
     actorId: actor.id,
@@ -370,6 +378,7 @@ export function reactivateCustomer(customerId: string, actor: { id: string; role
       : c,
   );
   db.writeSync(TABLES.customers, list);
+  void persistProfilePatch(customerId, { is_active: true, deleted_at: null });
   logAudit({
     action: 'customer_reactivated',
     actorId: actor.id,
