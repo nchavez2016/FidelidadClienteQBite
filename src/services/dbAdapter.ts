@@ -1,21 +1,19 @@
 /**
  * dbAdapter — single abstraction over the persistence layer.
  *
- * Today: backed by localStorage (same physical keys as the legacy
- * `storage` adapter, so no data migration is needed).
- * Tomorrow (Supabase): swap the bodies of the methods below for the
- * `@supabase/supabase-js` client. Table names map 1:1.
+ * The concrete backend lives in `src/services/drivers/`. Today the
+ * adapter is wired to `LocalStorageDriver`; swapping to Supabase will
+ * be a one-line change here (plus a `SupabaseDriver` implementation).
  *
- * The async API is the future-facing contract (Promise<T>, Supabase-shaped).
- * The sync helpers exist ONLY to keep the current UI/services working
- * during the transition; they will be removed once components consume the
- * async API via TanStack Query.
+ * The exposed `db` object preserves the EXACT shape used by services
+ * today (async CRUD + transitional sync helpers) so no caller changes.
  *
  * TODO(Supabase):
- *   - Replace LocalDriver with SupabaseDriver.
- *   - Drop sync helpers and migrate callers to async/Promise.
- *   - Apply RLS policies per table (see comments under TABLES).
+ *   - Add `SupabaseDriver implements DbDriver` and swap the instance below.
+ *   - Migrate callers to the async API and drop the sync helpers.
  */
+import type { DbDriver, SyncKeyValueDriver, RowLike } from './drivers/DbDriver';
+import { LocalStorageDriver } from './drivers/LocalStorageDriver';
 
 /** Logical table names. Map 1:1 to a future Supabase table. */
 export const TABLES = {
@@ -37,101 +35,41 @@ export const TABLES = {
 export type TableName = (typeof TABLES)[keyof typeof TABLES];
 
 /**
- * Map logical table name → physical localStorage key.
- * Preserves legacy keys so existing data is read in place.
+ * Active driver instance.
+ * Swap this single line to migrate to Supabase (`new SupabaseDriver(...)`).
+ * The driver must implement `DbDriver`; it MAY also implement
+ * `SyncKeyValueDriver` while sync helpers are still in use.
  */
-const KEY_MAP: Record<string, string> = {
-  customers: 'gaviota_customers',
-  staff_profiles: 'gaviota_staff',
-  credentials: 'gaviota_credentials',
-  campaigns: 'gaviota_campaigns',
-  branches: 'gaviota_branches',
-  transactions: 'gaviota_transactions',
-  redemption_requests: 'gaviota_redemption_requests',
-  customer_campaign_points: 'gaviota_customer_campaign_points',
-  consents: 'gaviota_consents',
-  audit_logs: 'gaviota_audit_logs',
-  session_customer: 'gaviota_current_customer',
-  session_staff: 'gaviota_current_staff',
-};
+const driver: DbDriver & SyncKeyValueDriver = new LocalStorageDriver();
 
-function physicalKey(table: string): string {
-  return KEY_MAP[table] ?? `gaviota_${table}`;
-}
-
-// ---------- low-level local driver (sync) ----------
-function rawRead<T>(table: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(physicalKey(table));
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-function rawWrite<T>(table: string, value: T): void {
-  localStorage.setItem(physicalKey(table), JSON.stringify(value));
-}
-function rawRemove(table: string): void {
-  localStorage.removeItem(physicalKey(table));
-}
-
-interface RowLike {
-  id: string;
-  [k: string]: unknown;
-}
-
+/**
+ * Public persistence API consumed by services.
+ *
+ * Shape preserved for backwards compatibility:
+ *   - Async CRUD: get / insert / update / delete  (DbDriver-shaped)
+ *   - Sync helpers: readSync / writeSync / readValueSync / writeValueSync /
+ *     removeSync (transitional, scheduled for removal)
+ *
+ * Note: `db.get` is kept as the legacy async-collection alias for
+ * `driver.getAll`. New code should prefer `driver.getAll` / `getById`.
+ */
 export const db = {
-  // ===== Async, Supabase-shaped =====
+  // ===== Async (DbDriver) =====
+  get: <T extends RowLike = RowLike>(table: string): Promise<T[]> => driver.getAll<T>(table),
+  getAll: <T extends RowLike = RowLike>(table: string): Promise<T[]> => driver.getAll<T>(table),
+  getById: <T extends RowLike = RowLike>(table: string, id: string): Promise<T | null> =>
+    driver.getById<T>(table, id),
+  insert: <T extends RowLike>(table: string, row: T): Promise<T> => driver.insert<T>(table, row),
+  update: <T extends RowLike>(table: string, id: string, patch: Partial<T>): Promise<T | null> =>
+    driver.update<T>(table, id, patch),
+  delete: (table: string, id: string): Promise<void> => driver.delete(table, id),
 
-  /** Read all rows from a collection table. */
-  async get<T extends RowLike = RowLike>(table: string): Promise<T[]> {
-    return rawRead<T[]>(table, []);
-  },
-
-  /** Insert a row; returns the inserted row. Generates id if missing. */
-  async insert<T extends RowLike>(table: string, row: T): Promise<T> {
-    const list = rawRead<T[]>(table, []);
-    const withId = (row.id ? row : { ...row, id: `${table}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }) as T;
-    rawWrite(table, [...list, withId]);
-    return withId;
-  },
-
-  /** Update a row by id; returns the updated row, or null if not found. */
-  async update<T extends RowLike>(table: string, id: string, patch: Partial<T>): Promise<T | null> {
-    const list = rawRead<T[]>(table, []);
-    const idx = list.findIndex(r => r.id === id);
-    if (idx < 0) return null;
-    list[idx] = { ...list[idx], ...patch } as T;
-    rawWrite(table, list);
-    return list[idx];
-  },
-
-  /** Delete a row by id. */
-  async delete(table: string, id: string): Promise<void> {
-    const list = rawRead<RowLike[]>(table, []);
-    rawWrite(table, list.filter(r => r.id !== id));
-  },
-
-  // ===== Sync helpers (TRANSITIONAL — remove after async migration) =====
-
-  /** @transitional Sync collection read. */
-  readSync<T = unknown>(table: string): T[] {
-    return rawRead<T[]>(table, []);
-  },
-  /** @transitional Sync collection write (replace whole array). */
-  writeSync<T>(table: string, rows: T[]): void {
-    rawWrite(table, rows);
-  },
-  /** @transitional Single-value read (sessions). */
-  readValueSync<T>(table: string, fallback: T): T {
-    return rawRead<T>(table, fallback);
-  },
-  /** @transitional Single-value write (sessions). */
-  writeValueSync<T>(table: string, value: T): void {
-    rawWrite(table, value);
-  },
-  /** @transitional Remove a value/collection. */
-  removeSync(table: string): void {
-    rawRemove(table);
-  },
+  // ===== Transitional sync helpers (SyncKeyValueDriver) =====
+  readSync: <T = unknown>(table: string): T[] => driver.readSync<T>(table),
+  writeSync: <T>(table: string, rows: T[]): void => driver.writeSync<T>(table, rows),
+  readValueSync: <T>(table: string, fallback: T): T => driver.readValueSync<T>(table, fallback),
+  writeValueSync: <T>(table: string, value: T): void => driver.writeValueSync<T>(table, value),
+  removeSync: (table: string): void => driver.removeSync(table),
 };
+
+export type { DbDriver, SyncKeyValueDriver, RowLike } from './drivers/DbDriver';
