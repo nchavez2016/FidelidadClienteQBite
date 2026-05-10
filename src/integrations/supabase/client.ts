@@ -18,7 +18,25 @@ function createSupabaseClient() {
     throw new Error(message);
   }
 
+  const debugFetch: typeof fetch = async (input, init) => {
+    const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+    const method = init?.method ?? (input instanceof Request ? input.method : 'GET');
+    const isSupabase = url.includes(SUPABASE_URL);
+    if (isSupabase && (url.includes('/auth/v1/token') || url.includes('/rest/v1/'))) {
+      console.info('🚨 [Supabase request]', { method, url, hasBody: !!init?.body });
+    }
+    const response = await fetch(input, init);
+    if (isSupabase && !response.ok) {
+      const body = await response.clone().text().catch(() => '<unreadable>');
+      console.error('🚨 [Supabase response ERROR]', { method, url, status: response.status, body });
+    } else if (isSupabase && (url.includes('/auth/v1/token') || url.includes('/rest/v1/'))) {
+      console.info('🚨 [Supabase response OK]', { method, url, status: response.status });
+    }
+    return response;
+  };
+
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    global: { fetch: debugFetch },
     auth: {
       storage: typeof window !== 'undefined' ? localStorage : undefined,
       persistSession: true,
