@@ -18,6 +18,9 @@ import {
 
 const TABLE = 'campaigns';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: string) => UUID_RE.test(v);
+
 interface CampaignRow {
   id: string;
   branch_id: string;
@@ -134,8 +137,7 @@ export function getAvailableRewards(points: number, campaignId?: string): Milest
 
 export async function saveCampaignAsync(campaign: Campaign): Promise<void> {
   const branchId = await resolveBranchId(campaign);
-  const payload = {
-    id: campaign.id,
+  const basePayload = {
     branch_id: branchId,
     name: campaign.name,
     status: campaign.status,
@@ -145,10 +147,34 @@ export async function saveCampaignAsync(campaign: Campaign): Promise<void> {
     milestones: campaign.milestones ?? [],
     bonus_rules: campaign.bonusRules ?? [],
   };
-  // Upsert to handle both create and update through a single round-trip.
+
+  const legacyId = !isUuid(campaign.id) ? campaign.id : null;
+
+  if (legacyId) {
+    // New campaign with a frontend-generated legacy id — let Postgres
+    // assign the real UUID, then remap the cache from legacy → real id.
+    const payload = { ...basePayload, legacy_id: legacyId };
+    const { data, error } = await supabase
+      .from(TABLE)
+      .insert(payload as never)
+      .select('*')
+      .single();
+    if (error) {
+      console.error('[campaigns] insert failed', error, payload);
+      throw error;
+    }
+    const realId = (data as { id: string }).id;
+    cache = cache.filter(c => c.id !== legacyId);
+    campaign.id = realId; // mutate caller for continuity
+    await hydrateCampaigns();
+    return;
+  }
+
+  // Existing UUID — upsert normally.
+  const payload = { id: campaign.id, ...basePayload };
   const { error } = await supabase.from(TABLE).upsert(payload as never);
   if (error) {
-    console.error('[campaigns] save failed', error);
+    console.error('[campaigns] upsert failed', error, payload);
     throw error;
   }
   await hydrateCampaigns();
