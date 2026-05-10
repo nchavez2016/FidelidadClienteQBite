@@ -100,8 +100,45 @@ export type Database = {
           },
         ]
       }
+      customer_points: {
+        Row: {
+          campaign_id: string
+          customer_id: string
+          points: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          customer_id: string
+          points?: number
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          customer_id?: string
+          points?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_points_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_points_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          accepted_campaigns: string[]
           branch_id: string | null
           created_at: string
           deleted_at: string | null
@@ -109,10 +146,13 @@ export type Database = {
           gender: Database["public"]["Enums"]["gender_type"] | null
           id: string
           is_active: boolean
+          legacy_id: string | null
           phone: string | null
+          revoked_from_phone: string | null
           updated_at: string
         }
         Insert: {
+          accepted_campaigns?: string[]
           branch_id?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -120,10 +160,13 @@ export type Database = {
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id: string
           is_active?: boolean
+          legacy_id?: string | null
           phone?: string | null
+          revoked_from_phone?: string | null
           updated_at?: string
         }
         Update: {
+          accepted_campaigns?: string[]
           branch_id?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -131,7 +174,9 @@ export type Database = {
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
           is_active?: boolean
+          legacy_id?: string | null
           phone?: string | null
+          revoked_from_phone?: string | null
           updated_at?: string
         }
         Relationships: [
