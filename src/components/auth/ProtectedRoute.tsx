@@ -11,25 +11,28 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, roles, redirectTo = '/cliente/login' }: ProtectedRouteProps) {
-  const { user, roles: userRoles, loading } = useAuth();
+  const { user, roles: userRoles, loading, rolesLoaded } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
+      console.debug('[ProtectedRoute] no user → redirect', { redirectTo });
       navigate(redirectTo, { replace: true });
       return;
     }
+    // Wait until roles are hydrated before deciding role-based redirects.
+    if (!rolesLoaded) return;
     if (roles && roles.length > 0 && !userRoles.some((r) => roles.includes(r))) {
-      // Role mismatch: send admins/cashiers to their panel, customers to dashboard.
       const fallback = userRoles.includes('admin') || userRoles.includes('cashier')
         ? '/staff/panel'
         : '/cliente/dashboard';
+      console.debug('[ProtectedRoute] role mismatch', { required: roles, userRoles, fallback });
       navigate(fallback, { replace: true });
     }
-  }, [user, userRoles, loading, roles, redirectTo, navigate]);
+  }, [user, userRoles, loading, rolesLoaded, roles, redirectTo, navigate]);
 
-  if (loading) {
+  if (loading || (user && !rolesLoaded)) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
         Cargando…
