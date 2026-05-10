@@ -19,6 +19,8 @@ import { importFromCustomers } from './customerPoints.service';
 import type { Campaign, Customer, StaffUser, Transaction } from '@/lib/types';
 import { hydrateBranches } from './branches.service';
 import { hydrateCampaigns } from './campaigns.service';
+import { hydrateCustomers } from './customers.service';
+import { hydrateCustomerPoints } from './customerPoints.service';
 
 function seedCampaigns(): void {
   const campaigns = storage.get<Campaign[]>(STORAGE_KEYS.campaigns, []);
@@ -75,4 +77,7 @@ export function bootstrapStore(): void {
   // in-memory cache in the background so legacy sync getters return
   // real data once the network round-trip completes.
   void hydrateBranches().then(() => hydrateCampaigns());
+  // Phase 5: customers (via profiles) + loyalty points hydrate from Supabase.
+  void hydrateCustomers();
+  void hydrateCustomerPoints();
 }

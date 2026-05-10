@@ -16,6 +16,7 @@ import { getCustomerByPhone, getCustomers } from '../customers.service';
 import { getStaff } from '../staff.service';
 import type { Customer, Gender, StaffUser } from '@/lib/types';
 import type { AppRole } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 function meta(user: User): Record<string, unknown> {
   return (user.user_metadata ?? {}) as Record<string, unknown>;
@@ -40,6 +41,19 @@ export function syncLegacyCustomerSession(user: User): Customer | null {
     db.writeSync(TABLES.customers, [...getCustomers(), customer]);
   }
   db.writeValueSync(TABLES.sessionCustomer, customer);
+  // Persist phone/name/gender into the Supabase profile (handle_new_user
+  // creates the row but doesn't see metadata.identifier). Best-effort.
+  void supabase
+    .from('profiles')
+    .update({
+      display_name: customer.name,
+      phone: customer.phone,
+      gender: customer.gender,
+    } as never)
+    .eq('id', user.id)
+    .then(({ error }) => {
+      if (error) console.error('[legacyBridge] profile sync failed', error);
+    });
   return customer;
 }
 

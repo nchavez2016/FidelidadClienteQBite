@@ -14,6 +14,7 @@
  */
 import { Customer, Gender } from '@/lib/types';
 import { db, TABLES } from './dbAdapter';
+import { supabase } from '@/integrations/supabase/client';
 import { getActiveCampaigns } from './campaigns.service';
 import {
   validateOrThrow,
@@ -35,6 +36,94 @@ import {
 import { registerConsent, revokeConsent as revokeConsentRecord } from './consent.service';
 import { logAudit } from './audit.service';
 import { addTransaction } from './transactions.service';
+
+const PROFILES_TABLE = 'profiles';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: string) => UUID_RE.test(v);
+
+interface ProfileRow {
+  id: string;
+  display_name: string;
+  phone: string | null;
+  gender: Gender | null;
+  is_active: boolean;
+  deleted_at: string | null;
+  created_at: string;
+  accepted_campaigns: string[] | null;
+  revoked_from_phone: string | null;
+  legacy_id: string | null;
+}
+
+function profileToCustomer(r: ProfileRow): Customer {
+  return {
+    id: r.id,
+    phone: r.phone ?? '',
+    name: r.display_name || (r.phone ?? ''),
+    gender: (r.gender ?? 'otro') as Gender,
+    pointsByCampaign: {},
+    acceptedCampaigns: r.accepted_campaigns ?? [],
+    isActive: r.is_active,
+    deletedAt: r.deleted_at ?? undefined,
+    revokedFromPhone: r.revoked_from_phone ?? undefined,
+    createdAt: r.created_at,
+  };
+}
+
+let profilesHydrated = false;
+let profilesInflight: Promise<void> | null = null;
+
+/**
+ * Hydrate the local customers cache from `public.profiles`. Merges
+ * Supabase-backed profiles (uuid ids) on top of legacy localStorage rows
+ * so the existing sync UI keeps reading from a single source.
+ */
+export async function hydrateCustomers(): Promise<void> {
+  if (profilesInflight) return profilesInflight;
+  profilesInflight = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from(PROFILES_TABLE)
+        .select('*')
+        .is('deleted_at', null);
+      if (error) throw error;
+      const rows = (data as ProfileRow[] | null) ?? [];
+      const local = db.readSync<any>(TABLES.customers);
+      const byId = new Map<string, any>();
+      for (const c of local) byId.set(c.id, c);
+      for (const r of rows) {
+        const merged = { ...(byId.get(r.id) ?? {}), ...profileToCustomer(r) };
+        // Preserve denormalized points cache if present locally.
+        merged.pointsByCampaign =
+          (byId.get(r.id) as any)?.pointsByCampaign ?? {};
+        byId.set(r.id, merged);
+      }
+      db.writeSync(TABLES.customers, Array.from(byId.values()));
+      profilesHydrated = true;
+    } catch (err) {
+      console.error('[customers] hydrate failed', err);
+    } finally {
+      profilesInflight = null;
+    }
+  })();
+  return profilesInflight;
+}
+
+export function isCustomersHydrated(): boolean {
+  return profilesHydrated;
+}
+
+/**
+ * Persist a profile patch to Supabase when the customer is auth-backed
+ * (uuid id). Legacy `cust-xxx` ids stay local-only.
+ */
+async function persistProfilePatch(id: string, patch: Partial<ProfileRow>): Promise<void> {
+  if (!isUuid(id)) return;
+  const { error } = await supabase
+    .from(PROFILES_TABLE)
+    .update(patch as never)
+    .eq('id', id);
+  if (error) console.error('[customers] profile update failed', error, { id, patch });
+}
 
 function withDerivedFields(c: any): Customer {
   const base: Customer = {
@@ -169,6 +258,7 @@ export function updateCustomerPhone(id: string, newPhone: string): boolean {
   );
   db.writeSync(TABLES.customers, list);
   updateCredentialIdentifier(id, newPhone);
+  void persistProfilePatch(id, { phone: newPhone });
   return true;
 }
 
@@ -247,24 +337,31 @@ export function resetAllCustomerPoints(): void {
 
 /** Idempotent: append a campaignId to the accepted-terms list. */
 export function acceptCampaignTerms(customerId: string, campaignId: string): void {
+  let nextAccepted: string[] | null = null;
   const list = db.readSync<any>(TABLES.customers).map((c: any) => {
     if (c.id !== customerId) return c;
     const accepted = c.acceptedCampaigns || [];
     if (accepted.includes(campaignId)) return c;
-    return { ...c, acceptedCampaigns: [...accepted, campaignId] };
+    nextAccepted = [...accepted, campaignId];
+    return { ...c, acceptedCampaigns: nextAccepted };
   });
   db.writeSync(TABLES.customers, list);
+  if (nextAccepted && isUuid(customerId) && isUuid(campaignId)) {
+    void persistProfilePatch(customerId, { accepted_campaigns: nextAccepted });
+  }
 }
 
 /** Soft-delete: only admins may call this. Throws if caller lacks privilege. */
 export function deactivateCustomer(customerId: string, actor: { id: string; role: 'admin' | 'cashier' }): void {
   if (actor.role !== 'admin') throw new Error('Solo un administrador puede desactivar clientes');
+  const deletedAt = new Date().toISOString();
   const list = db.readSync<any>(TABLES.customers).map((c: any) =>
     c.id === customerId
-      ? { ...c, isActive: false, deletedAt: new Date().toISOString() }
+      ? { ...c, isActive: false, deletedAt }
       : c,
   );
   db.writeSync(TABLES.customers, list);
+  void persistProfilePatch(customerId, { is_active: false, deleted_at: deletedAt });
   logAudit({
     action: 'customer_deactivated',
     actorId: actor.id,
@@ -281,6 +378,7 @@ export function reactivateCustomer(customerId: string, actor: { id: string; role
       : c,
   );
   db.writeSync(TABLES.customers, list);
+  void persistProfilePatch(customerId, { is_active: true, deleted_at: null });
   logAudit({
     action: 'customer_reactivated',
     actorId: actor.id,
@@ -359,6 +457,12 @@ export function revokeCustomerConsent(customerId: string): {
       : c,
   );
   db.writeSync(TABLES.customers, list);
+  void persistProfilePatch(customerId, {
+    is_active: false,
+    deleted_at: new Date().toISOString(),
+    revoked_from_phone: originalPhone,
+    phone: releasedPhone,
+  });
 
   // 4) Inhabilitar credenciales.
   updateCredentialIdentifier(customerId, releasedPhone);
