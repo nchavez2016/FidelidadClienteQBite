@@ -14,6 +14,7 @@
  */
 import { Customer, Gender } from '@/lib/types';
 import { db, TABLES } from './dbAdapter';
+import { supabase } from '@/integrations/supabase/client';
 import { getActiveCampaigns } from './campaigns.service';
 import {
   validateOrThrow,
@@ -35,6 +36,94 @@ import {
 import { registerConsent, revokeConsent as revokeConsentRecord } from './consent.service';
 import { logAudit } from './audit.service';
 import { addTransaction } from './transactions.service';
+
+const PROFILES_TABLE = 'profiles';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: string) => UUID_RE.test(v);
+
+interface ProfileRow {
+  id: string;
+  display_name: string;
+  phone: string | null;
+  gender: Gender | null;
+  is_active: boolean;
+  deleted_at: string | null;
+  created_at: string;
+  accepted_campaigns: string[] | null;
+  revoked_from_phone: string | null;
+  legacy_id: string | null;
+}
+
+function profileToCustomer(r: ProfileRow): Customer {
+  return {
+    id: r.id,
+    phone: r.phone ?? '',
+    name: r.display_name || (r.phone ?? ''),
+    gender: (r.gender ?? 'otro') as Gender,
+    pointsByCampaign: {},
+    acceptedCampaigns: r.accepted_campaigns ?? [],
+    isActive: r.is_active,
+    deletedAt: r.deleted_at ?? undefined,
+    revokedFromPhone: r.revoked_from_phone ?? undefined,
+    createdAt: r.created_at,
+  };
+}
+
+let profilesHydrated = false;
+let profilesInflight: Promise<void> | null = null;
+
+/**
+ * Hydrate the local customers cache from `public.profiles`. Merges
+ * Supabase-backed profiles (uuid ids) on top of legacy localStorage rows
+ * so the existing sync UI keeps reading from a single source.
+ */
+export async function hydrateCustomers(): Promise<void> {
+  if (profilesInflight) return profilesInflight;
+  profilesInflight = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from(PROFILES_TABLE)
+        .select('*')
+        .is('deleted_at', null);
+      if (error) throw error;
+      const rows = (data as ProfileRow[] | null) ?? [];
+      const local = db.readSync<any>(TABLES.customers);
+      const byId = new Map<string, any>();
+      for (const c of local) byId.set(c.id, c);
+      for (const r of rows) {
+        const merged = { ...(byId.get(r.id) ?? {}), ...profileToCustomer(r) };
+        // Preserve denormalized points cache if present locally.
+        merged.pointsByCampaign =
+          (byId.get(r.id) as any)?.pointsByCampaign ?? {};
+        byId.set(r.id, merged);
+      }
+      db.writeSync(TABLES.customers, Array.from(byId.values()));
+      profilesHydrated = true;
+    } catch (err) {
+      console.error('[customers] hydrate failed', err);
+    } finally {
+      profilesInflight = null;
+    }
+  })();
+  return profilesInflight;
+}
+
+export function isCustomersHydrated(): boolean {
+  return profilesHydrated;
+}
+
+/**
+ * Persist a profile patch to Supabase when the customer is auth-backed
+ * (uuid id). Legacy `cust-xxx` ids stay local-only.
+ */
+async function persistProfilePatch(id: string, patch: Partial<ProfileRow>): Promise<void> {
+  if (!isUuid(id)) return;
+  const { error } = await supabase
+    .from(PROFILES_TABLE)
+    .update(patch as never)
+    .eq('id', id);
+  if (error) console.error('[customers] profile update failed', error, { id, patch });
+}
 
 function withDerivedFields(c: any): Customer {
   const base: Customer = {
