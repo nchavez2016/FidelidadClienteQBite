@@ -73,6 +73,7 @@ export function syncLegacyCustomerSession(user: User): Customer | null {
 }
 
 export function syncLegacyStaffSession(user: User, roles: AppRole[]): StaffUser | null {
+  db.removeSync(TABLES.sessionCustomer);
   const m = meta(user);
   const username = String(m.identifier ?? '').trim();
   if (!username) return null;
