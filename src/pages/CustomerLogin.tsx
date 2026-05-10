@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginCustomerDetailed } from '@/lib/store';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,25 +11,21 @@ import { toast } from 'sonner';
 export default function CustomerLogin() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = loginCustomerDetailed(phone, password);
-    if (result.ok === true) {
-      toast.success(`¡Bienvenido, ${result.customer.name}!`);
-      navigate('/cliente/dashboard');
+    setSubmitting(true);
+    const { error } = await signIn(phone, password, 'customer');
+    setSubmitting(false);
+    if (error) {
+      toast.error('Teléfono o contraseña incorrectos');
       return;
     }
-    if (result.reason === 'account_revoked' || result.reason === 'account_inactive') {
-      toast.error(
-        'Esta cuenta fue dada de baja por revocación del consentimiento. ' +
-        'Si deseas volver a participar, debes registrarte como cliente nuevo.',
-        { duration: 7000 },
-      );
-      return;
-    }
-    toast.error('Teléfono o contraseña incorrectos');
+    toast.success('¡Bienvenido!');
+    navigate('/cliente/dashboard');
   };
 
   return (
@@ -49,7 +45,7 @@ export default function CustomerLogin() {
               <Label htmlFor="password">Contraseña</Label>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">Ingresar</Button>
+            <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">{submitting ? 'Ingresando…' : 'Ingresar'}</Button>
             <p className="text-center text-sm text-muted-foreground">
               ¿No tienes cuenta?{' '}
               <button type="button" onClick={() => navigate('/cliente/registro')} className="text-secondary underline font-medium">Regístrate aquí</button>
