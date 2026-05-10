@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerCustomer } from '@/lib/store';
+import { useAuth } from '@/hooks/useAuth';
 import { Gender } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,21 +17,29 @@ export default function CustomerRegister() {
   const [password, setPassword] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
   const [consent, setConsent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { signUp } = useAuth();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.length < 7) { toast.error('Número de teléfono inválido'); return; }
-    if (password.length < 4) { toast.error('La contraseña debe tener al menos 4 caracteres'); return; }
+    if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
     if (!gender) { toast.error('Por favor selecciona tu género'); return; }
     if (!consent) { toast.error('Debes aceptar el uso de tu número celular para continuar'); return; }
-    const customer = registerCustomer(phone, name, password, gender, { consentAccepted: true });
-    if (customer) {
-      toast.success('¡Cuenta creada! Ahora puedes iniciar sesión.');
-      navigate('/cliente/login');
-    } else {
-      toast.error('Este número ya está registrado');
+    setSubmitting(true);
+    const { error } = await signUp(phone, password, 'customer', {
+      display_name: name,
+      gender,
+      consent_accepted: true,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error(error.includes('registered') ? 'Este número ya está registrado' : error);
+      return;
     }
+    toast.success('¡Cuenta creada! Ahora puedes iniciar sesión.');
+    navigate('/cliente/login');
   };
 
   return (
@@ -78,7 +86,7 @@ export default function CustomerRegister() {
                 </span>
               </label>
             </div>
-            <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">Crear Cuenta</Button>
+            <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">{submitting ? 'Creando…' : 'Crear Cuenta'}</Button>
             <p className="text-center text-sm text-muted-foreground">
               ¿Ya tienes cuenta?{' '}
               <button type="button" onClick={() => navigate('/cliente/login')} className="text-secondary underline font-medium">Inicia sesión</button>

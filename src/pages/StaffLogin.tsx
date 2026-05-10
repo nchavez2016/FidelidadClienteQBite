@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginStaff } from '@/lib/store';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,17 +12,21 @@ import { Shield } from 'lucide-react';
 export default function StaffLogin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const staff = loginStaff(username, password);
-    if (staff) {
-      toast.success(`Bienvenido, ${staff.name}`);
-      navigate('/staff/panel');
-    } else {
+    setSubmitting(true);
+    const { error } = await signIn(username, password, 'staff');
+    setSubmitting(false);
+    if (error) {
       toast.error('Credenciales incorrectas');
+      return;
     }
+    toast.success('Bienvenido');
+    navigate('/staff/panel');
   };
 
   return (
@@ -45,13 +49,8 @@ export default function StaffLogin() {
               <Label htmlFor="password">Contraseña</Label>
               <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">Ingresar</Button>
+            <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">{submitting ? 'Ingresando…' : 'Ingresar'}</Button>
           </form>
-          <div className="mt-4 p-3 rounded-lg bg-muted text-xs text-muted-foreground">
-            <p className="font-medium mb-1">Credenciales de prueba:</p>
-            <p>Admin: admin / admin123</p>
-            <p>Cajero: cajero / cajero123</p>
-          </div>
         </CardContent>
       </Card>
     </div>
