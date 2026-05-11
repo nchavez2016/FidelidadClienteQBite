@@ -377,7 +377,14 @@ export function acceptCampaignTerms(customerId: string, campaignId: string): voi
   });
   db.writeSync(TABLES.customers, list);
   if (nextAccepted && isUuid(customerId) && isUuid(campaignId)) {
-    void persistProfilePatch(customerId, { accepted_campaigns: nextAccepted });
+    // Persist via SECURITY DEFINER RPC so the privileged-fields trigger
+    // doesn't block the customer's own consent acceptance, AND so the
+    // ledger gets a `terms_acceptance` audit row in the same call.
+    void supabase
+      .rpc('accept_campaign_terms', { p_campaign_id: campaignId })
+      .then(({ error }) => {
+        if (error) console.error('[customers] accept_campaign_terms RPC failed', error);
+      });
   }
 }
 
