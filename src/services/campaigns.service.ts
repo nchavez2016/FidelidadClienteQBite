@@ -21,6 +21,32 @@ const TABLE = 'campaigns';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (v: string) => UUID_RE.test(v);
 
+function newUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // RFC4122-ish fallback (only used when WebCrypto is unavailable).
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+/**
+ * Defensive migration: any milestone/bonus rule whose `id` is not a real UUID
+ * (legacy `m-*`, `bonus-*`, etc.) gets a freshly minted UUID before persisting.
+ * The DB stores these as JSONB; the redeem RPC requires real UUIDs.
+ */
+function normalizeMilestoneIds(milestones: Milestone[] | undefined): Milestone[] {
+  return (milestones ?? []).map(m =>
+    isUuid(m.id) ? m : { ...m, id: newUuid() },
+  );
+}
+function normalizeBonusRuleIds(rules: BonusRule[] | undefined): BonusRule[] {
+  return (rules ?? []).map(r => (isUuid(r.id) ? r : { ...r, id: newUuid() }));
+}
+
 interface CampaignRow {
   id: string;
   branch_id: string;
