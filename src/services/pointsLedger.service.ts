@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 import { applyLedgerBalance } from './customerPoints.service';
 import { applyLedgerInsert, rehydrateLedgerHistory } from './ledgerHistory.service';
+import { logAdminAction } from '@/services/security/adminAudit.service';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const log = createLogger('points-ledger');
@@ -113,6 +114,18 @@ export async function earnPoints(input: EarnPointsInput): Promise<LedgerTransact
     balance_after: tx.balance_after,
   });
   reconcile(tx);
+  void logAdminAction({
+    action: 'adjust_points',
+    targetType: 'customer',
+    targetId: tx.customer_id,
+    metadata: {
+      campaign_id: tx.campaign_id,
+      delta: tx.points_delta,
+      tx_id: tx.id,
+      balance_after: tx.balance_after,
+      reason,
+    },
+  });
   return tx;
 }
 
