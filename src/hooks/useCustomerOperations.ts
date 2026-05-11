@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
   getCustomerById, addTransaction,
-  setCustomerPoints, getCustomerPoints, canAddPoint, getAvailableRewards,
+  getCustomerPoints, canAddPoint, getAvailableRewards,
   getLastCustomerTransaction, markTransactionReversed,
   getCustomerTransactions,
   getPendingRequest, approveRedemptionRequest, cancelRedemptionRequestByStaff,
@@ -10,8 +10,17 @@ import {
   getInactiveAccountsForPhone,
 } from '@/lib/store';
 import { searchCustomerByPhoneRemote } from '@/services/customers.service';
+import { getBranchForCampaign } from '@/services/branches.service';
+import {
+  earnPoints as ledgerEarn,
+  redeemReward as ledgerRedeem,
+  reverseTransaction as ledgerReverse,
+} from '@/services/pointsLedger.service';
 import { Customer, CommentCategory, Milestone, StaffUser, RedemptionRequest } from '@/lib/types';
 import { toast } from 'sonner';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: string) => UUID_RE.test(v);
 
 export function useCustomerOperations(staff: StaffUser, currentCampaignId: string) {
   const [phoneSearch, setPhoneSearch] = useState('');
@@ -65,93 +74,128 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     toast.error('Cliente no encontrado');
   }, [phoneSearch]);
 
-  const handleAddPoint = useCallback(() => {
+  const handleAddPoint = useCallback(async () => {
     if (!selectedCustomer) return;
     if (!currentCampaignId) { toast.error('Selecciona una sucursal'); return; }
+    if (!isUuid(selectedCustomer.id) || !isUuid(currentCampaignId)) {
+      toast.error('Cliente o campaña legacy: no se puede acumular en el ledger.');
+      return;
+    }
     if (!canAddPoint(selectedCustomer.id, currentCampaignId)) {
       toast.error('Debes esperar al menos 1 minuto entre puntos (anti-abuso)');
       return;
     }
-    const current = getCustomerPoints(selectedCustomer, currentCampaignId);
     const campaign = getCampaignById(currentCampaignId);
     const bonus = evaluateBonus(campaign);
-    const earned = bonus.multiplier; // 1 punto base * multiplicador
-    const newPoints = current + earned;
-    setCustomerPoints(selectedCustomer.id, currentCampaignId, newPoints);
+    const branchId = getBranchForCampaign(currentCampaignId)?.id ?? null;
     const baseComment = bonus.rule
-      ? `Compra acreditada en horario promocional “${bonus.rule.label || 'Bonus activo'}” (${bonus.rule.startTime}–${bonus.rule.endTime}) · Bonus x${bonus.multiplier} → +${earned} pts · rule:${bonus.rule.id}`
-      : `Compra registrada · +${earned} pt acumulado`;
+      ? `Compra acreditada en horario promocional “${bonus.rule.label || 'Bonus activo'}” (${bonus.rule.startTime}–${bonus.rule.endTime}) · Bonus x${bonus.multiplier} · rule:${bonus.rule.id}`
+      : `Compra registrada`;
     const finalCommentText = [commentText, baseComment].filter(Boolean).join(' · ');
-    addTransaction({
-      customerId: selectedCustomer.id,
-      campaignId: currentCampaignId,
-      type: 'accumulation',
-      points: earned,
-      balanceAfter: newPoints,
-      staffId: staff.id,
-      staffName: staff.name,
-      commentCategory: commentCat || (bonus.rule ? 'promotion' : undefined),
-      commentText: finalCommentText,
-      bonusMultiplier: bonus.multiplier > 1 ? bonus.multiplier : undefined,
-      bonusRuleId: bonus.rule?.id,
-      bonusRuleLabel: bonus.rule?.label,
-    });
-    setFloatingAmount(earned);
-    setFloatingMultiplier(bonus.multiplier);
-    setShowFloating(true);
-    setCommentCat('');
-    setCommentText('');
-    toast.success(
-      bonus.multiplier > 1
-        ? `🔥 Bonus x${bonus.multiplier} · sumamos ${earned} puntos`
-        : 'Listo, sumamos 1 punto 🎉',
-    );
-    setSelectedCustomer(getCustomerById(selectedCustomer.id) || null);
-    refresh();
+    try {
+      const tx = await ledgerEarn({
+        customerId: selectedCustomer.id,
+        campaignId: currentCampaignId,
+        branchId,
+        idempotencyKey: crypto.randomUUID(),
+        commentCategory: commentCat || (bonus.rule ? 'promotion' : undefined),
+        commentText: finalCommentText,
+        bonusRuleId: bonus.rule?.id,
+        bonusMultiplier: bonus.multiplier > 1 ? bonus.multiplier : undefined,
+      });
+      const earned = tx.points_delta;
+      // Legacy local audit log mirror (UI history). Source of truth is point_transactions.
+      addTransaction({
+        customerId: selectedCustomer.id,
+        campaignId: currentCampaignId,
+        type: 'accumulation',
+        points: earned,
+        balanceAfter: tx.balance_after ?? 0,
+        staffId: staff.id,
+        staffName: staff.name,
+        commentCategory: commentCat || (bonus.rule ? 'promotion' : undefined),
+        commentText: finalCommentText,
+        bonusMultiplier: bonus.multiplier > 1 ? bonus.multiplier : undefined,
+        bonusRuleId: bonus.rule?.id,
+        bonusRuleLabel: bonus.rule?.label,
+      });
+      setFloatingAmount(earned);
+      setFloatingMultiplier(bonus.multiplier);
+      setShowFloating(true);
+      setCommentCat('');
+      setCommentText('');
+      toast.success(
+        bonus.multiplier > 1
+          ? `🔥 Bonus x${bonus.multiplier} · sumamos ${earned} puntos`
+          : 'Listo, sumamos 1 punto 🎉',
+      );
+      setSelectedCustomer(getCustomerById(selectedCustomer.id) || null);
+      refresh();
+    } catch (err) {
+      console.error('[useCustomerOperations] earn failed', err);
+      toast.error('No se pudo acumular el punto. Intenta de nuevo.');
+    }
   }, [selectedCustomer, staff, commentCat, commentText, refresh, currentCampaignId]);
 
-  const handleRedeem = useCallback(() => {
+  const handleRedeem = useCallback(async () => {
     if (!selectedCustomer || !selectedReward) return;
     if (!currentCampaignId) { toast.error('Selecciona una sucursal'); return; }
+    if (!isUuid(selectedCustomer.id) || !isUuid(currentCampaignId)) {
+      toast.error('Cliente o campaña legacy: no se puede canjear en el ledger.');
+      return;
+    }
     const current = getCustomerPoints(selectedCustomer, currentCampaignId);
     if (current < selectedReward.requiredPoints) {
       toast.error('El cliente no tiene puntos suficientes');
       return;
     }
-    const remaining = current - selectedReward.requiredPoints;
-    setCustomerPoints(selectedCustomer.id, currentCampaignId, remaining);
+    const branchId = getBranchForCampaign(currentCampaignId)?.id ?? null;
     // Detecta si el canje viene de una solicitud del cliente para enriquecer la traza.
     const pending = getPendingRequest(selectedCustomer.id, currentCampaignId);
     const fromRequest = pending && pending.rewardId === selectedReward.id ? pending : null;
     const traceComment = fromRequest
       ? `Canje aprobado desde solicitud del cliente · req:${fromRequest.id}${commentText ? ` · ${commentText}` : ''}`
       : commentText || undefined;
-    addTransaction({
-      customerId: selectedCustomer.id,
-      campaignId: currentCampaignId,
-      type: 'redemption',
-      points: -selectedReward.requiredPoints,
-      balanceAfter: remaining,
-      rewardId: selectedReward.id,
-      rewardName: selectedReward.rewardName,
-      staffId: staff.id,
-      staffName: staff.name,
-      commentCategory: commentCat || (fromRequest ? 'observation' : undefined),
-      commentText: traceComment,
-    });
-    if (fromRequest) {
-      approveRedemptionRequest(fromRequest.id, staff.id, staff.name);
+    try {
+      const tx = await ledgerRedeem({
+        customerId: selectedCustomer.id,
+        campaignId: currentCampaignId,
+        rewardId: selectedReward.id,
+        rewardName: selectedReward.rewardName,
+        requiredPoints: selectedReward.requiredPoints,
+        branchId,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      addTransaction({
+        customerId: selectedCustomer.id,
+        campaignId: currentCampaignId,
+        type: 'redemption',
+        points: tx.points_delta,
+        balanceAfter: tx.balance_after ?? 0,
+        rewardId: selectedReward.id,
+        rewardName: selectedReward.rewardName,
+        staffId: staff.id,
+        staffName: staff.name,
+        commentCategory: commentCat || (fromRequest ? 'observation' : undefined),
+        commentText: traceComment,
+      });
+      if (fromRequest) {
+        approveRedemptionRequest(fromRequest.id, staff.id, staff.name);
+      }
+      setShowRedeemDialog(false);
+      setSelectedReward(null);
+      setCommentCat('');
+      setCommentText('');
+      toast.success('Premio entregado 🎉');
+      setSelectedCustomer(getCustomerById(selectedCustomer.id) || null);
+      refresh();
+    } catch (err) {
+      console.error('[useCustomerOperations] redeem failed', err);
+      toast.error('No se pudo registrar el canje.');
     }
-    setShowRedeemDialog(false);
-    setSelectedReward(null);
-    setCommentCat('');
-    setCommentText('');
-    toast.success('Premio entregado 🎉');
-    setSelectedCustomer(getCustomerById(selectedCustomer.id) || null);
-    refresh();
   }, [selectedCustomer, selectedReward, staff, commentCat, commentText, refresh, currentCampaignId]);
 
-  const handleReverse = useCallback(() => {
+  const handleReverse = useCallback(async () => {
     if (!selectedCustomer) return;
     if (!currentCampaignId) { toast.error('Selecciona una sucursal'); return; }
     if (commentCat === 'other' && !commentText.trim()) {
@@ -167,29 +211,39 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       toast.error('Solo puedes revertir dentro de los 5 minutos');
       return;
     }
-    const reversePoints = -lastTx.points;
-    const current = getCustomerPoints(selectedCustomer, currentCampaignId);
-    const newPoints = current + reversePoints;
-    setCustomerPoints(selectedCustomer.id, currentCampaignId, Math.max(0, newPoints));
-    markTransactionReversed(lastTx.id);
-    addTransaction({
-      customerId: selectedCustomer.id,
-      campaignId: currentCampaignId,
-      type: 'reversal',
-      points: reversePoints,
-      balanceAfter: Math.max(0, newPoints),
-      reversedTransactionId: lastTx.id,
-      staffId: staff.id,
-      staffName: staff.name,
-      commentCategory: commentCat || undefined,
-      commentText: commentText || undefined,
-    });
-    setShowReverseDialog(false);
-    setCommentCat('');
-    setCommentText('');
-    toast.success('Movimiento revertido');
-    setSelectedCustomer(getCustomerById(selectedCustomer.id) || null);
-    refresh();
+    // Ledger reversal requires the original ledger tx_id. The legacy local
+    // transaction id is NOT the ledger id — for now we only attempt the
+    // ledger reverse when the local record carries a UUID that maps to the
+    // ledger row; otherwise we fall back to local-only marking.
+    if (!isUuid(selectedCustomer.id) || !isUuid(currentCampaignId) || !isUuid(lastTx.id)) {
+      toast.error('Esta operación requiere ledger Supabase. Pendiente de migración.');
+      return;
+    }
+    try {
+      const tx = await ledgerReverse(lastTx.id, commentText || undefined, crypto.randomUUID());
+      markTransactionReversed(lastTx.id);
+      addTransaction({
+        customerId: selectedCustomer.id,
+        campaignId: currentCampaignId,
+        type: 'reversal',
+        points: tx.points_delta,
+        balanceAfter: tx.balance_after ?? 0,
+        reversedTransactionId: lastTx.id,
+        staffId: staff.id,
+        staffName: staff.name,
+        commentCategory: commentCat || undefined,
+        commentText: commentText || undefined,
+      });
+      setShowReverseDialog(false);
+      setCommentCat('');
+      setCommentText('');
+      toast.success('Movimiento revertido');
+      setSelectedCustomer(getCustomerById(selectedCustomer.id) || null);
+      refresh();
+    } catch (err) {
+      console.error('[useCustomerOperations] reverse failed', err);
+      toast.error('No se pudo revertir el movimiento.');
+    }
   }, [selectedCustomer, staff, commentCat, commentText, refresh, currentCampaignId]);
 
   const currentPoints = selectedCustomer ? getCustomerPoints(selectedCustomer, currentCampaignId) : 0;
