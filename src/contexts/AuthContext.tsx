@@ -17,8 +17,9 @@ import {
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { clearLegacySessions } from '@/services/auth/legacyBridge';
-import { hydrateCustomerPoints } from '@/services/customerPoints.service';
+import { hydrateCustomerPoints, subscribeCustomerPointsRealtime } from '@/services/customerPoints.service';
 import { hydrateLedgerHistory } from '@/services/ledgerHistory.service';
+import { subscribePointTransactionsRealtime } from '@/services/pointsLedger.service';
 
 export type AppRole = 'admin' | 'cashier' | 'customer';
 
@@ -103,6 +104,13 @@ function bridgeLegacy(_user: User, _roles: AppRole[]): void {
 function postAuthHydrate(): void {
   void hydrateCustomerPoints().catch((err) => console.error('[Auth] hydrateCustomerPoints failed', err));
   void hydrateLedgerHistory().catch((err) => console.error('[Auth] hydrateLedgerHistory failed', err));
+  // Phase 3.4 — start realtime listeners (idempotent, shared channels).
+  try {
+    subscribePointTransactionsRealtime();
+    subscribeCustomerPointsRealtime();
+  } catch (err) {
+    console.error('[Auth] realtime subscribe failed', err);
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

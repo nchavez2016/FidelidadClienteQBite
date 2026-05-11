@@ -17,6 +17,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import type { CustomerCampaignPoints } from '@/lib/types';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const TABLE = 'customer_points';
 
@@ -104,16 +105,42 @@ export function applyLedgerBalance(
   else cache.push(next);
 }
 
-/** @deprecated Phase 3.2 — direct writes are forbidden. No-op + warning. */
-export function setPoints(customerId: string, campaignId: string, _points: number): void {
-  console.warn(
-    '[customerPoints] @deprecated setPoints is a no-op. Use ledger RPCs (earn/redeem/adjust/reverse).',
-    { customerId, campaignId },
-  );
-}
+/**
+ * Phase 3.4 — Realtime subscription for `customer_points`.
+ * Updates the in-memory cache when the trigger writes a new balance and
+ * notifies the optional `onChange` callback so consumers can re-render.
+ */
+let realtimeChannel: RealtimeChannel | null = null;
 
-/** @deprecated Phase 3.2 — clearing balances must go through admin RPCs. */
-export function clearAllPoints(): void {
-  console.warn('[customerPoints] @deprecated clearAllPoints is a no-op. Use adjust_points RPC.');
-  cache = [];
+export function subscribeCustomerPointsRealtime(onChange?: () => void): () => void {
+  if (realtimeChannel) {
+    // Reuse existing channel; just register the callback as a no-op subscriber.
+    if (onChange) onChange();
+    return () => { /* shared channel; do not tear down */ };
+  }
+  realtimeChannel = supabase
+    .channel('customer_points_changes')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: TABLE },
+      (payload) => {
+        const row = (payload.new ?? payload.old) as PointsRow | undefined;
+        if (!row) return;
+        if (payload.eventType === 'DELETE') {
+          cache = cache.filter(r => r.id !== rowId(row.customer_id, row.campaign_id));
+        } else {
+          applyLedgerBalance(row.customer_id, row.campaign_id, row.points);
+        }
+        try { onChange?.(); } catch (err) { console.error('[customerPoints] rt cb', err); }
+      },
+    )
+    .subscribe((status) => {
+      console.info('[customerPoints] realtime status', status);
+    });
+  return () => {
+    if (realtimeChannel) {
+      supabase.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+  };
 }

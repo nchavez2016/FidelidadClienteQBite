@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
   getCustomerById,
-  getCustomerPoints, canAddPoint, getAvailableRewards,
+  getCustomerPoints, getAvailableRewards,
   getLastCustomerTransaction,
   getCustomerTransactions,
   getPendingRequest, approveRedemptionRequest, cancelRedemptionRequestByStaff,
@@ -81,10 +81,7 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       toast.error('Cliente o campaña legacy: no se puede acumular en el ledger.');
       return;
     }
-    if (!canAddPoint(selectedCustomer.id, currentCampaignId)) {
-      toast.error('Debes esperar al menos 1 minuto entre puntos (anti-abuso)');
-      return;
-    }
+    // Phase 3.4 — cooldown is now enforced server-side in earn_points RPC.
     const campaign = getCampaignById(currentCampaignId);
     const bonus = evaluateBonus(campaign);
     const branchId = getBranchForCampaign(currentCampaignId)?.id ?? null;
@@ -118,7 +115,12 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       refresh();
     } catch (err) {
       console.error('[useCustomerOperations] earn failed', err);
-      toast.error('No se pudo acumular el punto. Intenta de nuevo.');
+      const msg = (err as { message?: string })?.message ?? '';
+      if (msg.includes('cooldown_active')) {
+        toast.error('Debes esperar al menos 1 minuto entre puntos (anti-abuso)');
+      } else {
+        toast.error('No se pudo acumular el punto. Intenta de nuevo.');
+      }
     }
   }, [selectedCustomer, staff, commentCat, commentText, refresh, currentCampaignId]);
 
