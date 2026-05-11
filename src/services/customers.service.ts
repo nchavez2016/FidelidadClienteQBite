@@ -30,8 +30,6 @@ import {
 import {
   getPoints,
   getPointsByCustomer,
-  setPoints,
-  clearAllPoints,
 } from './customerPoints.service';
 import { registerConsent, revokeConsent as revokeConsentRecord } from './consent.service';
 import { logAudit } from './audit.service';
@@ -259,23 +257,21 @@ export function getCustomerTotalPoints(customer: Customer | undefined | null): n
   return Object.values(getPointsByCustomer(customer.id)).reduce((s, n) => s + (n || 0), 0);
 }
 
-/** Set absolute points for a campaign. */
+/**
+ * @deprecated Phase 3.2 — direct point writes are forbidden. Use the ledger
+ * RPCs (`earnPoints`, `redeemReward`, `adjustPoints`, `reverseTransaction`)
+ * exported from `@/services/pointsLedger.service`.
+ */
 export function setCustomerPoints(id: string, campaignId: string, newPoints: number): void {
-  warnLegacy('setCustomerPoints', id);
-  setPoints(id, campaignId, newPoints);
-  // Refresh embedded cache so sync readers (current UI) see the update.
-  const list = db.readSync<any>(TABLES.customers).map((c: any) =>
-    c.id === id
-      ? { ...c, pointsByCampaign: { ...(c.pointsByCampaign || {}), [campaignId]: newPoints } }
-      : c,
+  console.warn(
+    '[customers] @deprecated setCustomerPoints is a no-op. Use ledger RPCs.',
+    { id, campaignId, newPoints },
   );
-  db.writeSync(TABLES.customers, list);
 }
 
-/** @deprecated use setCustomerPoints(id, campaignId, n). Kept for compat. */
+/** @deprecated Phase 3.2 — use ledger RPCs. */
 export function updateCustomerPoints(id: string, newPoints: number): void {
-  const active = getActiveCampaigns()[0];
-  if (active) setCustomerPoints(id, active.id, newPoints);
+  console.warn('[customers] @deprecated updateCustomerPoints is a no-op.', { id, newPoints });
 }
 
 export function resetCustomerPassword(id: string, newPassword: string): void {
@@ -365,9 +361,9 @@ export function logoutCustomer(): void {
 }
 
 export function resetAllCustomerPoints(): void {
-  clearAllPoints();
-  const list = db.readSync<any>(TABLES.customers).map((c: any) => ({ ...c, pointsByCampaign: {} }));
-  db.writeSync(TABLES.customers, list);
+  console.warn(
+    '[customers] @deprecated resetAllCustomerPoints is a no-op. Use adjust_points RPC per customer.',
+  );
 }
 
 /** Idempotent: append a campaignId to the accepted-terms list. */
@@ -472,8 +468,15 @@ export function revokeCustomerConsent(customerId: string): {
   }
 
   // 2) Puntos a 0 en todas las campañas.
-  for (const campaignId of Object.keys(pointsByCampaign)) {
-    setPoints(customerId, campaignId, 0);
+  // Phase 3.2: balances are now driven by the ledger. Zeroing on consent
+  // revocation must go through `adjust_points` RPC (admin-only). This loop
+  // is intentionally a no-op until the consent flow runs as admin.
+  // TODO(Phase 3.3): call adjustPoints({ customerId, campaignId, delta: -current, reason: 'consent_revocation' })
+  if (Object.keys(pointsByCampaign).length > 0) {
+    console.warn(
+      '[customers] consent revoke: ledger zeroing pending (use adjust_points RPC).',
+      { customerId, campaigns: Object.keys(pointsByCampaign) },
+    );
   }
 
   // 3) Liberar el teléfono y desactivar.
