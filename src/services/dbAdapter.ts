@@ -22,7 +22,6 @@ export const TABLES = {
   credentials: 'credentials',                       // TODO: deleted once Supabase Auth handles passwords
   campaigns: 'campaigns',                          // RLS: public read (active), admin write
   branches: 'branches',                            // RLS: public read, admin write
-  transactions: 'transactions',                    // RLS: self-read; staff campaign-scoped read
   redemptionRequests: 'redemption_requests',       // RLS: self read/insert; staff campaign-scoped
   customerCampaignPoints: 'customer_campaign_points', // RLS: self-read; staff campaign-scoped
   consents: 'consents',                            // RLS: self read/insert/revoke

@@ -29,18 +29,17 @@ export function migrateCustomers(): void {
   if (changed) storage.set(STORAGE_KEYS.customers, migrated);
 }
 
-export function migrateTransactions(): void {
-  const raw = storage.get<any[]>(STORAGE_KEYS.transactions, []);
-  if (raw.length === 0) return;
-  let changed = false;
-  const migrated = raw.map((t: any) => {
-    if (!t.campaignId) {
-      changed = true;
-      return { ...t, campaignId: LEGACY_CAMPAIGN_ID };
+/**
+ * Phase 4 — legacy `gaviota_transactions` is decommissioned. The ledger is
+ * the single source of truth (Supabase `point_transactions`). This migration
+ * just garbage-collects the stale localStorage slot for users upgrading.
+ */
+export function purgeLegacyTransactionsKey(): void {
+  try {
+    if (typeof window !== 'undefined') {
+      window.localStorage?.removeItem('gaviota_transactions');
     }
-    return t;
-  });
-  if (changed) storage.set(STORAGE_KEYS.transactions, migrated);
+  } catch { /* ignore storage errors */ }
 }
 
 export function migrateCampaigns(): void {
@@ -64,6 +63,6 @@ export function migrateCampaigns(): void {
 
 export function runAllMigrations(): void {
   migrateCustomers();
-  migrateTransactions();
+  purgeLegacyTransactionsKey();
   migrateCampaigns();
 }

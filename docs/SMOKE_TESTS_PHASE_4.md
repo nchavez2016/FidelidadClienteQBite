@@ -39,3 +39,47 @@
 
 ## 4.7 Cooldown (regression from 3.4)
 - Two earns within 60s → second returns `cooldown_active`; UI shows toast.
+---
+
+## Phase 4 — final closing checklist (admin tools)
+
+### 1. Audit log visibility (admin only)
+- Login as **cashier** → Reportes → no “Auditoría” tab.
+- Login as **admin** → Reportes → “Auditoría” tab present, table loads.
+- Trigger any admin action (reset puntos, alta de staff). Audit row appears
+  via realtime within ~1 s without manual refresh.
+
+### 2. CSV export truncation
+- In Historial: pick a wide window (>5000 ledger rows) → export → verify:
+  - first CSV line: `# Export truncated at 5000 rows. Narrow filters for full data.`
+  - toast warning visible.
+- In Auditoría same behavior at 5000 audit rows.
+
+### 3. Realtime reconnect logs
+- Open DevTools console. Toggle network offline 5 s, then online.
+- Expect sequence:
+  - `[REALTIME_RECONNECT] {channel:'point_transactions', attempt:1, delayMs:1000}`
+  - `[REALTIME_RESYNC] {...}`
+  - `[REALTIME_RECOVERED] {...afterAttempts:N}`
+- Backoff doubles (1s → 2s → 4s …) capped at 30s.
+
+### 4. Multi-tab sync
+- Tab A (cashier) acumula 1 punto.
+- Tab B (admin, mismo cliente abierto) ve la fila nueva en LedgerHistoryView
+  y el saldo actualizado sin refresh.
+
+### 5. Admin reset
+- Admin → OperationsTab → buscar cliente con saldo > 0 → “Resetear puntos”.
+- Modal: motivo ≥5 chars + escribir `RESET` → confirma → toast con tx_id.
+- En Auditoría aparece `reset_points` con metadata: `previous_balance`,
+  `new_balance`, `tx_id`, `reason`.
+
+### 6. Dashboard refresh (KPIs)
+- DashboardTab muestra issued/redeemed/reversals/active customers para 7d.
+- Ejecuta una transacción nueva → tras `visibilitychange` o refrescar la
+  ventana, los KPIs reflejan el cambio.
+
+### 7. Hard refresh persistence
+- Acumula → reload (Cmd+Shift+R).
+- Sesión sigue activa, saldo persistente, ledger hidratado desde Supabase.
+- No quedan llaves `gaviota_transactions` en localStorage.

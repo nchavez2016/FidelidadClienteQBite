@@ -18,7 +18,6 @@ const PHYSICAL_TO_TABLE: Record<string, string> = {
   gaviota_credentials: 'credentials',
   gaviota_campaigns: 'campaigns',
   gaviota_branches: 'branches',
-  gaviota_transactions: 'transactions',
   gaviota_redemption_requests: 'redemption_requests',
   gaviota_customer_campaign_points: 'customer_campaign_points',
   gaviota_consents: 'consents',

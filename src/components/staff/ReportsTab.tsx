@@ -8,6 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Download, Users, MessageSquare, Gift, List, CalendarDays } from 'lucide-react';
 import LedgerHistoryView from './LedgerHistoryView';
+import AdminAuditView from './AdminAuditView';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/hooks/useAuth';
 
 const commentLabels: Record<CommentCategory, string> = {
   positive: '😊 Positivo',
@@ -41,6 +44,8 @@ interface ReportsTabProps {
 }
 
 export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -192,8 +197,16 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
 
   return (
     <div className="space-y-4 mt-4">
-      {/* Date Filter */}
-      <Card>
+      <Tabs defaultValue="reports" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="reports">Reportes</TabsTrigger>
+          <TabsTrigger value="ledger">Historial</TabsTrigger>
+          {isAdmin && <TabsTrigger value="audit">Auditoría</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="reports" className="space-y-4">
+        {/* Date Filter */}
+        <Card>
         <CardContent className="pt-5 pb-4">
           <div className="flex items-end gap-3 flex-wrap">
             <CalendarDays className="w-5 h-5 text-secondary mb-2" />
@@ -240,9 +253,18 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
           </Card>
         ))}
       </div>
+        </TabsContent>
 
-      {/* Phase 4 — server-side ledger history (point_transactions). */}
-      <LedgerHistoryView />
+        <TabsContent value="ledger">
+          <LedgerHistoryView />
+        </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="audit">
+            <AdminAuditView />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }
