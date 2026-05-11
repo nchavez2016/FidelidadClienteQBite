@@ -29,15 +29,6 @@ const carouselImages = [dishImg1, dishImg2, dishImg3];
 export default function StaffPanel() {
   const { staff, isAdmin, logout } = useStaffAuth();
   const { roles, rolesLoaded, user } = useAuth();
-  // Defense in depth: even if ProtectedRoute were bypassed, refuse to render
-  // staff UI for any session that is not explicitly admin/cashier.
-  const hasStaffRole = roles.includes('admin') || roles.includes('cashier');
-  if (!user || !rolesLoaded || !hasStaffRole) {
-    if (rolesLoaded && (!user || !hasStaffRole)) {
-      console.warn('[AUTHZ] StaffPanel internal guard denied', { roles, hasStaffRole, hasUser: !!user });
-    }
-    return null;
-  }
   const [activeTab, setActiveTab] = useState('operations');
   const [, setTick] = useState(0);
   const refresh = () => setTick(t => t + 1);
@@ -76,6 +67,15 @@ export default function StaffPanel() {
 
   const ops = useCustomerOperations(staff!, branchCampaignId);
 
+  // Defense in depth: even if ProtectedRoute were bypassed, refuse to render
+  // staff UI for any session that is not explicitly admin/cashier.
+  const hasStaffRole = roles.includes('admin') || roles.includes('cashier');
+  if (!user || !rolesLoaded || !hasStaffRole) {
+    if (rolesLoaded && (!user || !hasStaffRole)) {
+      console.warn('[AUTHZ] StaffPanel internal guard denied', { roles, hasStaffRole, hasUser: !!user });
+    }
+    return null;
+  }
   if (!staff) return null;
 
   const currentCampaign = getCampaignById(branchCampaignId);
