@@ -123,16 +123,19 @@ export async function hydrateCustomers(): Promise<void> {
         rows = (data as ProfileRow[] | null) ?? [];
       }
       const local = db.readSync<any>(TABLES.customers);
-      const byId = new Map<string, any>();
-      for (const c of local) byId.set(c.id, c);
+      const localById = new Map<string, any>();
+      for (const c of local) localById.set(c.id, c);
+      const next: any[] = [];
+      // Preserve legacy local-only customers (cust-xxx) — they never lived in Supabase.
+      for (const c of local) if (isLegacyCustomerId(c.id)) next.push(c);
+      // Only include profiles that belong to the customer-roled set.
       for (const r of rows) {
-        const merged = { ...(byId.get(r.id) ?? {}), ...profileToCustomer(r) };
-        // Preserve denormalized points cache if present locally.
-        merged.pointsByCampaign =
-          (byId.get(r.id) as any)?.pointsByCampaign ?? {};
-        byId.set(r.id, merged);
+        const prev = localById.get(r.id);
+        const merged = { ...(prev ?? {}), ...profileToCustomer(r) };
+        merged.pointsByCampaign = (prev as any)?.pointsByCampaign ?? {};
+        next.push(merged);
       }
-      db.writeSync(TABLES.customers, Array.from(byId.values()));
+      db.writeSync(TABLES.customers, next);
       profilesHydrated = true;
     } catch (err) {
       console.error('[customers] hydrate failed', err);
