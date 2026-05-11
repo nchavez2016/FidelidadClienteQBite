@@ -146,6 +146,16 @@ export interface RedeemRewardInput {
 
 export async function redeemReward(input: RedeemRewardInput): Promise<LedgerTransaction> {
   const key = input.idempotencyKey ?? newIdempotencyKey('redeem');
+  if (!isUuid(input.customerId) || !isUuid(input.campaignId) || !isUuid(input.rewardId)) {
+    // eslint-disable-next-line no-console
+    console.error('[INVALID_REWARD_ID]', {
+      op: 'redeem_reward',
+      customerId: input.customerId,
+      campaignId: input.campaignId,
+      rewardId: input.rewardId,
+    });
+    throw new Error('invalid_reward_or_campaign_id');
+  }
   const { data, error } = await supabase.rpc('redeem_reward', {
     p_customer_id: input.customerId,
     p_campaign_id: input.campaignId,

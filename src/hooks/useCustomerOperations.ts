@@ -131,6 +131,13 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       toast.error('Cliente o campaña legacy: no se puede canjear en el ledger.');
       return;
     }
+    if (!isUuid(selectedReward.id)) {
+      // Legacy/local milestone id (e.g. "m-1778..."). The campaign needs to be
+      // re-saved by an admin so its milestones get real UUIDs.
+      console.error('[INVALID_REWARD_ID]', { rewardId: selectedReward.id });
+      toast.error('Premio no válido: pide a un administrador volver a guardar la campaña.');
+      return;
+    }
     const current = getCustomerPoints(selectedCustomer, currentCampaignId);
     if (current < selectedReward.requiredPoints) {
       toast.error('El cliente no tiene puntos suficientes');
