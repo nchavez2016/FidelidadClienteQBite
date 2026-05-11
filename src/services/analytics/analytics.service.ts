@@ -100,7 +100,7 @@ export function getPeakHours(filter: AnalyticsFilter): PeakHourBucket[] {
 }
 
 export interface GenderBreakdown {
-  gender: 'masculino' | 'femenino' | 'otro';
+  gender: 'masculino' | 'femenino' | 'otro' | 'sin_genero';
   count: number;
   visits: number;
   canjes: number;
@@ -112,13 +112,16 @@ export function getGenderBreakdown(filter: AnalyticsFilter): GenderBreakdown[] {
   const tx = getFilteredTransactions(filter);
   const accumulations = tx.filter(t => isVisit(t) && !t.isReversed);
   const redemptions = tx.filter(t => isRedeem(t) && !t.isReversed);
-  return (['masculino', 'femenino', 'otro'] as const).map(g => {
-    const ids = new Set(customers.filter(c => c.gender === g).map(c => c.id));
+  return (['masculino', 'femenino', 'otro', 'sin_genero'] as const).map(g => {
+    const matches = customers.filter(c =>
+      g === 'sin_genero' ? c.gender == null : c.gender === g,
+    );
+    const ids = new Set(matches.map(c => c.id));
     const visits = accumulations.filter(t => ids.has(t.customerId)).length;
     const canjes = redemptions.filter(t => ids.has(t.customerId)).length;
     return {
       gender: g,
-      count: customers.filter(c => c.gender === g).length,
+      count: ids.size,
       visits,
       canjes,
       pctCanje: visits > 0 ? ((canjes / visits) * 100).toFixed(1) : '0.0',

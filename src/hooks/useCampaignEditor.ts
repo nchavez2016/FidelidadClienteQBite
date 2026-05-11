@@ -44,7 +44,9 @@ export function useCampaignEditor(onSaved: () => void) {
   const addBonusRule = useCallback(() => {
     if (!editingCampaign) return;
     const rule: BonusRule = {
-      id: `bonus-${Date.now()}`,
+      id: (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
       label: '',
       multiplier: 2,
       days: [1, 2, 3], // L-M-X por defecto

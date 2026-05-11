@@ -20,6 +20,10 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const log = createLogger('points-ledger');
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: string | null | undefined): v is string =>
+  typeof v === 'string' && UUID_RE.test(v);
+
 function structuredLog(
   tag: '[LEDGER_EARN]' | '[LEDGER_REDEEM]' | '[LEDGER_ADJUST]' | '[LEDGER_REVERSE]',
   payload: Record<string, unknown>,
@@ -90,6 +94,19 @@ export interface EarnPointsInput {
 
 export async function earnPoints(input: EarnPointsInput): Promise<LedgerTransaction> {
   const key = input.idempotencyKey ?? newIdempotencyKey('earn');
+  if (!isUuid(input.campaignId)) {
+    // eslint-disable-next-line no-console
+    console.error('[INVALID_CAMPAIGN_ID]', { campaignId: input.campaignId, op: 'earn_points' });
+    throw new Error('invalid_campaign_id');
+  }
+  if (!isUuid(input.customerId)) {
+    // eslint-disable-next-line no-console
+    console.error('[INVALID_CAMPAIGN_ID]', { customerId: input.customerId, op: 'earn_points', reason: 'customer_id_not_uuid' });
+    throw new Error('invalid_customer_id');
+  }
+  // Bonus rule id is metadata-only; if it's not a real UUID (legacy/local
+  // bonus rule), drop it so the RPC's uuid column doesn't reject it.
+  const safeBonusRuleId = isUuid(input.bonusRuleId) ? input.bonusRuleId : null;
   const { data, error } = await supabase.rpc('earn_points', {
     p_customer_id: input.customerId,
     p_campaign_id: input.campaignId,
@@ -97,7 +114,7 @@ export async function earnPoints(input: EarnPointsInput): Promise<LedgerTransact
     p_idempotency_key: key,
     p_comment_category: input.commentCategory ?? null,
     p_comment_text: input.commentText ?? null,
-    p_bonus_rule_id: input.bonusRuleId ?? null,
+    p_bonus_rule_id: safeBonusRuleId,
     p_bonus_multiplier: input.bonusMultiplier ?? null,
   } as never);
   if (error) {

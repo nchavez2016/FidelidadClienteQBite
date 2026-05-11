@@ -6,7 +6,7 @@ export interface Customer {
   id: string;
   phone: string;
   name: string;
-  gender: Gender;
+  gender: Gender | null;
   /** Puntos por campaña (clave = campaignId). Reemplaza al antiguo `points`. */
   /**
    * @deprecated Los puntos viven ahora en la tabla `customer_campaign_points`.

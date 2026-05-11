@@ -161,14 +161,20 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
     })();
 
     // --- Gender analysis (filtered) ---
-    const genderData = (['masculino', 'femenino', 'otro'] as const).map(g => {
-      const customers = allCustomers.filter(c => c.gender === g);
-      const ids = new Set(customers.map(c => c.id));
+    // Use DISTINCT customer ids — never derive counts from joined tx rows.
+    // Null gender is preserved as its own bucket so:
+    //   masculino + femenino + otro + sin_genero === total customers
+    const genderBuckets = (['masculino', 'femenino', 'otro', 'sin_genero'] as const).map(g => {
+      const matches = allCustomers.filter(c =>
+        g === 'sin_genero' ? c.gender == null : c.gender === g,
+      );
+      const ids = new Set(matches.map(c => c.id));
       const visits = accumulations.filter(t => ids.has(t.customerId)).length;
       const canjes = redemptions.filter(t => ids.has(t.customerId)).length;
       const pctCanje = visits > 0 ? ((canjes / visits) * 100).toFixed(1) : '0.0';
-      return { gender: g, count: customers.length, visits, canjes, pctCanje };
+      return { gender: g, count: ids.size, visits, canjes, pctCanje };
     });
+    const genderData = genderBuckets.filter(b => b.gender !== 'sin_genero' || b.count > 0);
 
     // --- Peak hours (filtered) ---
     const hourBuckets = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0 }));
@@ -200,7 +206,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
     return { totalVisits, totalPoints, totalRedeemed, totalReversals, pendingPoints, funnel, genderData, peakHours, returnDays };
   }, [filteredTx, allCustomers, campaign, branchCampaignId, pointsOf]);
 
-  const genderLabels: Record<string, string> = { masculino: '♂ Masculino', femenino: '♀ Femenino', otro: '⚧ Otro' };
+  const genderLabels: Record<string, string> = { masculino: '♂ Masculino', femenino: '♀ Femenino', otro: '⚧ Otro', sin_genero: '— Sin género' };
   const maxFunnel = Math.max(...analytics.funnel.map(f => f.count), 1);
   const clearFilters = () => { setDateFrom(''); setDateTo(''); };
   const customerNameById = useMemo(
