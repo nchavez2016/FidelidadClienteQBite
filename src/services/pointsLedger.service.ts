@@ -14,7 +14,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 import { applyLedgerBalance } from './customerPoints.service';
-import { applyLedgerInsert } from './ledgerHistory.service';
+import { applyLedgerInsert, rehydrateLedgerHistory } from './ledgerHistory.service';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const log = createLogger('points-ledger');
@@ -254,22 +254,56 @@ let ledgerChannel: RealtimeChannel | null = null;
 
 export function subscribePointTransactionsRealtime(onInsert?: (tx: LedgerTransaction) => void): () => void {
   if (ledgerChannel) return () => { /* shared channel */ };
-  ledgerChannel = supabase
-    .channel('point_transactions_changes')
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'point_transactions' },
-      (payload) => {
-        const tx = payload.new as unknown as LedgerTransaction;
-        if (!tx?.id) return;
-        applyLedgerInsert(tx);
-        try { onInsert?.(tx); } catch (err) { console.error('[ledger] rt cb', err); }
-      },
-    )
-    .subscribe((status) => {
-      console.info('[ledger] realtime status', status);
-    });
+
+  // ─── Phase 4 — debounced exponential-backoff reconnect ────────
+  const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000, 30000];
+  let attempt = 0;
+  let reconnectTimer: number | null = null;
+
+  const scheduleReconnect = () => {
+    if (reconnectTimer != null) return;        // debounce
+    const delay = BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)];
+    attempt++;
+    console.warn('[ledger] reconnect scheduled', { attempt, delayMs: delay });
+    reconnectTimer = window.setTimeout(() => {
+      reconnectTimer = null;
+      try {
+        if (ledgerChannel) supabase.removeChannel(ledgerChannel);
+      } catch (err) { console.warn('[ledger] removeChannel failed', err); }
+      ledgerChannel = null;
+      // Single-flight rehydrate skips network if recent enough.
+      void rehydrateLedgerHistory().catch(err => console.warn('[ledger] rehydrate failed', err));
+      open();
+    }, delay);
+  };
+
+  const open = () => {
+    ledgerChannel = supabase
+      .channel('point_transactions_changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'point_transactions' },
+        (payload) => {
+          const tx = payload.new as unknown as LedgerTransaction;
+          if (!tx?.id) return;
+          applyLedgerInsert(tx);
+          try { onInsert?.(tx); } catch (err) { console.error('[ledger] rt cb', err); }
+        },
+      )
+      .subscribe((status) => {
+        console.info('[ledger] realtime status', status);
+        if (status === 'SUBSCRIBED') {
+          attempt = 0; // reset backoff on success
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          scheduleReconnect();
+        }
+      });
+  };
+
+  open();
+
   return () => {
+    if (reconnectTimer != null) { window.clearTimeout(reconnectTimer); reconnectTimer = null; }
     if (ledgerChannel) {
       supabase.removeChannel(ledgerChannel);
       ledgerChannel = null;
