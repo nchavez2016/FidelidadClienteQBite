@@ -114,6 +114,10 @@ async function persistPointsAsync(customerId: string, campaignId: string, points
 }
 
 export function setPoints(customerId: string, campaignId: string, points: number): void {
+  if (!isUuid(customerId)) {
+    console.warn('[customerPoints] setPoints rejected non-uuid customerId (legacy)', { customerId, campaignId });
+    return;
+  }
   ensureCacheLoaded();
   const id = rowId(customerId, campaignId);
   const idx = cache.findIndex(r => r.id === id);

@@ -16,11 +16,7 @@ import {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  syncLegacyCustomerSession,
-  clearLegacySessions,
-  resolveAudience,
-} from '@/services/auth/legacyBridge';
+import { clearLegacySessions } from '@/services/auth/legacyBridge';
 import { hydrateCustomerPoints } from '@/services/customerPoints.service';
 
 export type AppRole = 'admin' | 'cashier' | 'customer';
@@ -92,19 +88,13 @@ async function fetchProfile(userId: string): Promise<void> {
   else console.info('🚨 [Auth] fetchProfile:done', { profile: data });
 }
 
-function bridgeLegacy(user: User, roles: AppRole[]): void {
+function bridgeLegacy(_user: User, _roles: AppRole[]): void {
+  // Phase 2.8 — defensive only: wipe any stale legacy session slots so
+  // sync consumers can't read them. AuthContext is the sole identity.
   try {
-    const audience = resolveAudience(user, roles);
-    console.info('🚨 [Auth] audience resolution / bridgeLegacy', { uid: user.id, audience, roles, metadata: user.user_metadata });
-    if (audience === 'staff') {
-      // Staff auth is 100% Supabase-backed (AuthContext.roles + user_roles).
-      // No legacy materialization. Just ensure no stale staff slot remains.
-      clearLegacySessions();
-    } else {
-      syncLegacyCustomerSession(user);
-    }
+    clearLegacySessions();
   } catch (error) {
-    console.error('🚨 [Auth] bridgeLegacy crashed', error);
+    console.error('[Auth] clearLegacySessions crashed', error);
   }
 }
 

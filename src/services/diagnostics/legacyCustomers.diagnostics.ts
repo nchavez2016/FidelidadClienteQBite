@@ -72,3 +72,28 @@ if (typeof window !== 'undefined') {
   (window as unknown as { __auditLegacyCustomers?: () => Promise<LegacyCustomerReport> })
     .__auditLegacyCustomers = auditLegacyCustomers;
 }
+
+/**
+ * Phase 2.8 assertion — verify the legacy purge worked. Logs (does not
+ * throw) so production isn't broken, but any non-zero count means a
+ * regression has reintroduced legacy state.
+ */
+export function assertNoLegacyCustomerState(): void {
+  const localCustomers = db.readSync<Customer>(TABLES.customers);
+  const localPoints = db.readSync<CustomerCampaignPoints>(TABLES.customerCampaignPoints);
+  const legacy = localCustomers.filter(c => isLegacyCustomerId(c.id));
+  const orphan = localPoints.filter(p => isLegacyCustomerId(p.customerId));
+  if (legacy.length > 0 || orphan.length > 0) {
+    console.error('[assert] legacy customer state still present', {
+      legacyCount: legacy.length,
+      orphanPointsCount: orphan.length,
+    });
+  } else {
+    console.info('[assert] no legacy customer state ✓');
+  }
+}
+
+if (typeof window !== 'undefined') {
+  (window as unknown as { __assertNoLegacyCustomerState?: () => void })
+    .__assertNoLegacyCustomerState = assertNoLegacyCustomerState;
+}

@@ -35,7 +35,7 @@ export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }
       onOpenChange(false);
       onCreated?.(phone);
     } else {
-      toast.error('Este número ya está registrado');
+      toast.error('El registro manual desde staff fue desactivado. El cliente debe registrarse en /cliente/registro.');
     }
   };
 

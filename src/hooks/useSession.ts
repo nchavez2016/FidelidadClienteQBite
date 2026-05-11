@@ -6,7 +6,6 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { getCurrentSession } from '@/services';
 import type { Session, Role } from '@/services/auth/types';
 
 export function useSession(redirectTo?: string) {
@@ -14,7 +13,18 @@ export function useSession(redirectTo?: string) {
 
   const session: Session | null = useMemo(() => {
     if (!user) return null;
-    return getCurrentSession();
+    const role: Role = roles.includes('admin')
+      ? 'admin'
+      : roles.includes('cashier')
+        ? 'cashier'
+        : 'customer';
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const identifier = String(meta.identifier ?? user.email ?? '');
+    const displayName = String(meta.display_name ?? identifier);
+    return {
+      user: { id: user.id, identifier, factor: role === 'customer' ? 'phone' : 'username' },
+      profile: { id: user.id, role, displayName },
+    };
   }, [user, roles]);
 
   const navigate = useNavigate();

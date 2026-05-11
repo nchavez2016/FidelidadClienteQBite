@@ -235,33 +235,13 @@ export function registerCustomer(
   gender: Gender,
   options: RegisterCustomerOptions = { consentAccepted: false },
 ): Customer | null {
-  if (!options.consentAccepted) return null; // LOPDP: explicit consent required
-  try {
-    validateOrThrow(customerRegistrationSchema, { phone, name, password, gender });
-  } catch {
-    return null;
-  }
-  if (getCustomerByPhone(phone)) return null;
-  const id = `cust-${Date.now()}`;
-  const customer: Customer = {
-    id,
-    phone,
-    name,
-    gender,
-    pointsByCampaign: {},
-    acceptedCampaigns: [],
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  };
-  // TODO(Supabase Auth): replace setCredential with supabase.auth.signUp.
-  setCredential(id, 'phone', phone, password);
-  db.writeSync(TABLES.customers, [
-    ...db.readSync<any>(TABLES.customers),
-    customer,
-  ]);
-  registerConsent(id);
-  logAudit({ action: 'customer_login', actorId: id, actorRole: 'customer', targetUserId: id, metadata: { event: 'registered' } });
-  return customer;
+  // Phase 2.8 — legacy local-only registration is permanently disabled.
+  // All new customers MUST go through Supabase Auth (CustomerRegister page
+  // calls `useAuth().signUp`). This shim survives only so older imports
+  // don't break the build.
+  console.warn('[customers] registerCustomer is disabled (Phase 2.8). Use Supabase signUp.', { phone, name, gender, options });
+  void password;
+  return null;
 }
 
 /** Points for a customer in one specific campaign. */
@@ -370,18 +350,14 @@ export function loginCustomerDetailed(phone: string, password: string): Customer
  * Kept as a transitional shim so legacy sync consumers (customer pages,
  * `useCustomerSession`) keep working until they are migrated.
  */
+/**
+ * @deprecated Phase 2.8 — removed. Read identity via `useAuth()` and
+ * resolve the Customer object via `useCustomerSession()` or
+ * `getCustomerById(user.id)`. Always returns null + warns.
+ */
 export function getCurrentCustomer(): Customer | null {
-  const stored = db.readValueSync<any>(TABLES.sessionCustomer, null);
-  if (!stored) return null;
-  // Re-hydrate fresh state (could be soft-deleted server-side).
-  const fresh = getCustomerById(stored.id);
-  if (!fresh) return null;
-  if (fresh.isActive === false) {
-    // Cuenta revocada en otra pestaña / por admin → invalidar sesión.
-    db.removeSync(TABLES.sessionCustomer);
-    return null;
-  }
-  return fresh;
+  console.warn('[customers] getCurrentCustomer is a no-op (Phase 2.8). Use useAuth() / useCustomerSession().');
+  return null;
 }
 
 export function logoutCustomer(): void {
