@@ -1,5 +1,6 @@
-import { useState, useMemo, type ReactNode } from 'react';
+import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { getCustomers, getTransactions, getCampaignById, getCustomerById, getCustomerPoints, getCustomerTotalPoints } from '@/lib/store';
+import { getCustomerCounts, type CustomerCounts } from '@/services/analytics/customerCounts.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,15 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
   const allCustomers = getCustomers();
   const allTransactions = getTransactions();
   const campaign = branchCampaignId ? getCampaignById(branchCampaignId) : undefined;
+
+  // Authoritative customer membership counts (profiles ∩ user_roles=customer).
+  // Never derive "Clientes Totales" from ledger activity.
+  const [customerCounts, setCustomerCounts] = useState<CustomerCounts | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void getCustomerCounts().then((c) => { if (!cancelled) setCustomerCounts(c); });
+    return () => { cancelled = true; };
+  }, []);
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -277,7 +287,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
         {[
           {
             label: 'Clientes Totales',
-            value: allCustomers.length,
+            value: customerCounts?.total ?? allCustomers.length,
             icon: Users,
             trend: null,
             description: 'Total de clientes registrados en el programa',
