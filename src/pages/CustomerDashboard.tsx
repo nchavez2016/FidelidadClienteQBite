@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import {
   getActiveCampaigns,
   getCustomerTransactions, resetCustomerPassword,
-  acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints, addTransaction,
+  acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints,
   getPendingRequest, createRedemptionRequest, cancelRedemptionRequestByCustomer,
   logRequestCreated, logRequestCancelled,
   getConsentStatus, revokeCustomerConsent, getCustomerTotalPoints,
@@ -199,17 +199,9 @@ export default function CustomerDashboard() {
   const handleAcceptTerms = (checked: boolean) => {
     if (checked && selectedCampaign && !hasAcceptedTerms) {
       acceptCampaignTerms(customer.id, selectedCampaign.id);
-      addTransaction({
-        customerId: customer.id,
-        campaignId: selectedCampaign.id,
-        type: 'terms_acceptance',
-        points: 0,
-        balanceAfter: currentPoints,
-        staffId: customer.id,
-        staffName: customer.name,
-        commentCategory: 'observation',
-        commentText: `Aceptación de términos y condiciones de la campaña ${selectedCampaign.name}`,
-      });
+      // Phase 3.3: terms acceptance is no longer mirrored as a 0-pt
+      // transaction in the local audit log. Consent state lives on the
+      // profile (`accepted_campaigns`); the ledger only records points.
       toast.success('¡Gracias por aceptar los términos! ✅');
       setTick(t => t + 1);
       refreshCustomer();
