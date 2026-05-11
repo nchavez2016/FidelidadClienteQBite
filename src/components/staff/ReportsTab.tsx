@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Download, Users, MessageSquare, Gift, List, CalendarDays } from 'lucide-react';
+import LedgerHistoryView from './LedgerHistoryView';
 
 const commentLabels: Record<CommentCategory, string> = {
   positive: '😊 Positivo',
@@ -239,6 +240,9 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
           </Card>
         ))}
       </div>
+
+      {/* Phase 4 — server-side ledger history (point_transactions). */}
+      <LedgerHistoryView />
     </div>
   );
 }

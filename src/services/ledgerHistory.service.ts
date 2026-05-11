@@ -21,6 +21,28 @@ import type { LedgerTransaction, LedgerTxKind } from './pointsLedger.service';
 const TABLE = 'point_transactions';
 const DEFAULT_PAGE_SIZE = 500;
 
+/** Phase 4 — pagination/filter primitives for the admin ledger view. */
+export type LedgerKindFilter = LedgerTxKind;
+export interface QueryTransactionsInput {
+  from?: string;          // ISO date (inclusive)
+  to?: string;            // ISO date (inclusive end-of-day handled by caller)
+  campaignId?: string;
+  branchId?: string;
+  kinds?: LedgerKindFilter[];
+  customerId?: string;
+  page?: number;          // 0-based
+  pageSize?: number;      // default 50, max 200
+}
+export interface QueryTransactionsResult {
+  rows: Transaction[];
+  page: number;
+  pageSize: number;
+  /** Estimated total (Postgres planner stat). null = unavailable. */
+  estimatedTotal: number | null;
+  /** Always reliable: derived from rows.length === pageSize + 1. */
+  hasMore: boolean;
+}
+
 // ─── Staff display-name resolver (Phase 3.4) ──────────────────────
 const staffNameById: Record<string, string> = {};
 const inflightProfile: Record<string, Promise<void>> = {};
@@ -154,6 +176,7 @@ let cache: LedgerRow[] = [];
 let reversedIds = new Set<string>();
 let hydrated = false;
 let inflight: Promise<Transaction[]> | null = null;
+let lastHydrateAt = 0;
 const subscribers = new Set<() => void>();
 
 function recomputeReversed(): void {
@@ -189,6 +212,22 @@ export function isLedgerHistoryHydrated(): boolean {
   return hydrated;
 }
 
+export function getLastHydrateTimestamp(): number {
+  return lastHydrateAt;
+}
+
+/**
+ * Single-flight, debounced rehydrate. Coalesces concurrent calls (e.g.
+ * realtime reconnect bursts) into one Supabase round-trip.
+ * If a hydrate completed within `minIntervalMs`, returns the cache snapshot
+ * without refetching.
+ */
+export async function rehydrateLedgerHistory(minIntervalMs = 5000): Promise<Transaction[]> {
+  if (inflight) return inflight;
+  if (Date.now() - lastHydrateAt < minIntervalMs) return getLedgerCache();
+  return hydrateLedgerHistory();
+}
+
 /** One-shot hydration. Subsequent calls return the cached snapshot. */
 export async function hydrateLedgerHistory(): Promise<Transaction[]> {
   if (inflight) return inflight;
@@ -204,6 +243,7 @@ export async function hydrateLedgerHistory(): Promise<Transaction[]> {
       recomputeReversed();
       await resolveActorNames(cache.map(r => r.actor_id).filter((v): v is string => !!v));
       hydrated = true;
+      lastHydrateAt = Date.now();
       notify();
       return getLedgerCache();
     } catch (err) {
@@ -325,6 +365,91 @@ export async function getTransactionById(txId: string): Promise<Transaction | nu
   }
   if (!data) return null;
   return mapLedgerToTransaction(data as LedgerRow, { reversedIds: new Set() });
+}
+
+/**
+ * Phase 4 — server-side filtered/paginated ledger query.
+ *
+ * Strategy:
+ *  - `count: 'estimated'` for cheap totals (planner stats; null when unknown).
+ *  - `range(start, start + pageSize)` fetches `pageSize + 1` rows so we get
+ *    a reliable `hasMore` flag without a second query.
+ */
+export async function queryTransactions(input: QueryTransactionsInput): Promise<QueryTransactionsResult> {
+  const page = Math.max(0, input.page ?? 0);
+  const pageSize = Math.min(200, Math.max(10, input.pageSize ?? 50));
+  const start = page * pageSize;
+
+  let q = supabase
+    .from(TABLE)
+    .select('*', { count: 'estimated' })
+    .order('created_at', { ascending: false })
+    .range(start, start + pageSize); // pageSize+1 rows for hasMore
+
+  if (input.from) q = q.gte('created_at', input.from);
+  if (input.to) q = q.lte('created_at', input.to);
+  if (input.campaignId) q = q.eq('campaign_id', input.campaignId);
+  if (input.branchId) q = q.eq('branch_id', input.branchId);
+  if (input.customerId) q = q.eq('customer_id', input.customerId);
+  if (input.kinds && input.kinds.length > 0) q = q.in('kind', input.kinds);
+
+  const { data, error, count } = await q;
+  if (error) {
+    console.error('[ledgerHistory] queryTransactions failed', error, input);
+    return { rows: [], page, pageSize, estimatedTotal: null, hasMore: false };
+  }
+  const rowsRaw = (data as LedgerRow[] | null) ?? [];
+  const hasMore = rowsRaw.length > pageSize;
+  const rows = hasMore ? rowsRaw.slice(0, pageSize) : rowsRaw;
+  await resolveActorNames(rows.map(r => r.actor_id).filter((v): v is string => !!v));
+  const reversed = new Set(
+    rows.filter(r => r.kind === 'reversal' && r.reverses_tx_id).map(r => r.reverses_tx_id as string),
+  );
+  return {
+    rows: rows.map(r => mapLedgerToTransaction(r, { reversedIds: reversed, staffNameById })),
+    page,
+    pageSize,
+    estimatedTotal: typeof count === 'number' ? count : null,
+    hasMore,
+  };
+}
+
+/**
+ * Phase 4 — bulk export reader. Caps at `maxRows` (default 5000) to keep
+ * client memory bounded; callers must surface a "truncated" warning when
+ * `truncated === true`.
+ */
+export async function exportTransactions(
+  input: Omit<QueryTransactionsInput, 'page' | 'pageSize'>,
+  maxRows = 5000,
+): Promise<{ rows: Transaction[]; truncated: boolean }> {
+  let q = supabase
+    .from(TABLE)
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(maxRows + 1);
+  if (input.from) q = q.gte('created_at', input.from);
+  if (input.to) q = q.lte('created_at', input.to);
+  if (input.campaignId) q = q.eq('campaign_id', input.campaignId);
+  if (input.branchId) q = q.eq('branch_id', input.branchId);
+  if (input.customerId) q = q.eq('customer_id', input.customerId);
+  if (input.kinds && input.kinds.length > 0) q = q.in('kind', input.kinds);
+  const { data, error } = await q;
+  if (error) {
+    console.error('[ledgerHistory] exportTransactions failed', error, input);
+    return { rows: [], truncated: false };
+  }
+  const rowsRaw = (data as LedgerRow[] | null) ?? [];
+  const truncated = rowsRaw.length > maxRows;
+  const rows = truncated ? rowsRaw.slice(0, maxRows) : rowsRaw;
+  await resolveActorNames(rows.map(r => r.actor_id).filter((v): v is string => !!v));
+  const reversed = new Set(
+    rows.filter(r => r.kind === 'reversal' && r.reverses_tx_id).map(r => r.reverses_tx_id as string),
+  );
+  return {
+    rows: rows.map(r => mapLedgerToTransaction(r, { reversedIds: reversed, staffNameById })),
+    truncated,
+  };
 }
 
 /** Last reversible transaction for (customer, campaign) using the cache. */
