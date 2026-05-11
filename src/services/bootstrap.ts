@@ -14,8 +14,6 @@ import {
 } from './mocks/seed';
 import { setCredential } from './credentials.service';
 import type { Campaign, Customer, CustomerCampaignPoints, StaffUser } from '@/lib/types';
-import { STORAGE_KEYS } from './storage/keys';
-import { storage } from './storage/localAdapter';
 import { hydrateBranches } from './branches.service';
 import { hydrateCampaigns } from './campaigns.service';
 import { hydrateCustomers } from './customers.service';
