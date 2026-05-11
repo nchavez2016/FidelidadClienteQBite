@@ -211,6 +211,18 @@ export async function adjustPoints(
     balance_after: tx.balance_after,
   });
   reconcile(tx);
+  void logAdminAction({
+    action: 'adjust_points',
+    targetType: 'customer',
+    targetId: tx.customer_id,
+    metadata: {
+      campaign_id: tx.campaign_id,
+      delta: tx.points_delta,
+      tx_id: tx.id,
+      balance_after: tx.balance_after,
+      reason,
+    },
+  });
   return tx;
 }
 
