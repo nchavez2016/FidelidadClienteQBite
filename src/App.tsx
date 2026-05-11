@@ -27,7 +27,7 @@ const App = () => (
           <Route
             path="/cliente/dashboard"
             element={
-              <ProtectedRoute roles={["customer"]} redirectTo="/cliente/login">
+              <ProtectedRoute allowedRoles={["customer"]} redirectTo="/cliente/login">
                 <CustomerDashboard />
               </ProtectedRoute>
             }
@@ -36,7 +36,7 @@ const App = () => (
           <Route
             path="/staff/panel"
             element={
-              <ProtectedRoute roles={["admin", "cashier"]} redirectTo="/staff/login">
+              <ProtectedRoute allowedRoles={["admin", "cashier"]} redirectTo="/staff/login">
                 <StaffPanel />
               </ProtectedRoute>
             }
