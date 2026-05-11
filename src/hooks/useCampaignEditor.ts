@@ -13,8 +13,12 @@ export function useCampaignEditor(onSaved: () => void) {
     if (!editingCampaign || !newMilestoneName || !newMilestonePoints) return;
     const pts = parseInt(newMilestonePoints);
     if (isNaN(pts) || pts <= 0) { toast.error('Puntos inválidos'); return; }
+    const milestoneId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const m: Milestone = {
-      id: `m-${Date.now()}`,
+      id: milestoneId,
       requiredPoints: pts,
       rewardName: newMilestoneName,
       description: newMilestoneDesc || undefined,
