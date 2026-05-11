@@ -18,6 +18,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { clearLegacySessions } from '@/services/auth/legacyBridge';
 import { hydrateCustomerPoints } from '@/services/customerPoints.service';
+import { hydrateLedgerHistory } from '@/services/ledgerHistory.service';
 
 export type AppRole = 'admin' | 'cashier' | 'customer';
 
@@ -101,6 +102,7 @@ function bridgeLegacy(_user: User, _roles: AppRole[]): void {
 /** Post-auth hydrations that require an authenticated session (RLS). */
 function postAuthHydrate(): void {
   void hydrateCustomerPoints().catch((err) => console.error('[Auth] hydrateCustomerPoints failed', err));
+  void hydrateLedgerHistory().catch((err) => console.error('[Auth] hydrateLedgerHistory failed', err));
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

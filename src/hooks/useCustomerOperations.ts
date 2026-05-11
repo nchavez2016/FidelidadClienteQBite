@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import {
-  getCustomerById, addTransaction,
+  getCustomerById,
   getCustomerPoints, canAddPoint, getAvailableRewards,
-  getLastCustomerTransaction, markTransactionReversed,
+  getLastCustomerTransaction,
   getCustomerTransactions,
   getPendingRequest, approveRedemptionRequest, cancelRedemptionRequestByStaff,
   logRequestCancelled, REVERSAL_WINDOW_MS,
@@ -104,21 +104,6 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
         bonusMultiplier: bonus.multiplier > 1 ? bonus.multiplier : undefined,
       });
       const earned = tx.points_delta;
-      // Legacy local audit log mirror (UI history). Source of truth is point_transactions.
-      addTransaction({
-        customerId: selectedCustomer.id,
-        campaignId: currentCampaignId,
-        type: 'accumulation',
-        points: earned,
-        balanceAfter: tx.balance_after ?? 0,
-        staffId: staff.id,
-        staffName: staff.name,
-        commentCategory: commentCat || (bonus.rule ? 'promotion' : undefined),
-        commentText: finalCommentText,
-        bonusMultiplier: bonus.multiplier > 1 ? bonus.multiplier : undefined,
-        bonusRuleId: bonus.rule?.id,
-        bonusRuleLabel: bonus.rule?.label,
-      });
       setFloatingAmount(earned);
       setFloatingMultiplier(bonus.multiplier);
       setShowFloating(true);
@@ -166,19 +151,6 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
         branchId,
         idempotencyKey: crypto.randomUUID(),
       });
-      addTransaction({
-        customerId: selectedCustomer.id,
-        campaignId: currentCampaignId,
-        type: 'redemption',
-        points: tx.points_delta,
-        balanceAfter: tx.balance_after ?? 0,
-        rewardId: selectedReward.id,
-        rewardName: selectedReward.rewardName,
-        staffId: staff.id,
-        staffName: staff.name,
-        commentCategory: commentCat || (fromRequest ? 'observation' : undefined),
-        commentText: traceComment,
-      });
       if (fromRequest) {
         approveRedemptionRequest(fromRequest.id, staff.id, staff.name);
       }
@@ -207,33 +179,22 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       toast.error('No hay movimiento para revertir en esta sucursal');
       return;
     }
+    if (lastTx.type === 'reversal') {
+      toast.error('No se puede revertir una reversión');
+      return;
+    }
     if (Date.now() - new Date(lastTx.createdAt).getTime() > REVERSAL_WINDOW_MS) {
       toast.error('Solo puedes revertir dentro de los 5 minutos');
       return;
     }
-    // Ledger reversal requires the original ledger tx_id. The legacy local
-    // transaction id is NOT the ledger id — for now we only attempt the
-    // ledger reverse when the local record carries a UUID that maps to the
-    // ledger row; otherwise we fall back to local-only marking.
+    // Phase 3.3: lastTx.id is now ALWAYS the real ledger tx_id (cache is
+    // sourced from `point_transactions`). No legacy id mapping needed.
     if (!isUuid(selectedCustomer.id) || !isUuid(currentCampaignId) || !isUuid(lastTx.id)) {
       toast.error('Esta operación requiere ledger Supabase. Pendiente de migración.');
       return;
     }
     try {
-      const tx = await ledgerReverse(lastTx.id, commentText || undefined, crypto.randomUUID());
-      markTransactionReversed(lastTx.id);
-      addTransaction({
-        customerId: selectedCustomer.id,
-        campaignId: currentCampaignId,
-        type: 'reversal',
-        points: tx.points_delta,
-        balanceAfter: tx.balance_after ?? 0,
-        reversedTransactionId: lastTx.id,
-        staffId: staff.id,
-        staffName: staff.name,
-        commentCategory: commentCat || undefined,
-        commentText: commentText || undefined,
-      });
+      await ledgerReverse(lastTx.id, commentText || undefined, crypto.randomUUID());
       setShowReverseDialog(false);
       setCommentCat('');
       setCommentText('');

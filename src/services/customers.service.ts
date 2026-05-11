@@ -33,7 +33,6 @@ import {
 } from './customerPoints.service';
 import { registerConsent, revokeConsent as revokeConsentRecord } from './consent.service';
 import { logAudit } from './audit.service';
-import { addTransaction } from './transactions.service';
 
 const PROFILES_TABLE = 'profiles';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -447,25 +446,10 @@ export function revokeCustomerConsent(customerId: string): {
   const pointsByCampaign = getPointsByCustomer(customerId);
   const totalPointsLost = Object.values(pointsByCampaign).reduce((s, n) => s + (n || 0), 0);
 
-  // 1) Transacción por cada campaña con saldo (queda en el log del cliente).
-  for (const [campaignId, pts] of Object.entries(pointsByCampaign)) {
-    if (!pts || pts <= 0) continue;
-    try {
-      addTransaction({
-        customerId,
-        campaignId,
-        type: 'consent_revocation',
-        points: -pts,
-        balanceAfter: 0,
-        staffId: customerId,
-        staffName: customer.name,
-        commentCategory: 'observation',
-        commentText: `LOPDP: el cliente revocó el consentimiento. Se anulan ${pts} pt(s) acumulados en esta campaña. Cuenta dada de baja.`,
-      });
-    } catch {
-      // Si la validación falla por alguna razón, seguimos con el resto.
-    }
-  }
+  // 1) Phase 3.3: the legacy local audit log is gone. Consent revocation
+  // events are recorded via `logAudit()` below; per-campaign zeroing must
+  // be performed via the admin `adjust_points` RPC (Phase 3.4) and will
+  // appear naturally in `point_transactions` as `manual_adjustment` rows.
 
   // 2) Puntos a 0 en todas las campañas.
   // Phase 3.2: balances are now driven by the ledger. Zeroing on consent
