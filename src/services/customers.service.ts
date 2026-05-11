@@ -41,6 +41,20 @@ const PROFILES_TABLE = 'profiles';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (v: string) => UUID_RE.test(v);
 
+/** True when the id belongs to the legacy localStorage-only customer space. */
+export function isLegacyCustomerId(id: string): boolean {
+  return id.startsWith('cust-');
+}
+
+function warnLegacy(op: string, id: string): void {
+  if (isLegacyCustomerId(id)) {
+    console.warn(
+      `[customers] @deprecated legacy customer used in "${op}"`,
+      { id, hint: 'cust-xxx ids are local-only; migrate to Supabase Auth' },
+    );
+  }
+}
+
 interface ProfileRow {
   id: string;
   display_name: string;
@@ -170,6 +184,45 @@ export function getCustomerById(id: string): Customer | undefined {
   return getCustomers().find(c => c.id === id);
 }
 
+/**
+ * Authoritative customer lookup by phone — queries Supabase `profiles`
+ * directly (RLS scoped to staff/admin) and updates the local cache.
+ * Falls back to the legacy localStorage cache only on network failure.
+ *
+ * Use from staff flows. Customer-side code should keep reading the local
+ * session via `getCurrentCustomer()`.
+ */
+export async function searchCustomerByPhoneRemote(phone: string): Promise<Customer | null> {
+  const trimmed = phone.trim();
+  if (!trimmed) return null;
+  try {
+    const { data, error } = await supabase
+      .from(PROFILES_TABLE)
+      .select('*')
+      .eq('phone', trimmed)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (error) {
+      console.error('[customers] searchCustomerByPhoneRemote failed', error);
+    } else if (data) {
+      const fresh = profileToCustomer(data as ProfileRow);
+      // Merge into local cache so subsequent sync getters see this row.
+      const local = db.readSync<any>(TABLES.customers);
+      const idx = local.findIndex((c: any) => c.id === fresh.id);
+      const merged = { ...(idx >= 0 ? local[idx] : {}), ...fresh };
+      if (idx >= 0) local[idx] = merged; else local.push(merged);
+      db.writeSync(TABLES.customers, local);
+      return withDerivedFields(merged);
+    }
+  } catch (err) {
+    console.error('[customers] searchCustomerByPhoneRemote crashed', err);
+  }
+  // Fallback: legacy local lookup (covers cust-xxx + offline scenarios).
+  const legacy = getCustomerByPhone(trimmed);
+  if (legacy) warnLegacy('searchCustomerByPhoneRemote:fallback', legacy.id);
+  return legacy ?? null;
+}
+
 export interface RegisterCustomerOptions {
   /** LOPDP: must be true; the service blocks registration if false. */
   consentAccepted: boolean;
@@ -228,6 +281,7 @@ export function getCustomerTotalPoints(customer: Customer | undefined | null): n
 
 /** Set absolute points for a campaign. */
 export function setCustomerPoints(id: string, campaignId: string, newPoints: number): void {
+  warnLegacy('setCustomerPoints', id);
   setPoints(id, campaignId, newPoints);
   // Refresh embedded cache so sync readers (current UI) see the update.
   const list = db.readSync<any>(TABLES.customers).map((c: any) =>
