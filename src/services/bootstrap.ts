@@ -20,6 +20,7 @@ import type { Campaign, Customer, StaffUser, Transaction } from '@/lib/types';
 import { hydrateBranches } from './branches.service';
 import { hydrateCampaigns } from './campaigns.service';
 import { hydrateCustomers } from './customers.service';
+import './diagnostics/legacyCustomers.diagnostics';
 
 function seedCampaigns(): void {
   const campaigns = storage.get<Campaign[]>(STORAGE_KEYS.campaigns, []);

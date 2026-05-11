@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import {
-  getCustomerByPhone, getCustomerById, addTransaction,
+  getCustomerById, addTransaction,
   setCustomerPoints, getCustomerPoints, canAddPoint, getAvailableRewards,
   getLastCustomerTransaction, markTransactionReversed,
   getCustomerTransactions,
@@ -9,6 +9,7 @@ import {
   evaluateBonus, getCampaignById,
   getInactiveAccountsForPhone,
 } from '@/lib/store';
+import { searchCustomerByPhoneRemote } from '@/services/customers.service';
 import { Customer, CommentCategory, Milestone, StaffUser, RedemptionRequest } from '@/lib/types';
 import { toast } from 'sonner';
 
@@ -34,8 +35,8 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     }
   }, [selectedCustomer, refresh]);
 
-  const searchCustomer = useCallback(() => {
-    const c = getCustomerByPhone(phoneSearch);
+  const searchCustomer = useCallback(async () => {
+    const c = await searchCustomerByPhoneRemote(phoneSearch);
     const inactive = getInactiveAccountsForPhone(phoneSearch);
     if (c) {
       setSelectedCustomer(c);
