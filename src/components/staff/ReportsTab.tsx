@@ -96,7 +96,7 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
         }
         avgReturn = (totalDays / (custTx.length - 1)).toFixed(1);
       }
-      return `"${c.name}","${c.phone}","${c.gender}","${pointsOf(c)}","${fmtDateShort(c.createdAt)}","${lastVisit ? fmtDateShort(lastVisit) : 'Sin visitas'}","${avgReturn}","${custTx.length}"`;
+      return `"${c.name}","${c.phone}","${c.gender ?? ''}","${pointsOf(c)}","${fmtDateShort(c.createdAt)}","${lastVisit ? fmtDateShort(lastVisit) : 'Sin visitas'}","${avgReturn}","${custTx.length}"`;
     });
     downloadCSV(`base_clientes_${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
   };
