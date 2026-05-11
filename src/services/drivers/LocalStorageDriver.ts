@@ -17,7 +17,6 @@ const KEY_MAP: Record<string, string> = {
   credentials: 'gaviota_credentials',
   campaigns: 'gaviota_campaigns',
   branches: 'gaviota_branches',
-  transactions: 'gaviota_transactions',
   redemption_requests: 'gaviota_redemption_requests',
   customer_campaign_points: 'gaviota_customer_campaign_points',
   consents: 'gaviota_consents',
