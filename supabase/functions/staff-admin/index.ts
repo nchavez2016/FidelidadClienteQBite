@@ -136,6 +136,84 @@ Deno.serve(async (req) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// LIST  — todos los usuarios con role admin o cashier
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleList(
+  admin: ReturnType<typeof createClient>,
+): Promise<Response> {
+  // 1. Roles staff
+  const { data: roleRows, error: rolesErr } = await admin
+    .from('user_roles')
+    .select('user_id, role')
+    .in('role', ['admin', 'cashier']);
+  if (rolesErr) return json(500, { error: 'list_roles_failed', details: rolesErr.message });
+
+  const ids = Array.from(new Set((roleRows ?? []).map((r) => r.user_id as string)));
+  if (ids.length === 0) return json(200, { staff: [] });
+
+  // 2. Profiles
+  const { data: profileRows, error: profilesErr } = await admin
+    .from('profiles')
+    .select('id, display_name, branch_id, is_active')
+    .in('id', ids);
+  if (profilesErr) return json(500, { error: 'list_profiles_failed', details: profilesErr.message });
+
+  // 3. Auth users (para email/username + banned_until)
+  const { data: usersResp, error: usersErr } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+  if (usersErr) return json(500, { error: 'list_users_failed', details: usersErr.message });
+
+  const userMap = new Map<string, { email: string | null; banned: boolean; meta: Record<string, unknown> }>();
+  for (const u of usersResp.users) {
+    if (!ids.includes(u.id)) continue;
+    const banned_until = (u as { banned_until?: string | null }).banned_until ?? null;
+    const banned = banned_until ? new Date(banned_until).getTime() > Date.now() : false;
+    userMap.set(u.id, {
+      email: u.email ?? null,
+      banned,
+      meta: (u.user_metadata ?? {}) as Record<string, unknown>,
+    });
+  }
+
+  const profileMap = new Map<string, { display_name: string; branch_id: string | null; is_active: boolean }>();
+  for (const p of profileRows ?? []) {
+    profileMap.set(p.id as string, {
+      display_name: (p.display_name as string) ?? '',
+      branch_id: (p.branch_id as string | null) ?? null,
+      is_active: p.is_active !== false,
+    });
+  }
+
+  // Agrupa roles por user_id (multirol-friendly).
+  const rolesByUser = new Map<string, ('admin' | 'cashier')[]>();
+  for (const r of roleRows ?? []) {
+    const list = rolesByUser.get(r.user_id as string) ?? [];
+    list.push(r.role as 'admin' | 'cashier');
+    rolesByUser.set(r.user_id as string, list);
+  }
+
+  const staff = ids.map((id) => {
+    const u = userMap.get(id);
+    const p = profileMap.get(id);
+    const userRoles = rolesByUser.get(id) ?? [];
+    const role: 'admin' | 'cashier' = userRoles.includes('admin') ? 'admin' : 'cashier';
+    const username = (u?.meta?.staff_username as string) ?? (u?.meta?.identifier as string) ?? (u?.email?.split('@')[0] ?? '');
+    return {
+      id,
+      username,
+      display_name: p?.display_name ?? username,
+      role,
+      branch_id: p?.branch_id ?? null,
+      active: !(u?.banned ?? false),
+    };
+  });
+
+  return json(200, { staff });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CREATE
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleCreate(
