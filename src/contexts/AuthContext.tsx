@@ -18,8 +18,10 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { clearLegacySessions } from '@/services/auth/legacyBridge';
 import { hydrateCustomerPoints, subscribeCustomerPointsRealtime } from '@/services/customerPoints.service';
-import { hydrateLedgerHistory } from '@/services/ledgerHistory.service';
+import { hydrateLedgerHistory, rehydrateLedgerHistory } from '@/services/ledgerHistory.service';
 import { subscribePointTransactionsRealtime } from '@/services/pointsLedger.service';
+import IdleWarningDialog from '@/components/security/IdleWarningDialog';
+import { useIdleTimeout } from '@/hooks/useIdleTimeout';
 
 export type AppRole = 'admin' | 'cashier' | 'customer';
 
@@ -185,6 +187,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.subscription.unsubscribe();
   }, []);
 
+  // Phase 4 — visibilitychange rehydrate (single-flight + 5s throttle inside).
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible' && user) {
+        void rehydrateLedgerHistory().catch(err =>
+          console.warn('[Auth] visibility rehydrate failed', err),
+        );
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [user]);
+
   const signIn = useCallback<AuthContextValue['signIn']>(async (identifier, password, audience) => {
     const email = toEmail(identifier, audience);
     console.info('🚨 [Auth] login request', { audience, identifier, email });
@@ -249,5 +264,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user, session, roles, rolesLoaded, loading, signIn, signUp, signOut, hasRole],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // Phase 4.6 — idle-timeout warning. Auto-logout itself stays gated by
+  // the IDLE_TIMEOUT_ENABLED feature flag inside the hook.
+  const primaryRole: AppRole | null =
+    roles.includes('admin') ? 'admin'
+    : roles.includes('cashier') ? 'cashier'
+    : roles.includes('customer') ? 'customer'
+    : null;
+  const idle = useIdleTimeout({
+    enabled: !!user && !!primaryRole,
+    role: primaryRole,
+    onTimeout: () => { void signOut(); },
+  });
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <IdleWarningDialog
+        open={idle.warning}
+        remainingSec={idle.remainingSec}
+        onStay={idle.dismiss}
+        onLogout={() => { void signOut(); }}
+      />
+    </AuthContext.Provider>
+  );
 }
