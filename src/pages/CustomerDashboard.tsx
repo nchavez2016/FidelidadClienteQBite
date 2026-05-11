@@ -5,13 +5,14 @@ import { Star, Clock, ShieldAlert, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
-  getCurrentCustomer, getCustomerById, getActiveCampaigns,
-  getCustomerTransactions, logoutCustomer, resetCustomerPassword,
+  getActiveCampaigns,
+  getCustomerTransactions, resetCustomerPassword,
   acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints, addTransaction,
   getPendingRequest, createRedemptionRequest, cancelRedemptionRequestByCustomer,
   logRequestCreated, logRequestCancelled,
   getConsentStatus, revokeCustomerConsent, getCustomerTotalPoints,
 } from '@/lib/store';
+import { useCustomerSession } from '@/hooks/useCustomerSession';
 
 import ProgressRoute from '@/components/ProgressRoute';
 import TransactionItem from '@/components/TransactionItem';
@@ -27,6 +28,7 @@ import BonusRuleBadge from '@/components/BonusRuleBadge';
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
+  const { customer, refresh: refreshCustomer, logout } = useCustomerSession('/cliente/login');
   const [, setTick] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -34,8 +36,6 @@ export default function CustomerDashboard() {
   const [confirmPwd, setConfirmPwd] = useState('');
   const [heroImgIdx, setHeroImgIdx] = useState(0);
 
-  const stored = getCurrentCustomer();
-  const customer = stored ? (getCustomerById(stored.id) || stored) : null;
   // Solo mostramos al cliente campañas activas que estén realmente configuradas
   // (con al menos un hito). Una campaña activa sin hitos es indistinguible de
   // "sin promoción" para el cliente y no debe aparecer en el switcher ni en el hero.
@@ -82,7 +82,6 @@ export default function CustomerDashboard() {
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('fixture') === 'progress';
 
-  useEffect(() => { if (!stored) navigate('/cliente/login'); }, [stored, navigate]);
   useEffect(() => { if (needsPasswordChange) setShowPasswordModal(true); }, [needsPasswordChange]);
   useEffect(() => {
     const interval = setInterval(() => setHeroImgIdx(prev => (prev + 1) % 3), 3500);
@@ -151,7 +150,7 @@ export default function CustomerDashboard() {
     setTick(t => t + 1);
   };
 
-  const handleLogout = () => { logoutCustomer(); navigate('/cliente/login'); };
+  const handleLogout = () => { void logout(); };
 
   const handleRevokeConsent = () => {
     if (!customer) return;
@@ -177,7 +176,7 @@ export default function CustomerDashboard() {
         result.totalPointsLost > 0 ? ` y se anularon ${result.totalPointsLost} pt(s)` : ''
       }.`,
     );
-    setTimeout(() => { logoutCustomer(); navigate('/cliente/login'); }, 1200);
+    setTimeout(() => { void logout(); }, 1200);
   };
 
   const consentStatus = customer ? getConsentStatus(customer.id) : { hasActiveConsent: false };
