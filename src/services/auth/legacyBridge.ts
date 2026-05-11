@@ -33,6 +33,12 @@ function resolveAudience(user: User, roles: AppRole[]): 'staff' | 'customer' {
 
 export { resolveAudience };
 
+/**
+ * @deprecated Phase 2.7 — to be removed once all customer reads consume
+ * `AuthContext` + Supabase `profiles` directly. Materializes a legacy
+ * `currentCustomer` slot so synchronous services keep functioning during
+ * the migration. Do not introduce new callers.
+ */
 export function syncLegacyCustomerSession(user: User): Customer | null {
   try {
   console.info('🚨 [legacyBridge] syncLegacyCustomerSession:start', { uid: user.id, metadata: meta(user) });
