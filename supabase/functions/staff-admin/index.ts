@@ -16,7 +16,7 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-type Action = 'create' | 'update' | 'set_active' | 'delete';
+type Action = 'create' | 'update' | 'set_active' | 'delete' | 'list';
 type StaffRole = 'admin' | 'cashier';
 
 const STAFF_DOMAIN = 'staff.gaviota.local';
@@ -115,6 +115,8 @@ Deno.serve(async (req) => {
 
   try {
     switch (action) {
+      case 'list':
+        return await handleList(admin);
       case 'create':
         return await handleCreate(admin, body);
       case 'update':
