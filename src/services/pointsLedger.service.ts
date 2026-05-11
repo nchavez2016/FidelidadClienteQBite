@@ -13,8 +13,17 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
+import { applyLedgerBalance } from './customerPoints.service';
 
 const log = createLogger('points-ledger');
+
+function structuredLog(
+  tag: '[LEDGER_EARN]' | '[LEDGER_REDEEM]' | '[LEDGER_ADJUST]' | '[LEDGER_REVERSE]',
+  payload: Record<string, unknown>,
+): void {
+  // eslint-disable-next-line no-console
+  console.info(tag, payload);
+}
 
 export type LedgerTxKind =
   | 'earn'
@@ -47,7 +56,17 @@ export interface LedgerTransaction {
 }
 
 function newIdempotencyKey(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  // Prefer UUID; fall back to time+random when crypto.randomUUID is missing.
+  const uuid =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}-${uuid}`;
+}
+
+function reconcile(tx: LedgerTransaction | null | undefined): void {
+  if (!tx || tx.balance_after == null) return;
+  applyLedgerBalance(tx.customer_id, tx.campaign_id, tx.balance_after);
 }
 
 export interface EarnPointsInput {
@@ -77,8 +96,17 @@ export async function earnPoints(input: EarnPointsInput): Promise<LedgerTransact
     log.error('earnPoints failed', { error, ctx: input });
     throw error;
   }
-  log.debug('earnPoints ok', { id: (data as LedgerTransaction)?.id });
-  return data as unknown as LedgerTransaction;
+  const tx = data as unknown as LedgerTransaction;
+  structuredLog('[LEDGER_EARN]', {
+    customer_id: tx.customer_id,
+    campaign_id: tx.campaign_id,
+    delta: tx.points_delta,
+    tx_id: tx.id,
+    idempotency_key: key,
+    balance_after: tx.balance_after,
+  });
+  reconcile(tx);
+  return tx;
 }
 
 export interface RedeemRewardInput {
@@ -106,11 +134,25 @@ export async function redeemReward(input: RedeemRewardInput): Promise<LedgerTran
     log.error('redeemReward failed', { error, ctx: input });
     throw error;
   }
-  log.debug('redeemReward ok', { id: (data as LedgerTransaction)?.id });
-  return data as unknown as LedgerTransaction;
+  const tx = data as unknown as LedgerTransaction;
+  structuredLog('[LEDGER_REDEEM]', {
+    customer_id: tx.customer_id,
+    campaign_id: tx.campaign_id,
+    delta: tx.points_delta,
+    tx_id: tx.id,
+    idempotency_key: key,
+    balance_after: tx.balance_after,
+  });
+  reconcile(tx);
+  return tx;
 }
 
-export async function reverseTransaction(txId: string, reason?: string): Promise<LedgerTransaction> {
+export async function reverseTransaction(
+  txId: string,
+  reason?: string,
+  idempotencyKey?: string,
+): Promise<LedgerTransaction> {
+  const key = idempotencyKey ?? newIdempotencyKey('reverse');
   const { data, error } = await supabase.rpc('reverse_transaction', {
     p_tx_id: txId,
     p_reason: reason ?? null,
@@ -119,7 +161,18 @@ export async function reverseTransaction(txId: string, reason?: string): Promise
     log.error('reverseTransaction failed', { error, ctx: { txId } });
     throw error;
   }
-  return data as unknown as LedgerTransaction;
+  const tx = data as unknown as LedgerTransaction;
+  structuredLog('[LEDGER_REVERSE]', {
+    customer_id: tx.customer_id,
+    campaign_id: tx.campaign_id,
+    delta: tx.points_delta,
+    tx_id: tx.id,
+    reverses_tx_id: tx.reverses_tx_id,
+    idempotency_key: key,
+    balance_after: tx.balance_after,
+  });
+  reconcile(tx);
+  return tx;
 }
 
 export async function adjustPoints(
@@ -127,7 +180,9 @@ export async function adjustPoints(
   campaignId: string,
   delta: number,
   reason: string,
+  idempotencyKey?: string,
 ): Promise<LedgerTransaction> {
+  const key = idempotencyKey ?? newIdempotencyKey('adjust');
   const { data, error } = await supabase.rpc('adjust_points', {
     p_customer_id: customerId,
     p_campaign_id: campaignId,
@@ -138,7 +193,17 @@ export async function adjustPoints(
     log.error('adjustPoints failed', { error, ctx: { customerId, campaignId, delta } });
     throw error;
   }
-  return data as unknown as LedgerTransaction;
+  const tx = data as unknown as LedgerTransaction;
+  structuredLog('[LEDGER_ADJUST]', {
+    customer_id: tx.customer_id,
+    campaign_id: tx.campaign_id,
+    delta: tx.points_delta,
+    tx_id: tx.id,
+    idempotency_key: key,
+    balance_after: tx.balance_after,
+  });
+  reconcile(tx);
+  return tx;
 }
 
 /** Read recent ledger entries for a customer (RLS scoped). */
