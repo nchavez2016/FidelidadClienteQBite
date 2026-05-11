@@ -1,14 +1,15 @@
 /**
- * Unified session service.
+ * Unified session service — customer-only legacy compatibility layer.
  *
- * Today: reads the legacy `currentCustomer` / `currentStaff` localStorage
- * slots and projects them into a unified `Session`.
- * Tomorrow (Supabase): replace the bodies with `supabase.auth.getSession()`
- * + a join on `public.profiles`. Public API does NOT change.
+ * Staff auth no longer uses localStorage; the staff branch was removed in
+ * Phase 2.6. The remaining customer slot is still read by a few legacy
+ * sync consumers (e.g. useSession, getCurrentCustomer mirrors). It is
+ * populated by `syncLegacyCustomerSession` from the Supabase AuthContext
+ * bridge — never written directly anymore.
  */
 import { storage } from '../storage/localAdapter';
 import { STORAGE_KEYS } from '../storage/keys';
-import type { Customer, StaffUser } from '@/lib/types';
+import type { Customer } from '@/lib/types';
 import type { Session, Profile, AuthUser, Role } from './types';
 
 function customerToSession(c: Customer): Session {
@@ -17,21 +18,8 @@ function customerToSession(c: Customer): Session {
   return { user, profile };
 }
 
-function staffToSession(s: StaffUser): Session {
-  const user: AuthUser = { id: s.id, identifier: s.username, factor: 'username' };
-  const profile: Profile = {
-    id: s.id,
-    role: s.role as Role,
-    displayName: s.name,
-    branchId: s.branchCampaignId,
-  };
-  return { user, profile };
-}
-
-/** Returns the active session, regardless of which audience signed in. */
+/** Returns the active customer session (legacy mirror). Staff sessions live in AuthContext. */
 export function getCurrentSession(): Session | null {
-  const staff = storage.get<StaffUser | null>(STORAGE_KEYS.currentStaff, null);
-  if (staff) return staffToSession(staff);
   const customer = storage.get<Customer | null>(STORAGE_KEYS.currentCustomer, null);
   if (customer) return customerToSession(customer);
   return null;
@@ -46,7 +34,7 @@ export function hasRole(...roles: Role[]): boolean {
   return role !== null && roles.includes(role);
 }
 
-/** Centralized logout — clears whichever session is active. */
+/** Clears the legacy customer slot. Staff slot is no longer written. */
 export function clearSession(): void {
   storage.remove(STORAGE_KEYS.currentCustomer);
   storage.remove(STORAGE_KEYS.currentStaff);
