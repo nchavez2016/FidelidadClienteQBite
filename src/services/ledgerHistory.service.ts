@@ -212,6 +212,22 @@ export function isLedgerHistoryHydrated(): boolean {
   return hydrated;
 }
 
+export function getLastHydrateTimestamp(): number {
+  return lastHydrateAt;
+}
+
+/**
+ * Single-flight, debounced rehydrate. Coalesces concurrent calls (e.g.
+ * realtime reconnect bursts) into one Supabase round-trip.
+ * If a hydrate completed within `minIntervalMs`, returns the cache snapshot
+ * without refetching.
+ */
+export async function rehydrateLedgerHistory(minIntervalMs = 5000): Promise<Transaction[]> {
+  if (inflight) return inflight;
+  if (Date.now() - lastHydrateAt < minIntervalMs) return getLedgerCache();
+  return hydrateLedgerHistory();
+}
+
 /** One-shot hydration. Subsequent calls return the cached snapshot. */
 export async function hydrateLedgerHistory(): Promise<Transaction[]> {
   if (inflight) return inflight;
@@ -227,6 +243,7 @@ export async function hydrateLedgerHistory(): Promise<Transaction[]> {
       recomputeReversed();
       await resolveActorNames(cache.map(r => r.actor_id).filter((v): v is string => !!v));
       hydrated = true;
+      lastHydrateAt = Date.now();
       notify();
       return getLedgerCache();
     } catch (err) {
