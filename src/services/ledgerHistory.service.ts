@@ -153,6 +153,7 @@ export function mapLedgerToTransaction(
     customerId: row.customer_id,
     campaignId: row.campaign_id,
     type: ledgerKindToLegacyType(row.kind, row.points_delta),
+    ledgerKind: row.kind,
     points: row.points_delta,
     balanceAfter: row.balance_after ?? 0,
     rewardId: row.reward_id ?? undefined,
