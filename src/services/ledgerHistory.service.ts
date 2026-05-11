@@ -21,6 +21,35 @@ import type { LedgerTransaction, LedgerTxKind } from './pointsLedger.service';
 const TABLE = 'point_transactions';
 const DEFAULT_PAGE_SIZE = 500;
 
+// ─── Staff display-name resolver (Phase 3.4) ──────────────────────
+const staffNameById: Record<string, string> = {};
+const inflightProfile: Record<string, Promise<void>> = {};
+
+async function resolveActorNames(ids: Iterable<string>): Promise<void> {
+  const missing = Array.from(new Set(Array.from(ids).filter(id => id && !(id in staffNameById) && !(id in inflightProfile))));
+  if (missing.length === 0) return;
+  const promise = (async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, display_name')
+      .in('id', missing);
+    if (error) {
+      console.warn('[ledgerHistory] resolveActorNames failed', error);
+      return;
+    }
+    for (const row of (data ?? []) as Array<{ id: string; display_name: string | null }>) {
+      staffNameById[row.id] = row.display_name?.trim() || 'Sistema';
+    }
+    for (const id of missing) if (!(id in staffNameById)) staffNameById[id] = 'Sistema';
+  })();
+  for (const id of missing) inflightProfile[id] = promise;
+  try { await promise; } finally { for (const id of missing) delete inflightProfile[id]; }
+}
+
+export function getStaffNameMap(): Record<string, string> {
+  return staffNameById;
+}
+
 interface LedgerRow {
   id: string;
   customer_id: string;
@@ -153,7 +182,7 @@ export function getLedgerCache(): Transaction[] {
   const sorted = [...cache].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
-  return sorted.map(r => mapLedgerToTransaction(r, { reversedIds }));
+  return sorted.map(r => mapLedgerToTransaction(r, { reversedIds, staffNameById }));
 }
 
 export function isLedgerHistoryHydrated(): boolean {
@@ -173,6 +202,7 @@ export async function hydrateLedgerHistory(): Promise<Transaction[]> {
       if (error) throw error;
       cache = ((data as LedgerRow[] | null) ?? []).slice();
       recomputeReversed();
+      await resolveActorNames(cache.map(r => r.actor_id).filter((v): v is string => !!v));
       hydrated = true;
       notify();
       return getLedgerCache();
@@ -214,6 +244,9 @@ export function applyLedgerInsert(tx: LedgerTransaction): void {
   if (idx >= 0) cache[idx] = row;
   else cache.push(row);
   recomputeReversed();
+  if (row.actor_id && !(row.actor_id in staffNameById)) {
+    void resolveActorNames([row.actor_id]).then(() => notify());
+  }
   notify();
 }
 
