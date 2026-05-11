@@ -103,14 +103,23 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
     return allTransactions.filter(t => {
       const d = new Date(t.createdAt);
       if (branchCampaignId && t.campaignId !== branchCampaignId) return false;
-      return t.type === 'accumulation' && !t.isReversed && d >= prevFrom && d <= prevTo;
+      const isVisit = t.ledgerKind ? (t.ledgerKind === 'earn' || t.ledgerKind === 'bonus') : (t.type === 'accumulation');
+      return isVisit && !t.isReversed && d >= prevFrom && d <= prevTo;
     }).length;
   }, [allTransactions, dateFrom, dateTo, branchCampaignId]);
 
   const analytics = useMemo(() => {
-    const accumulations = filteredTx.filter(t => t.type === 'accumulation' && !t.isReversed);
-    const redemptions = filteredTx.filter(t => t.type === 'redemption');
-    const reversals = filteredTx.filter(t => t.type === 'reversal');
+    // Visits: only real earn/bonus transactions (manual_adjustment never counts).
+    const accumulations = filteredTx.filter(t =>
+      (t.ledgerKind ? (t.ledgerKind === 'earn' || t.ledgerKind === 'bonus') : t.type === 'accumulation')
+      && !t.isReversed,
+    );
+    const redemptions = filteredTx.filter(t =>
+      (t.ledgerKind ? t.ledgerKind === 'redeem' : t.type === 'redemption') && !t.isReversed,
+    );
+    const reversals = filteredTx.filter(t =>
+      t.ledgerKind ? t.ledgerKind === 'reversal' : t.type === 'reversal',
+    );
     const totalVisits = accumulations.length;
     const totalPoints = accumulations.reduce((s, t) => s + t.points, 0);
     const totalRedeemed = redemptions.length;
