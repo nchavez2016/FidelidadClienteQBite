@@ -38,12 +38,28 @@ export function getFilteredTransactions(filter: AnalyticsFilter): Transaction[] 
   return getTransactions().filter(t => withinFilter(t, filter));
 }
 
+function isVisit(t: Transaction): boolean {
+  const k = (t as Transaction & { ledgerKind?: string }).ledgerKind;
+  if (k) return k === 'earn' || k === 'bonus';
+  return t.type === 'accumulation';
+}
+function isRedeem(t: Transaction): boolean {
+  const k = (t as Transaction & { ledgerKind?: string }).ledgerKind;
+  if (k) return k === 'redeem';
+  return t.type === 'redemption';
+}
+function isReversal(t: Transaction): boolean {
+  const k = (t as Transaction & { ledgerKind?: string }).ledgerKind;
+  if (k) return k === 'reversal';
+  return t.type === 'reversal';
+}
+
 export function getKpiSummary(filter: AnalyticsFilter): KpiSummary {
   const tx = getFilteredTransactions(filter);
   const customers = getCustomers();
-  const accumulations = tx.filter(t => t.type === 'accumulation' && !t.isReversed);
-  const redemptions = tx.filter(t => t.type === 'redemption');
-  const reversals = tx.filter(t => t.type === 'reversal');
+  const accumulations = tx.filter(t => isVisit(t) && !t.isReversed);
+  const redemptions = tx.filter(t => isRedeem(t) && !t.isReversed);
+  const reversals = tx.filter(t => isReversal(t));
   const pointsOf = (c: Customer) =>
     filter.branchCampaignId
       ? getCustomerPoints(c, filter.branchCampaignId)
@@ -68,7 +84,7 @@ export function getPreviousPeriodVisits(filter: AnalyticsFilter): number | null 
   return getTransactions().filter(t => {
     if (filter.branchCampaignId && t.campaignId !== filter.branchCampaignId) return false;
     const d = new Date(t.createdAt);
-    return t.type === 'accumulation' && !t.isReversed && d >= prevFrom && d <= prevTo;
+    return isVisit(t) && !t.isReversed && d >= prevFrom && d <= prevTo;
   }).length;
 }
 
@@ -77,7 +93,7 @@ export interface PeakHourBucket { hour: number; count: number }
 export function getPeakHours(filter: AnalyticsFilter): PeakHourBucket[] {
   const buckets = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0 }));
   for (const t of getFilteredTransactions(filter)) {
-    if (t.type !== 'accumulation' || t.isReversed) continue;
+    if (!isVisit(t) || t.isReversed) continue;
     buckets[new Date(t.createdAt).getHours()].count++;
   }
   return buckets.filter(b => b.count > 0);
@@ -94,8 +110,8 @@ export interface GenderBreakdown {
 export function getGenderBreakdown(filter: AnalyticsFilter): GenderBreakdown[] {
   const customers = getCustomers();
   const tx = getFilteredTransactions(filter);
-  const accumulations = tx.filter(t => t.type === 'accumulation' && !t.isReversed);
-  const redemptions = tx.filter(t => t.type === 'redemption');
+  const accumulations = tx.filter(t => isVisit(t) && !t.isReversed);
+  const redemptions = tx.filter(t => isRedeem(t) && !t.isReversed);
   return (['masculino', 'femenino', 'otro'] as const).map(g => {
     const ids = new Set(customers.filter(c => c.gender === g).map(c => c.id));
     const visits = accumulations.filter(t => ids.has(t.customerId)).length;
