@@ -74,7 +74,7 @@ export async function earnPoints(input: EarnPointsInput): Promise<LedgerTransact
     p_bonus_multiplier: input.bonusMultiplier ?? null,
   } as never);
   if (error) {
-    log.error('earnPoints failed', error, input);
+    log.error('earnPoints failed', { error, ctx: input });
     throw error;
   }
   log.debug('earnPoints ok', { id: (data as LedgerTransaction)?.id });
@@ -103,7 +103,7 @@ export async function redeemReward(input: RedeemRewardInput): Promise<LedgerTran
     p_idempotency_key: key,
   } as never);
   if (error) {
-    log.error('redeemReward failed', error, input);
+    log.error('redeemReward failed', { error, ctx: input });
     throw error;
   }
   log.debug('redeemReward ok', { id: (data as LedgerTransaction)?.id });
@@ -116,7 +116,7 @@ export async function reverseTransaction(txId: string, reason?: string): Promise
     p_reason: reason ?? null,
   } as never);
   if (error) {
-    log.error('reverseTransaction failed', error, { txId });
+    log.error('reverseTransaction failed', { error, ctx: { txId } });
     throw error;
   }
   return data as unknown as LedgerTransaction;
@@ -135,7 +135,7 @@ export async function adjustPoints(
     p_reason: reason,
   } as never);
   if (error) {
-    log.error('adjustPoints failed', error, { customerId, campaignId, delta });
+    log.error('adjustPoints failed', { error, ctx: { customerId, campaignId, delta } });
     throw error;
   }
   return data as unknown as LedgerTransaction;
@@ -155,7 +155,7 @@ export async function listCustomerLedger(
   if (opts.campaignId) q = q.eq('campaign_id', opts.campaignId);
   const { data, error } = await q;
   if (error) {
-    log.error('listCustomerLedger failed', error, { customerId });
+    log.error('listCustomerLedger failed', { error, ctx: { customerId } });
     throw error;
   }
   return (data ?? []) as unknown as LedgerTransaction[];
