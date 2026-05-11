@@ -11,9 +11,11 @@ import RegisterCustomerDialog from '@/components/staff/RegisterCustomerDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check, Flame } from 'lucide-react';
+import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check, Flame, AlertTriangle } from 'lucide-react';
 import { evaluateBonus } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+import ResetPointsDialog from './ResetPointsDialog';
 
 const IDLE_TIMEOUT_MS = 60_000; // 60s para limpiar pantalla
 const IDLE_WARNING_MS = 50_000; // aviso visual a los 50s
@@ -52,6 +54,9 @@ export default function OperationsTab({
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const bonus = evaluateBonus(campaign);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showResetPointsDialog, setShowResetPointsDialog] = useState(false);
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
   const [newPassword, setNewPassword] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [idleWarning, setIdleWarning] = useState(false);
@@ -392,6 +397,17 @@ export default function OperationsTab({
                   <KeyRound className="w-3.5 h-3.5" />
                   <span className="text-xs">Gestionar cuenta</span>
                 </Button>
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5"
+                    onClick={() => setShowResetPointsDialog(true)}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span className="text-xs">Resetear puntos</span>
+                  </Button>
+                )}
               </div>
 
               <div className="border-t pt-3">
@@ -465,6 +481,14 @@ export default function OperationsTab({
           )}
         </DialogContent>
       </Dialog>
+
+      <ResetPointsDialog
+        open={showResetPointsDialog}
+        onOpenChange={setShowResetPointsDialog}
+        customer={selectedCustomer}
+        defaultCampaignId={currentCampaignId}
+        onDone={() => onRefresh?.()}
+      />
     </div>
   );
 }
