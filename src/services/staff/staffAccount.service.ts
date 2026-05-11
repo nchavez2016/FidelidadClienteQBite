@@ -8,6 +8,7 @@
  * Multirol-friendly: si un usuario también es customer, esa fila NO se toca.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logAdminAction } from '@/services/security/adminAudit.service';
 
 export type StaffRole = 'admin' | 'cashier';
 
@@ -102,17 +103,47 @@ export async function listStaffAccounts(): Promise<StaffAccount[]> {
 }
 
 export async function createStaffAccount(input: CreateStaffInput): Promise<{ user_id: string }> {
-  return invoke<{ user_id: string }>({ action: 'create', ...input });
+  const res = await invoke<{ user_id: string }>({ action: 'create', ...input });
+  void logAdminAction({
+    action: 'staff_create',
+    targetType: 'staff_user',
+    targetId: res.user_id,
+    metadata: { role: input.role, branch_id: input.branch_id, username: input.username },
+  });
+  return res;
 }
 
 export async function updateStaffAccount(input: UpdateStaffInput): Promise<{ user_id: string }> {
-  return invoke<{ user_id: string }>({ action: 'update', ...input });
+  const res = await invoke<{ user_id: string }>({ action: 'update', ...input });
+  void logAdminAction({
+    action: input.password ? 'staff_change_password' : 'staff_update',
+    targetType: 'staff_user',
+    targetId: input.user_id,
+    metadata: {
+      role: input.role,
+      branch_id: input.branch_id,
+      changed_password: !!input.password,
+      changed_display_name: input.display_name != null,
+    },
+  });
+  return res;
 }
 
 export async function setStaffActive(user_id: string, active: boolean): Promise<void> {
   await invoke({ action: 'set_active', user_id, active });
+  void logAdminAction({
+    action: 'staff_set_active',
+    targetType: 'staff_user',
+    targetId: user_id,
+    metadata: { active },
+  });
 }
 
 export async function deleteStaffAccount(user_id: string): Promise<void> {
   await invoke({ action: 'delete', user_id });
+  void logAdminAction({
+    action: 'staff_delete',
+    targetType: 'staff_user',
+    targetId: user_id,
+  });
 }
