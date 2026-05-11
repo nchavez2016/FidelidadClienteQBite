@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,66 +7,71 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { UserPlus, Pencil } from 'lucide-react';
-import { createStaff, updateStaff, getOperableCampaigns } from '@/lib/store';
-import type { StaffUser } from '@/lib/types';
+import { getBranches } from '@/services/branches.service';
+import {
+  createStaffAccount,
+  updateStaffAccount,
+  type StaffAccount,
+  type StaffRole,
+} from '@/services/staff/staffAccount.service';
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  editing?: StaffUser | null;
+  editing?: StaffAccount | null;
   onSaved: () => void;
 }
 
-type Role = 'admin' | 'cashier';
-
 export default function StaffUserDialog({ open, onOpenChange, editing, onSaved }: Props) {
   const isEdit = !!editing;
-  const campaigns = getOperableCampaigns();
+  const branches = useMemo(() => getBranches(), [open]);
 
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
-  const [role, setRole] = useState<Role>('cashier');
-  const [branchCampaignId, setBranchCampaignId] = useState<string>('');
+  const [role, setRole] = useState<StaffRole>('cashier');
+  const [branchId, setBranchId] = useState<string>('');
   const [password, setPassword] = useState('');
-  const [active, setActive] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setName(editing?.name ?? '');
+      setName(editing?.display_name ?? '');
       setUsername(editing?.username ?? '');
-      setRole((editing?.role as Role) ?? 'cashier');
-      setBranchCampaignId(editing?.branchCampaignId ?? '');
+      setRole((editing?.role as StaffRole) ?? 'cashier');
+      setBranchId(editing?.branch_id ?? '');
       setPassword('');
-      setActive(editing?.active !== false);
+      setSubmitting(false);
     }
   }, [open, editing]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      if (!name.trim()) return toast.error('Ingresa el nombre');
-      if (!username.trim() || username.trim().length < 3) return toast.error('Usuario muy corto (mín. 3)');
-      if (role === 'cashier' && !branchCampaignId) return toast.error('Asigna una sucursal al cajero');
-      if (!isEdit && password.length < 4) return toast.error('Contraseña mínima de 4 caracteres');
+    if (submitting) return;
+    if (!name.trim()) return toast.error('Ingresa el nombre');
+    if (!isEdit && (!username.trim() || username.trim().length < 3)) {
+      return toast.error('Usuario muy corto (mín. 3)');
+    }
+    if (role === 'cashier' && !branchId) return toast.error('Asigna una sucursal al cajero');
+    if (!isEdit && password.length < 6) return toast.error('Contraseña mínima de 6 caracteres');
 
+    setSubmitting(true);
+    try {
       if (isEdit && editing) {
-        updateStaff(editing.id, {
-          name,
-          username,
+        await updateStaffAccount({
+          user_id: editing.id,
+          display_name: name.trim(),
+          branch_id: role === 'cashier' ? branchId : (branchId || null),
           role,
-          branchCampaignId: role === 'cashier' ? branchCampaignId : branchCampaignId || undefined,
-          active,
           password: password ? password : undefined,
         });
         toast.success('Usuario actualizado');
       } else {
-        createStaff({
-          name,
-          username,
-          role,
-          branchCampaignId: role === 'cashier' ? branchCampaignId : branchCampaignId || undefined,
+        await createStaffAccount({
+          username: username.trim(),
           password,
-          active,
+          display_name: name.trim(),
+          role,
+          branch_id: role === 'cashier' ? branchId : (branchId || null),
         });
         toast.success('Usuario creado');
       }
@@ -74,6 +79,8 @@ export default function StaffUserDialog({ open, onOpenChange, editing, onSaved }
       onOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No se pudo guardar');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -96,11 +103,21 @@ export default function StaffUserDialog({ open, onOpenChange, editing, onSaved }
           </div>
           <div>
             <Label htmlFor="staff-username">Usuario</Label>
-            <Input id="staff-username" value={username} onChange={e => setUsername(e.target.value)} placeholder="ana" autoComplete="off" />
+            <Input
+              id="staff-username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              placeholder="ana"
+              autoComplete="off"
+              disabled={isEdit}
+            />
+            {isEdit && (
+              <p className="text-xs text-muted-foreground mt-1">El usuario no se puede cambiar después de crear la cuenta.</p>
+            )}
           </div>
           <div>
             <Label>Rol</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+            <Select value={role} onValueChange={(v) => setRole(v as StaffRole)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="cashier">Cajero</SelectItem>
@@ -111,13 +128,13 @@ export default function StaffUserDialog({ open, onOpenChange, editing, onSaved }
           <div>
             <Label>Sucursal {role === 'cashier' ? '(requerida)' : '(opcional)'}</Label>
             <Select
-              value={branchCampaignId || undefined}
-              onValueChange={(v) => setBranchCampaignId(v)}
+              value={branchId || undefined}
+              onValueChange={(v) => setBranchId(v)}
             >
               <SelectTrigger><SelectValue placeholder="Selecciona una sucursal" /></SelectTrigger>
               <SelectContent>
-                {campaigns.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.branch} — {c.name}</SelectItem>
+                {branches.map(b => (
+                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -129,21 +146,12 @@ export default function StaffUserDialog({ open, onOpenChange, editing, onSaved }
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder={isEdit ? 'Dejar en blanco para no cambiar' : 'Mínimo 4 caracteres'}
+              placeholder={isEdit ? 'Dejar en blanco para no cambiar' : 'Mínimo 6 caracteres'}
               autoComplete="new-password"
             />
           </div>
-          {isEdit && (
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div>
-                <Label className="cursor-pointer">Usuario activo</Label>
-                <p className="text-xs text-muted-foreground">Si está inactivo no podrá iniciar sesión.</p>
-              </div>
-              <Switch checked={active} onCheckedChange={setActive} />
-            </div>
-          )}
-          <Button type="submit" className="w-full">
-            {isEdit ? 'Guardar cambios' : 'Crear usuario'}
+          <Button type="submit" className="w-full" disabled={submitting}>
+            {submitting ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Crear usuario'}
           </Button>
         </form>
       </DialogContent>
