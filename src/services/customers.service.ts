@@ -92,13 +92,36 @@ export async function hydrateCustomers(): Promise<void> {
   if (profilesInflight) return profilesInflight;
   profilesInflight = (async () => {
     try {
-      const { data, error } = await supabase
-        .from(PROFILES_TABLE)
-        .select('*, user_roles!inner(role)')
-        .eq('user_roles.role', 'customer')
-        .is('deleted_at', null);
-      if (error) throw error;
-      const rows = (data as ProfileRow[] | null) ?? [];
+      // Scope strictly to customer-roled profiles. user_roles has no FK to
+      // profiles, so we resolve customer ids first then fetch profiles.
+      const { data: roleRows, error: roleErr } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'customer');
+      if (roleErr) throw roleErr;
+      const customerIds = Array.from(
+        new Set(((roleRows ?? []) as { user_id: string }[]).map(r => r.user_id)),
+      );
+      let rows: ProfileRow[] = [];
+      if (customerIds.length > 0) {
+        const { data, error } = await supabase
+          .from(PROFILES_TABLE)
+          .select('*')
+          .in('id', customerIds)
+          .is('deleted_at', null);
+        if (error) throw error;
+        rows = (data as ProfileRow[] | null) ?? [];
+      } else {
+        // Cashier RLS may block user_roles reads. Fallback to profiles, which
+        // for cashiers is already filtered to customer-roled profiles by
+        // policy `profiles_select_staff`.
+        const { data, error } = await supabase
+          .from(PROFILES_TABLE)
+          .select('*')
+          .is('deleted_at', null);
+        if (error) throw error;
+        rows = (data as ProfileRow[] | null) ?? [];
+      }
       const local = db.readSync<any>(TABLES.customers);
       const byId = new Map<string, any>();
       for (const c of local) byId.set(c.id, c);
