@@ -18,7 +18,6 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import {
   syncLegacyCustomerSession,
-  syncLegacyStaffSession,
   clearLegacySessions,
   resolveAudience,
 } from '@/services/auth/legacyBridge';
@@ -96,8 +95,13 @@ function bridgeLegacy(user: User, roles: AppRole[]): void {
   try {
     const audience = resolveAudience(user, roles);
     console.info('🚨 [Auth] audience resolution / bridgeLegacy', { uid: user.id, audience, roles, metadata: user.user_metadata });
-    if (audience === 'staff') syncLegacyStaffSession(user, roles);
-    else syncLegacyCustomerSession(user);
+    if (audience === 'staff') {
+      // Staff auth is 100% Supabase-backed (AuthContext.roles + user_roles).
+      // No legacy materialization. Just ensure no stale staff slot remains.
+      clearLegacySessions();
+    } else {
+      syncLegacyCustomerSession(user);
+    }
   } catch (error) {
     console.error('🚨 [Auth] bridgeLegacy crashed', error);
   }
