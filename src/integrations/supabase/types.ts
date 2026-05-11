@@ -104,19 +104,25 @@ export type Database = {
         Row: {
           campaign_id: string
           customer_id: string
+          last_tx_id: string | null
           points: number
+          points_lifetime: number
           updated_at: string
         }
         Insert: {
           campaign_id: string
           customer_id: string
+          last_tx_id?: string | null
           points?: number
+          points_lifetime?: number
           updated_at?: string
         }
         Update: {
           campaign_id?: string
           customer_id?: string
+          last_tx_id?: string | null
           points?: number
+          points_lifetime?: number
           updated_at?: string
         }
         Relationships: [
@@ -132,6 +138,80 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      point_transactions: {
+        Row: {
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          balance_after: number | null
+          bonus_multiplier: number | null
+          bonus_rule_id: string | null
+          branch_id: string | null
+          campaign_id: string
+          comment_category: string | null
+          comment_text: string | null
+          created_at: string
+          customer_id: string
+          effective_at: string
+          id: string
+          idempotency_key: string | null
+          kind: Database["public"]["Enums"]["tx_kind"]
+          metadata: Json
+          points_delta: number
+          reverses_tx_id: string | null
+          reward_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          balance_after?: number | null
+          bonus_multiplier?: number | null
+          bonus_rule_id?: string | null
+          branch_id?: string | null
+          campaign_id: string
+          comment_category?: string | null
+          comment_text?: string | null
+          created_at?: string
+          customer_id: string
+          effective_at?: string
+          id?: string
+          idempotency_key?: string | null
+          kind: Database["public"]["Enums"]["tx_kind"]
+          metadata?: Json
+          points_delta: number
+          reverses_tx_id?: string | null
+          reward_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          balance_after?: number | null
+          bonus_multiplier?: number | null
+          bonus_rule_id?: string | null
+          branch_id?: string | null
+          campaign_id?: string
+          comment_category?: string | null
+          comment_text?: string | null
+          created_at?: string
+          customer_id?: string
+          effective_at?: string
+          id?: string
+          idempotency_key?: string | null
+          kind?: Database["public"]["Enums"]["tx_kind"]
+          metadata?: Json
+          points_delta?: number
+          reverses_tx_id?: string | null
+          reward_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_transactions_reverses_tx_id_fkey"
+            columns: ["reverses_tx_id"]
+            isOneToOne: false
+            referencedRelation: "point_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -215,6 +295,80 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_points: {
+        Args: {
+          p_campaign_id: string
+          p_customer_id: string
+          p_delta: number
+          p_reason: string
+        }
+        Returns: {
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          balance_after: number | null
+          bonus_multiplier: number | null
+          bonus_rule_id: string | null
+          branch_id: string | null
+          campaign_id: string
+          comment_category: string | null
+          comment_text: string | null
+          created_at: string
+          customer_id: string
+          effective_at: string
+          id: string
+          idempotency_key: string | null
+          kind: Database["public"]["Enums"]["tx_kind"]
+          metadata: Json
+          points_delta: number
+          reverses_tx_id: string | null
+          reward_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "point_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      earn_points: {
+        Args: {
+          p_bonus_multiplier?: number
+          p_bonus_rule_id?: string
+          p_branch_id: string
+          p_campaign_id: string
+          p_comment_category?: string
+          p_comment_text?: string
+          p_customer_id: string
+          p_idempotency_key: string
+        }
+        Returns: {
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          balance_after: number | null
+          bonus_multiplier: number | null
+          bonus_rule_id: string | null
+          branch_id: string | null
+          campaign_id: string
+          comment_category: string | null
+          comment_text: string | null
+          created_at: string
+          customer_id: string
+          effective_at: string
+          id: string
+          idempotency_key: string | null
+          kind: Database["public"]["Enums"]["tx_kind"]
+          metadata: Json
+          points_delta: number
+          reverses_tx_id: string | null
+          reward_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "point_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -222,11 +376,86 @@ export type Database = {
         }
         Returns: boolean
       }
+      redeem_reward: {
+        Args: {
+          p_branch_id: string
+          p_campaign_id: string
+          p_customer_id: string
+          p_idempotency_key: string
+          p_required_points: number
+          p_reward_id: string
+          p_reward_name: string
+        }
+        Returns: {
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          balance_after: number | null
+          bonus_multiplier: number | null
+          bonus_rule_id: string | null
+          branch_id: string | null
+          campaign_id: string
+          comment_category: string | null
+          comment_text: string | null
+          created_at: string
+          customer_id: string
+          effective_at: string
+          id: string
+          idempotency_key: string | null
+          kind: Database["public"]["Enums"]["tx_kind"]
+          metadata: Json
+          points_delta: number
+          reverses_tx_id: string | null
+          reward_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "point_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reverse_transaction: {
+        Args: { p_reason?: string; p_tx_id: string }
+        Returns: {
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          balance_after: number | null
+          bonus_multiplier: number | null
+          bonus_rule_id: string | null
+          branch_id: string | null
+          campaign_id: string
+          comment_category: string | null
+          comment_text: string | null
+          created_at: string
+          customer_id: string
+          effective_at: string
+          id: string
+          idempotency_key: string | null
+          kind: Database["public"]["Enums"]["tx_kind"]
+          metadata: Json
+          points_delta: number
+          reverses_tx_id: string | null
+          reward_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "point_transactions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "cashier" | "customer"
       campaign_status: "draft" | "active" | "paused" | "finished"
       gender_type: "masculino" | "femenino" | "otro"
+      tx_kind:
+        | "earn"
+        | "bonus"
+        | "redeem"
+        | "manual_adjustment"
+        | "reversal"
+        | "terms_acceptance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -357,6 +586,14 @@ export const Constants = {
       app_role: ["admin", "cashier", "customer"],
       campaign_status: ["draft", "active", "paused", "finished"],
       gender_type: ["masculino", "femenino", "otro"],
+      tx_kind: [
+        "earn",
+        "bonus",
+        "redeem",
+        "manual_adjustment",
+        "reversal",
+        "terms_acceptance",
+      ],
     },
   },
 } as const
