@@ -38,13 +38,6 @@ function seedStaff(): void {
   }
 }
 
-function purgeLegacyTransactions(): void {
-  // Phase 3.3: localStorage.transactions is no longer the source of truth
-  // for points history. Wipe any stale mirror left by older builds so the
-  // ledger cache is the only reader path.
-  try { storage.set(STORAGE_KEYS.transactions, []); } catch { /* ignore */ }
-}
-
 function seedCredentials(): void {
   const existing = db.readSync(TABLES.credentials);
   if (existing.length > 0) return;
@@ -86,7 +79,6 @@ export function bootstrapStore(): void {
   runAllMigrations();
   seedCampaigns();
   seedStaff();
-  purgeLegacyTransactions();
   seedCredentials();
   purgeLegacyCustomerData();
   // Phase 4: branches + campaigns now live in Supabase. Hydrate the
