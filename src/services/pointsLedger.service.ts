@@ -277,7 +277,7 @@ export function subscribePointTransactionsRealtime(onInsert?: (tx: LedgerTransac
     if (reconnectTimer != null) return;        // debounce
     const delay = BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)];
     attempt++;
-    console.warn('[ledger] reconnect scheduled', { attempt, delayMs: delay });
+    console.warn('[REALTIME_RECONNECT]', { channel: 'point_transactions', attempt, delayMs: delay });
     reconnectTimer = window.setTimeout(() => {
       reconnectTimer = null;
       try {
@@ -285,6 +285,7 @@ export function subscribePointTransactionsRealtime(onInsert?: (tx: LedgerTransac
       } catch (err) { console.warn('[ledger] removeChannel failed', err); }
       ledgerChannel = null;
       // Single-flight rehydrate skips network if recent enough.
+      console.info('[REALTIME_RESYNC]', { channel: 'point_transactions' });
       void rehydrateLedgerHistory().catch(err => console.warn('[ledger] rehydrate failed', err));
       open();
     }, delay);
@@ -304,8 +305,8 @@ export function subscribePointTransactionsRealtime(onInsert?: (tx: LedgerTransac
         },
       )
       .subscribe((status) => {
-        console.info('[ledger] realtime status', status);
         if (status === 'SUBSCRIBED') {
+          if (attempt > 0) console.info('[REALTIME_RECOVERED]', { channel: 'point_transactions', afterAttempts: attempt });
           attempt = 0; // reset backoff on success
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           scheduleReconnect();
