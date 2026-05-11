@@ -13,7 +13,6 @@
 import type { User } from '@supabase/supabase-js';
 import { db, TABLES } from '../dbAdapter';
 import { getCustomerByPhone, getCustomers } from '../customers.service';
-import { getStaff } from '../staff.service';
 import type { Customer, Gender, StaffUser } from '@/lib/types';
 import type { AppRole } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,48 +83,19 @@ export function syncLegacyCustomerSession(user: User): Customer | null {
 }
 
 export function syncLegacyStaffSession(user: User, roles: AppRole[]): StaffUser | null {
-  try {
-  // HARD GUARD: only authenticated users with admin/cashier role may
-  // hydrate the legacy `sessionStaff` slot. A customer must never end up
-  // here, even if a caller passes the wrong audience.
-  if (!roles.includes('admin') && !roles.includes('cashier')) {
-    console.warn('[AUTHZ] syncLegacyStaffSession blocked: no staff role', { uid: user.id, roles });
-    db.removeSync(TABLES.sessionStaff);
-    return null;
-  }
-  console.info('🚨 [legacyBridge] syncLegacyStaffSession:start', { uid: user.id, roles, metadata: meta(user) });
-  db.removeSync(TABLES.sessionCustomer);
-  const m = meta(user);
-  const emailPrefix = String(user.email ?? '').split('@')[0];
-  const username = String(m.staff_username ?? m.identifier ?? emailPrefix ?? user.id).trim();
-  if (!username) {
-    console.warn('🚨 [legacyBridge] staff session missing identifier', { uid: user.id });
-    return null;
-  }
-  const role: 'admin' | 'cashier' = roles.includes('admin') ? 'admin' : 'cashier';
-  let staff = getStaff().find(s => s.username.toLowerCase() === username.toLowerCase());
-  if (!staff) {
-    staff = {
-      id: user.id,
-      username,
-      name: String(m.display_name ?? username),
-      role,
-      active: true,
-    };
-    db.writeSync(TABLES.staff, [...getStaff(), staff]);
-  } else if (staff.role !== role) {
-    // Mantener el rol legacy alineado con user_roles cuando difiera.
-    staff = { ...staff, role };
-    const all = getStaff().map(s => (s.id === staff!.id ? staff! : s));
-    db.writeSync(TABLES.staff, all);
-  }
-  db.writeValueSync(TABLES.sessionStaff, staff);
-  console.info('🚨 [legacyBridge] syncLegacyStaffSession:done', { staff });
-  return staff;
-  } catch (error) {
-    console.error('🚨 [legacyBridge] syncLegacyStaffSession crashed', error);
-    return null;
-  }
+  // DEPRECATED. Mantenido como no-op para no romper callers durante la
+  // migración. Toda la fuente de verdad de staff vive ahora en
+  // AuthContext.roles + edge function `staff-admin`. Aquí solo aseguramos
+  // que cualquier slot legacy quede limpio para evitar bypass.
+  db.removeSync(TABLES.sessionStaff);
+  if (!roles.includes('admin') && !roles.includes('cashier')) return null;
+  return {
+    id: user.id,
+    username: String((meta(user).staff_username as string | undefined) ?? user.id),
+    name: String((meta(user).display_name as string | undefined) ?? user.id),
+    role: roles.includes('admin') ? 'admin' : 'cashier',
+    active: true,
+  };
 }
 
 export function clearLegacySessions(): void {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,45 +9,65 @@ import {
 } from '@/components/ui/alert-dialog';
 import { UserPlus, Pencil, Trash2, ShieldCheck, ShieldOff, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { getStaff, getCurrentStaff, deleteStaff, setStaffActive, getOperableCampaigns } from '@/lib/store';
+import { useAuth } from '@/hooks/useAuth';
+import { getBranches } from '@/services/branches.service';
+import {
+  listStaffAccounts,
+  deleteStaffAccount,
+  setStaffActive,
+  type StaffAccount,
+} from '@/services/staff/staffAccount.service';
 import StaffUserDialog from './StaffUserDialog';
-import type { StaffUser } from '@/lib/types';
 
 export default function UsersTab() {
-  const [, setTick] = useState(0);
-  const refresh = () => setTick(t => t + 1);
+  const { user } = useAuth();
+  const [staff, setStaff] = useState<StaffAccount[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await listStaffAccounts();
+      setStaff(list);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo cargar el staff');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<StaffUser | null>(null);
-  const [deleting, setDeleting] = useState<StaffUser | null>(null);
+  const [editing, setEditing] = useState<StaffAccount | null>(null);
+  const [deleting, setDeleting] = useState<StaffAccount | null>(null);
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'cashier'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
-  const current = getCurrentStaff();
-  const campaigns = getOperableCampaigns();
-  const branchName = (id?: string) => campaigns.find(c => c.id === id)?.branch ?? '—';
+  const branches = getBranches();
+  const branchName = (id?: string | null) => branches.find(b => b.id === id)?.name ?? '—';
 
-  const all = getStaff()
+  const all = staff
     .filter(s => roleFilter === 'all' || s.role === roleFilter)
-    .filter(s => statusFilter === 'all' || (statusFilter === 'active' ? s.active !== false : s.active === false));
+    .filter(s => statusFilter === 'all' || (statusFilter === 'active' ? s.active : !s.active));
 
-  const handleToggleActive = (s: StaffUser) => {
+  const handleToggleActive = async (s: StaffAccount) => {
     try {
-      setStaffActive(s.id, s.active === false ? true : false);
-      toast.success(s.active === false ? 'Usuario activado' : 'Usuario desactivado');
-      refresh();
+      await setStaffActive(s.id, !s.active);
+      toast.success(!s.active ? 'Usuario activado' : 'Usuario desactivado');
+      void refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo cambiar el estado');
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleting) return;
     try {
-      deleteStaff(deleting.id);
+      await deleteStaffAccount(deleting.id);
       toast.success('Usuario eliminado');
       setDeleting(null);
-      refresh();
+      void refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo eliminar');
     }
@@ -85,17 +105,20 @@ export default function UsersTab() {
       </div>
 
       <div className="grid gap-2">
-        {all.length === 0 && (
+        {loading && (
+          <Card className="p-6 text-center text-muted-foreground text-sm">Cargando staff…</Card>
+        )}
+        {!loading && all.length === 0 && (
           <Card className="p-6 text-center text-muted-foreground text-sm">No hay usuarios con esos filtros.</Card>
         )}
-        {all.map(s => {
-          const isMe = current?.id === s.id;
-          const inactive = s.active === false;
+        {!loading && all.map(s => {
+          const isMe = user?.id === s.id;
+          const inactive = !s.active;
           return (
             <Card key={s.id} className="p-3 flex items-center gap-3 flex-wrap">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-heading font-semibold text-sm truncate">{s.name}</span>
+                  <span className="font-heading font-semibold text-sm truncate">{s.display_name}</span>
                   <Badge variant={s.role === 'admin' ? 'default' : 'secondary'} className="text-[10px]">
                     {s.role === 'admin' ? 'Admin' : 'Cajero'}
                   </Badge>
@@ -105,7 +128,7 @@ export default function UsersTab() {
                     : <Badge variant="outline" className="text-[10px] border-green-500 text-green-600">Activo</Badge>}
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                  @{s.username} · Sucursal: {branchName(s.branchCampaignId)}
+                  @{s.username} · Sucursal: {branchName(s.branch_id)}
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -115,7 +138,7 @@ export default function UsersTab() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => handleToggleActive(s)}
+                  onClick={() => void handleToggleActive(s)}
                   title={inactive ? 'Activar' : 'Desactivar'}
                   disabled={isMe}
                 >
@@ -140,7 +163,7 @@ export default function UsersTab() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         editing={editing}
-        onSaved={refresh}
+        onSaved={() => void refresh()}
       />
 
       <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
@@ -148,13 +171,13 @@ export default function UsersTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar usuario</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Seguro que deseas eliminar a <strong>{deleting?.name}</strong>? Esta acción no se puede deshacer.
+              ¿Seguro que deseas eliminar a <strong>{deleting?.display_name}</strong>? Esta acción no se puede deshacer.
               Su historial de transacciones se conserva.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction onClick={() => void handleDelete()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
