@@ -193,6 +193,7 @@ export default function CustomerDashboard() {
     setNewPwd('');
     setConfirmPwd('');
     setTick(t => t + 1);
+    refreshCustomer();
   };
 
   const handleAcceptTerms = (checked: boolean) => {
@@ -211,6 +212,7 @@ export default function CustomerDashboard() {
       });
       toast.success('¡Gracias por aceptar los términos! ✅');
       setTick(t => t + 1);
+      refreshCustomer();
     }
   };
 
