@@ -13,7 +13,6 @@ import { bootstrapStore } from './bootstrap';
 bootstrapStore();
 
 export * from './customers.service';
-export * from './staff.service';
 export * from './transactions.service';
 export * from './campaigns.service';
 export * from './branches.service';

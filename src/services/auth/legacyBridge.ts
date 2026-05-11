@@ -13,7 +13,7 @@
 import type { User } from '@supabase/supabase-js';
 import { db, TABLES } from '../dbAdapter';
 import { getCustomerByPhone, getCustomers } from '../customers.service';
-import type { Customer, Gender, StaffUser } from '@/lib/types';
+import type { Customer, Gender } from '@/lib/types';
 import type { AppRole } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -80,22 +80,6 @@ export function syncLegacyCustomerSession(user: User): Customer | null {
     console.error('🚨 [legacyBridge] syncLegacyCustomerSession crashed', error);
     return null;
   }
-}
-
-export function syncLegacyStaffSession(user: User, roles: AppRole[]): StaffUser | null {
-  // DEPRECATED. Mantenido como no-op para no romper callers durante la
-  // migración. Toda la fuente de verdad de staff vive ahora en
-  // AuthContext.roles + edge function `staff-admin`. Aquí solo aseguramos
-  // que cualquier slot legacy quede limpio para evitar bypass.
-  db.removeSync(TABLES.sessionStaff);
-  if (!roles.includes('admin') && !roles.includes('cashier')) return null;
-  return {
-    id: user.id,
-    username: String((meta(user).staff_username as string | undefined) ?? user.id),
-    name: String((meta(user).display_name as string | undefined) ?? user.id),
-    role: roles.includes('admin') ? 'admin' : 'cashier',
-    active: true,
-  };
 }
 
 export function clearLegacySessions(): void {

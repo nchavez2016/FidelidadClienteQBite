@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getOperableCampaigns, getCampaignById, setStaffBranch } from '@/lib/store';
+import { getOperableCampaigns, getCampaignById } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -61,7 +61,6 @@ export default function StaffPanel() {
 
   const handleBranchChange = (id: string) => {
     setBranchCampaignId(id);
-    if (staff) setStaffBranch(staff.id, id);
     refresh();
   };
 
