@@ -414,6 +414,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reset_customer_points: {
+        Args: {
+          p_campaign_id: string
+          p_customer_id: string
+          p_reason?: string
+        }
+        Returns: {
+          new_balance: number
+          tx_id: string
+        }[]
+      }
       reverse_transaction: {
         Args: { p_reason?: string; p_tx_id: string }
         Returns: {
