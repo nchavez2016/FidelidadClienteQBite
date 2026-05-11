@@ -163,6 +163,12 @@ export function getAvailableRewards(points: number, campaignId?: string): Milest
 
 export async function saveCampaignAsync(campaign: Campaign): Promise<void> {
   const branchId = await resolveBranchId(campaign);
+  // Ensure all milestone / bonus rule ids are real UUIDs before persisting,
+  // so downstream RPCs (redeem_reward) never receive synthetic ids.
+  const normalizedMilestones = normalizeMilestoneIds(campaign.milestones);
+  const normalizedBonusRules = normalizeBonusRuleIds(campaign.bonusRules);
+  campaign.milestones = normalizedMilestones; // mutate caller for continuity
+  campaign.bonusRules = normalizedBonusRules;
   const basePayload = {
     branch_id: branchId,
     name: campaign.name,
@@ -170,8 +176,8 @@ export async function saveCampaignAsync(campaign: Campaign): Promise<void> {
     start_date: campaign.startDate,
     end_date: campaign.endDate,
     terms_and_conditions: campaign.termsAndConditions,
-    milestones: campaign.milestones ?? [],
-    bonus_rules: campaign.bonusRules ?? [],
+    milestones: normalizedMilestones,
+    bonus_rules: normalizedBonusRules,
   };
 
   const legacyId = !isUuid(campaign.id) ? campaign.id : null;
