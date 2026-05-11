@@ -402,6 +402,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_actor_display_names: {
+        Args: { p_ids: string[] }
+        Returns: {
+          display_name: string
+          id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
