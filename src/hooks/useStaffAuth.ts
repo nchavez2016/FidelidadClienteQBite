@@ -1,9 +1,8 @@
 /**
  * Staff auth hook — Supabase-backed.
  *
- * Public shape preserved (`{ staff, isAdmin, logout }`). The legacy
- * bridge inside AuthContext keeps `getCurrentStaff()` populated so the
- * existing services and components continue to work.
+ * Single source of truth: AuthContext (Supabase session + user_roles).
+ * No localStorage, no legacy `sessionStaff`/`getCurrentStaff()`.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
