@@ -8,8 +8,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { getCurrentStaff } from '@/services';
-import { syncLegacyStaffSession } from '@/services/auth/legacyBridge';
 import { clearLegacySessions } from '@/services/auth/legacyBridge';
 import type { StaffUser } from '@/lib/types';
 
@@ -36,16 +34,29 @@ export function useStaffAuth() {
         return;
       }
       if (!isStaffRole) {
-        // Customer (or roleless) navigated into staff area: hard reject.
+        // Customer (o sin role) navegó al área staff: rechazo duro.
         clearLegacySessions();
         setStaff(null);
         setRuntimeError(`Acceso denegado: rol no autorizado (${roles.join(',') || 'none'})`);
         navigate('/cliente/dashboard', { replace: true });
         return;
       }
-      const current = getCurrentStaff() ?? syncLegacyStaffSession(user, roles);
-      setStaff(current);
-      setRuntimeError(current ? null : 'No se pudo crear/leer sessionStaff legacy para usuario con rol staff');
+      // Construir el objeto staff puramente desde AuthContext + user_metadata.
+      // Sin localStorage. Multirol-friendly: no asumimos que sea solo staff.
+      const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+      const username =
+        (meta.staff_username as string | undefined) ??
+        (meta.identifier as string | undefined) ??
+        (user.email?.split('@')[0] ?? user.id);
+      const role: 'admin' | 'cashier' = roles.includes('admin') ? 'admin' : 'cashier';
+      setStaff({
+        id: user.id,
+        username,
+        name: (meta.display_name as string | undefined) ?? username,
+        role,
+        active: true,
+      });
+      setRuntimeError(null);
     } catch (error) {
       console.error('🚨 [useStaffAuth] crashed', error);
       setRuntimeError(error instanceof Error ? error.message : String(error));
