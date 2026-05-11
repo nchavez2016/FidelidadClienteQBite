@@ -94,7 +94,8 @@ export async function hydrateCustomers(): Promise<void> {
     try {
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
-        .select('*')
+        .select('*, user_roles!inner(role)')
+        .eq('user_roles.role', 'customer')
         .is('deleted_at', null);
       if (error) throw error;
       const rows = (data as ProfileRow[] | null) ?? [];
