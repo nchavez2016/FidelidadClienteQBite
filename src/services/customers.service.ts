@@ -92,23 +92,50 @@ export async function hydrateCustomers(): Promise<void> {
   if (profilesInflight) return profilesInflight;
   profilesInflight = (async () => {
     try {
-      const { data, error } = await supabase
-        .from(PROFILES_TABLE)
-        .select('*')
-        .is('deleted_at', null);
-      if (error) throw error;
-      const rows = (data as ProfileRow[] | null) ?? [];
-      const local = db.readSync<any>(TABLES.customers);
-      const byId = new Map<string, any>();
-      for (const c of local) byId.set(c.id, c);
-      for (const r of rows) {
-        const merged = { ...(byId.get(r.id) ?? {}), ...profileToCustomer(r) };
-        // Preserve denormalized points cache if present locally.
-        merged.pointsByCampaign =
-          (byId.get(r.id) as any)?.pointsByCampaign ?? {};
-        byId.set(r.id, merged);
+      // Scope strictly to customer-roled profiles. user_roles has no FK to
+      // profiles, so we resolve customer ids first then fetch profiles.
+      const { data: roleRows, error: roleErr } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'customer');
+      if (roleErr) throw roleErr;
+      const customerIds = Array.from(
+        new Set(((roleRows ?? []) as { user_id: string }[]).map(r => r.user_id)),
+      );
+      let rows: ProfileRow[] = [];
+      if (customerIds.length > 0) {
+        const { data, error } = await supabase
+          .from(PROFILES_TABLE)
+          .select('*')
+          .in('id', customerIds)
+          .is('deleted_at', null);
+        if (error) throw error;
+        rows = (data as ProfileRow[] | null) ?? [];
+      } else {
+        // Cashier RLS may block user_roles reads. Fallback to profiles, which
+        // for cashiers is already filtered to customer-roled profiles by
+        // policy `profiles_select_staff`.
+        const { data, error } = await supabase
+          .from(PROFILES_TABLE)
+          .select('*')
+          .is('deleted_at', null);
+        if (error) throw error;
+        rows = (data as ProfileRow[] | null) ?? [];
       }
-      db.writeSync(TABLES.customers, Array.from(byId.values()));
+      const local = db.readSync<any>(TABLES.customers);
+      const localById = new Map<string, any>();
+      for (const c of local) localById.set(c.id, c);
+      const next: any[] = [];
+      // Preserve legacy local-only customers (cust-xxx) — they never lived in Supabase.
+      for (const c of local) if (isLegacyCustomerId(c.id)) next.push(c);
+      // Only include profiles that belong to the customer-roled set.
+      for (const r of rows) {
+        const prev = localById.get(r.id);
+        const merged = { ...(prev ?? {}), ...profileToCustomer(r) };
+        merged.pointsByCampaign = (prev as any)?.pointsByCampaign ?? {};
+        next.push(merged);
+      }
+      db.writeSync(TABLES.customers, next);
       profilesHydrated = true;
     } catch (err) {
       console.error('[customers] hydrate failed', err);
