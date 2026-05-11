@@ -85,6 +85,14 @@ export function syncLegacyCustomerSession(user: User): Customer | null {
 
 export function syncLegacyStaffSession(user: User, roles: AppRole[]): StaffUser | null {
   try {
+  // HARD GUARD: only authenticated users with admin/cashier role may
+  // hydrate the legacy `sessionStaff` slot. A customer must never end up
+  // here, even if a caller passes the wrong audience.
+  if (!roles.includes('admin') && !roles.includes('cashier')) {
+    console.warn('[AUTHZ] syncLegacyStaffSession blocked: no staff role', { uid: user.id, roles });
+    db.removeSync(TABLES.sessionStaff);
+    return null;
+  }
   console.info('🚨 [legacyBridge] syncLegacyStaffSession:start', { uid: user.id, roles, metadata: meta(user) });
   db.removeSync(TABLES.sessionCustomer);
   const m = meta(user);

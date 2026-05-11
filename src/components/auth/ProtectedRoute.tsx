@@ -1,36 +1,42 @@
 import { useEffect, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 
 interface ProtectedRouteProps {
   children: ReactNode;
   /** If omitted, only authentication is required. */
-  roles?: AppRole[];
+  allowedRoles?: AppRole[];
   /** Where to send unauthenticated users (defaults to customer login). */
   redirectTo?: string;
 }
 
-export function ProtectedRoute({ children, roles, redirectTo = '/cliente/login' }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, redirectTo = '/cliente/login' }: ProtectedRouteProps) {
   const { user, roles: userRoles, loading, rolesLoaded } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const allowed = !allowedRoles || allowedRoles.length === 0
+    ? !!user
+    : !!user && userRoles.some((r) => allowedRoles.includes(r));
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
-      console.debug('[ProtectedRoute] no user → redirect', { redirectTo });
+      console.info('[AUTHZ]', { route: location.pathname, roles: userRoles, allow: false, deny_reason: 'no_user' });
       navigate(redirectTo, { replace: true });
       return;
     }
-    // Wait until roles are hydrated before deciding role-based redirects.
     if (!rolesLoaded) return;
-    if (roles && roles.length > 0 && !userRoles.some((r) => roles.includes(r))) {
+    if (allowedRoles && allowedRoles.length > 0 && !userRoles.some((r) => allowedRoles.includes(r))) {
       const fallback = userRoles.includes('admin') || userRoles.includes('cashier')
         ? '/staff/panel'
         : '/cliente/dashboard';
-      console.debug('[ProtectedRoute] role mismatch', { required: roles, userRoles, fallback });
+      console.warn('[AUTHZ]', { route: location.pathname, roles: userRoles, required: allowedRoles, allow: false, deny_reason: 'role_mismatch', fallback });
       navigate(fallback, { replace: true });
+      return;
     }
-  }, [user, userRoles, loading, rolesLoaded, roles, redirectTo, navigate]);
+    console.info('[AUTHZ]', { route: location.pathname, roles: userRoles, required: allowedRoles ?? null, allow: true });
+  }, [user, userRoles, loading, rolesLoaded, allowedRoles, redirectTo, navigate, location.pathname]);
 
   if (loading || (user && !rolesLoaded)) {
     return (
@@ -40,6 +46,6 @@ export function ProtectedRoute({ children, roles, redirectTo = '/cliente/login' 
     );
   }
   if (!user) return null;
-  if (roles && roles.length > 0 && !userRoles.some((r) => roles.includes(r))) return null;
+  if (!allowed) return null;
   return <>{children}</>;
 }
