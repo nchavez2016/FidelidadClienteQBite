@@ -1,82 +1,86 @@
-# Gestión de Usuarios del Staff (Admin)
+# Phase 4 — Operational UX & Admin Tooling (revised)
 
-## Objetivo
-Agregar al panel del administrador una nueva sección "Usuarios" donde podrá administrar a los miembros del staff (admins y cajeros): crear, editar, asignar sucursal, cambiar contraseña, activar/desactivar y eliminar.
+Builds on Phase 3.4. Auth/ledger architecture untouched unless a critical bug appears.
 
-## Alcance funcional
+## 4.1 Admin reset UI (`reset_customer_points`)
 
-**Roles soportados:** `admin` y `cashier` (los únicos que existen hoy).
+- New `src/components/staff/ResetPointsDialog.tsx`, admin-only (`useAuth().roles.includes('admin')`).
+- Entry points: row action in `UsersTab` and customer panel in `OperationsTab`.
+- Modal flow:
+  1. Show current balance per campaign (from `customer_points`).
+  2. Required `reason` (zod, min 5 chars).
+  3. Irreversible warning + typed "RESET" confirmation.
+  4. Call `resetCustomerPoints(customerId, campaignId, reason)`.
+  5. Toast with returned `tx_id` + `new_balance`; UI updates via realtime.
 
-**Reglas de negocio:**
-- Solo el `admin` puede acceder a esta sección.
-- Un cajero **debe** tener una sucursal asignada (`branchCampaignId`).
-- Un admin **puede** tener sucursal por defecto (opcional) y puede cambiar entre sucursales libremente.
-- El `username` es único (validación al crear/editar).
-- No se puede eliminar ni desactivar al usuario actualmente logueado (auto-protección).
-- Debe quedar siempre al menos **un admin activo** en el sistema (no se puede eliminar el último).
-- Soporta múltiples admins y múltiples cajeros por sucursal.
-- Al "dar de baja" (desactivar) un usuario, no podrá iniciar sesión, pero su historial transaccional se conserva.
+## 4.2 Professional ledger history
 
-## Cambios técnicos
+- New `LedgerHistoryView` mounted inside `ReportsTab`.
+- Service: `queryTransactions({ from, to, campaignId, branchId, kind, customerId, page, pageSize })`.
+- **Default time window: last 90 days**, user can extend explicitly. Hard cap 365 days per query.
+- **Pagination strategy** (avoid `count: 'exact'` on growing datasets):
+  - Use `count: 'estimated'` (Postgres planner stats) for the totals chip.
+  - Use `head + range` requests; if estimated count is unavailable, show "página N — más resultados" with a `hasMore` flag derived from `rows.length === pageSize + 1` (fetch one extra and slice).
+  - Page sizes 25/50/100, default 50.
+- Filters UI: date range, campaign, branch, kind multi-select, customer search.
+- Columns: created_at, customer, campaign, branch, kind label, delta, balance_after, actor, reason.
 
-### 1. Modelo (`src/lib/types.ts`)
-Agregar campo opcional `active?: boolean` a `StaffUser` (default `true` por compatibilidad con datos existentes).
+## 4.3 CSV export
 
-### 2. Servicio (`src/services/staff.service.ts`)
-Añadir funciones:
-- `createStaff(input)` — valida unicidad de username, genera id, default `active: true`.
-- `updateStaff(id, patch)` — edita name/role/branch/active; valida unicidad si cambia username.
-- `changeStaffPassword(id, newPassword)` — actualiza password aislado.
-- `deleteStaff(id)` — elimina, bloquea si es el último admin o el usuario actual.
-- `setStaffActive(id, active)` — activar/desactivar, mismas protecciones.
-- Modificar `loginStaff` para rechazar usuarios con `active === false`.
+- `src/lib/csv.ts` helper, client-side.
+- Re-runs the active query without pagination, capped at **5,000 rows**.
+- If the result hits the cap, prepend a banner toast **and** add a `# Export truncated at 5000 rows. Narrow filters for full data.` header line in the CSV; disable the silent path.
 
-### 3. Validación (`src/services/validation/schemas.ts`)
-Nuevo `staffUpsertSchema` (username, name, role, password opcional en update, branchCampaignId opcional para admin / requerido para cashier).
+## 4.4 Ops dashboard
 
-### 4. UI
+- Replace KPI panel content in `DashboardTab` (keep shell).
+- Window toggle: Today / 7d / 30d.
+- KPI cards: points issued (earn+bonus), points redeemed (|redeem|), reversals count, active customers (distinct).
+- Lists: top 5 customers, top 5 campaigns, activity by cashier (`getStaffNameMap`).
+- Aggregations in new `analytics.service.ts` via `point_transactions` SELECTs (no extra tables).
 
-**Nuevo tab "Usuarios"** en `StaffPanel.tsx` (visible solo si `isAdmin`), agregando un quinto `TabsTrigger` con icono `Users`. Cambiar `grid-cols-4` → `grid-cols-5`.
+## 4.5 QA operacional
 
-**Nuevo componente `src/components/staff/UsersTab.tsx`:**
-- Tabla/lista de staff con columnas: Nombre, Usuario, Rol (badge), Sucursal asignada, Estado (Activo/Inactivo), Acciones.
-- Botón "Nuevo usuario" arriba a la derecha.
-- Acciones por fila: Editar, Cambiar contraseña, Activar/Desactivar (toggle), Eliminar (con confirmación).
-- Filtros simples por rol y por estado.
+- **Realtime reconnect** in `pointsLedger.service.ts`:
+  - Listen to channel `system` events (`CHANNEL_ERROR`, `TIMED_OUT`, `CLOSED`).
+  - **Exponential backoff**: 1s → 2s → 4s → 8s → 16s (cap 30s), reset on success.
+  - **Debounce** reconnect attempts (250ms) to coalesce bursts.
+  - **Single-flight lock** in `ledgerHistory.service.ts`: `hydrateLedgerHistory()` already returns an `inflight` promise; extend to also coalesce reconnect-triggered rehydrates so concurrent reconnects share one fetch.
+- Visibility-change in `AuthContext`: on `visibilitychange → visible`, schedule a single `hydrateLedgerHistory()` (skipped if inflight or last-hydrate < 5s).
+- Loading/error states: skeletons in history + dashboard, error fallbacks with retry.
+- `docs/SMOKE_TESTS_PHASE_4.md`: reconnect, multi-tab convergence, hard refresh persistence, admin-only reset, cooldown toast.
 
-**Nuevo componente `src/components/staff/StaffUserDialog.tsx`** (crear/editar):
-- Campos: Nombre, Usuario, Rol (select admin/cashier), Sucursal (select de campañas operables; obligatorio si rol=cashier), Contraseña (requerida en crear, opcional en editar), Estado activo (switch en modo edición).
-- Validación con zod.
+## 4.6 Security prep (scaffolding, no enforcement)
 
-**Nuevo componente `src/components/staff/ChangePasswordDialog.tsx`** — input nueva contraseña + confirmación.
+- `src/services/security/sessionPolicy.ts`:
+  - Constants `STAFF_IDLE_TIMEOUT_MS = 30 * 60_000`, `CUSTOMER_IDLE_TIMEOUT_MS = 12h`.
+  - **Feature flag** `IDLE_TIMEOUT_ENABLED = false` (env-overridable). Hook is wired but **does not call `signOut`** while disabled — instead logs to console for QA.
+  - `useIdleTimeout(role)` hook:
+    - Activity events: `mousemove`, `keydown`, `click`, `scroll`, `touchstart`, `focus` (passive listeners).
+    - **Warning modal**: shows 60s before expiry with countdown; "Sigo aquí" extends; "Cerrar sesión" logs out immediately.
+    - Even when enabled later, requires explicit confirmation timeout (no silent kick) — protects cashier mid-operation.
+    - Cleared on unmount; resets on tab focus.
+  - Wired in `AuthContext` based on resolved role; while flag off it only renders warning never auto-logout.
+- `src/services/security/mfa.ts` stub: thin wrappers around `supabase.auth.mfa.*`. Surfaced as disabled "Próximamente" item in admin settings menu.
+- **Audit trail migration** (separate Supabase migration call):
+  - Table `admin_audit_log(actor_id, action, target_type, target_id, metadata jsonb)` + RLS (insert via SECURITY DEFINER `log_admin_action`, select admin-only).
+  - Called after `reset_customer_points`, `adjust_points`, `staff-admin` mutations.
 
-**Diálogo de confirmación de eliminación** reutilizando `AlertDialog`.
+## Technical notes
 
-### 5. Comportamiento al cambiar rol/sucursal de un usuario logueado en otra sesión
-No aplica para esta iteración (localStorage); los cambios surten efecto en su próximo login.
+- No new dependencies.
+- All queries scoped by existing RLS.
+- Realtime continues using the `supabase_realtime` publication.
+- CSV stays client-side this phase.
 
-## Layout (referencia)
+## Out of scope
 
-```text
-+------------------------------------------------------+
-| Operaciones | Dashboard | Campañas | Reportes | Usuarios |
-+------------------------------------------------------+
-| Usuarios del staff                  [+ Nuevo usuario]|
-| [Filtro rol ▾] [Filtro estado ▾]                     |
-+------------------------------------------------------+
-| Nombre     Usuario   Rol     Sucursal   Estado  ⋯    |
-| Ana López  ana       Admin   —          Activo  ⋯    |
-| Juan Paz   juanp     Cajero  Express    Activo  ⋯    |
-| Luis Mora  luism     Cajero  Matriz     Inactivo⋯    |
-+------------------------------------------------------+
-```
+- Enabling MFA in Supabase project settings.
+- Server-side aggregations / materialized views.
+- Activating `IDLE_TIMEOUT_ENABLED=true` (deferred until QA signs off).
 
-## Archivos a crear/modificar
-- modificar: `src/lib/types.ts`, `src/services/staff.service.ts`, `src/services/validation/schemas.ts`, `src/pages/StaffPanel.tsx`
-- crear: `src/components/staff/UsersTab.tsx`, `src/components/staff/StaffUserDialog.tsx`, `src/components/staff/ChangePasswordDialog.tsx`
+## Deliverables
 
-## Fuera de alcance
-- Recuperación de contraseña por el propio usuario.
-- Auditoría de cambios sobre usuarios (quién editó a quién).
-- Roles adicionales más allá de admin/cashier.
-- Hash de contraseñas (sigue siendo texto plano hasta migrar a Supabase Auth, igual que el resto del sistema).
+- New: `ResetPointsDialog.tsx`, `LedgerHistoryView.tsx`, `analytics.service.ts`, `csv.ts`, `sessionPolicy.ts`, `IdleWarningDialog.tsx`, `mfa.ts`, audit-log migration, `SMOKE_TESTS_PHASE_4.md`.
+- Edited: `UsersTab`, `OperationsTab`, `DashboardTab`, `ReportsTab`, `AuthContext`, `pointsLedger.service.ts`, `ledgerHistory.service.ts`, `customers.service.ts`.
+- One DB migration (admin audit log + `log_admin_action` RPC).
