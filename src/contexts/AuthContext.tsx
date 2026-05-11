@@ -20,6 +20,7 @@ import { clearLegacySessions } from '@/services/auth/legacyBridge';
 import { hydrateCustomerPoints, subscribeCustomerPointsRealtime } from '@/services/customerPoints.service';
 import { hydrateLedgerHistory, rehydrateLedgerHistory } from '@/services/ledgerHistory.service';
 import { subscribePointTransactionsRealtime } from '@/services/pointsLedger.service';
+import { hydrateCustomers } from '@/services/customers.service';
 import IdleWarningDialog from '@/components/security/IdleWarningDialog';
 import { useIdleTimeout } from '@/hooks/useIdleTimeout';
 
@@ -106,6 +107,8 @@ function bridgeLegacy(_user: User, _roles: AppRole[]): void {
 function postAuthHydrate(): void {
   void hydrateCustomerPoints().catch((err) => console.error('[Auth] hydrateCustomerPoints failed', err));
   void hydrateLedgerHistory().catch((err) => console.error('[Auth] hydrateLedgerHistory failed', err));
+  // Profiles are RLS-gated; only hydrate after the user has authenticated.
+  void hydrateCustomers().catch((err) => console.error('[Auth] hydrateCustomers failed', err));
   // Phase 3.4 — start realtime listeners (idempotent, shared channels).
   try {
     subscribePointTransactionsRealtime();
