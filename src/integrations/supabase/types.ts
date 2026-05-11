@@ -328,6 +328,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_campaign_terms: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
       adjust_points: {
         Args: {
           p_campaign_id: string

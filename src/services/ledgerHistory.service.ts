@@ -51,10 +51,10 @@ async function resolveActorNames(ids: Iterable<string>): Promise<void> {
   const missing = Array.from(new Set(Array.from(ids).filter(id => id && !(id in staffNameById) && !(id in inflightProfile))));
   if (missing.length === 0) return;
   const promise = (async () => {
+    // SECURITY DEFINER RPC: resolves staff display names regardless of
+    // role-based RLS (cashiers can't read other staff profiles directly).
     const { data, error } = await supabase
-      .from('profiles')
-      .select('id, display_name')
-      .in('id', missing);
+      .rpc('get_actor_display_names', { p_ids: missing });
     if (error) {
       console.warn('[ledgerHistory] resolveActorNames failed', error);
       return;
@@ -153,6 +153,7 @@ export function mapLedgerToTransaction(
     customerId: row.customer_id,
     campaignId: row.campaign_id,
     type: ledgerKindToLegacyType(row.kind, row.points_delta),
+    ledgerKind: row.kind,
     points: row.points_delta,
     balanceAfter: row.balance_after ?? 0,
     rewardId: row.reward_id ?? undefined,

@@ -61,6 +61,12 @@ export interface Transaction {
   /** Campaña/sucursal a la que pertenece la transacción. */
   campaignId: string;
   type: TransactionType;
+  /**
+   * Raw ledger kind from `point_transactions.kind` when available.
+   * Lets analytics distinguish `manual_adjustment` from real visits
+   * (`earn`/`bonus`) without ambiguity from the legacy `type` field.
+   */
+  ledgerKind?: 'earn' | 'bonus' | 'redeem' | 'manual_adjustment' | 'reversal' | 'terms_acceptance';
   points: number; // positive for accumulation, negative for redemption/reversal
   balanceAfter: number;
   rewardId?: string;

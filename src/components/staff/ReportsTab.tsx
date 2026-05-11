@@ -83,7 +83,9 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
   const exportCustomerDB = () => {
     const header = 'Nombre,Teléfono,Género,Puntos Actuales,Fecha Registro,Última Visita,Días Promedio Retorno,Total Visitas';
     const rows = allCustomers.map(c => {
-      const custTx = filtered.filter(t => t.customerId === c.id && t.type === 'accumulation' && !t.isReversed)
+      const custTx = filtered.filter(t => t.customerId === c.id
+          && (t.ledgerKind ? (t.ledgerKind === 'earn' || t.ledgerKind === 'bonus') : t.type === 'accumulation')
+          && !t.isReversed)
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       const lastVisit = custTx.length > 0 ? custTx[custTx.length - 1].createdAt : '';
       let avgReturn = '-';
@@ -102,8 +104,10 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
   // --- 3. Reporte Análisis de Potencial de Canje ---
   const exportRewards = () => {
     const milestones = campaign?.milestones?.slice().sort((a, b) => a.requiredPoints - b.requiredPoints) || [];
-    const redemptions = filtered.filter(t => t.type === 'redemption');
-    const accumulations = allTx.filter(t => t.customerId && t.type === 'accumulation' && !t.isReversed && (!branchCampaignId || t.campaignId === branchCampaignId));
+    const redemptions = filtered.filter(t => t.ledgerKind ? t.ledgerKind === 'redeem' : t.type === 'redemption');
+    const accumulations = allTx.filter(t => t.customerId
+      && (t.ledgerKind ? (t.ledgerKind === 'earn' || t.ledgerKind === 'bonus') : t.type === 'accumulation')
+      && !t.isReversed && (!branchCampaignId || t.campaignId === branchCampaignId));
 
     const header = 'Premio / Hito,Puntos Requeridos,Canjes Realizados,Clientes Elegibles (sin canjear),Días Promedio de Consecución,Puntos en Espera (50-99%)';
 
