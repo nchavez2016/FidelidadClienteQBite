@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 import { applyLedgerBalance } from './customerPoints.service';
 import { applyLedgerInsert } from './ledgerHistory.service';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const log = createLogger('points-ledger');
 
@@ -210,6 +211,70 @@ export async function adjustPoints(
   });
   reconcile(tx);
   return tx;
+}
+
+/**
+ * Phase 3.4 — Admin-only reset that zeroes a customer's balance for a
+ * campaign by inserting a compensating `manual_adjustment` row.
+ */
+export async function resetCustomerPoints(
+  customerId: string,
+  campaignId: string,
+  reason = 'admin_reset',
+): Promise<{ tx_id: string | null; new_balance: number }> {
+  const { data, error } = await supabase.rpc('reset_customer_points', {
+    p_customer_id: customerId,
+    p_campaign_id: campaignId,
+    p_reason: reason,
+  } as never);
+  if (error) {
+    log.error('resetCustomerPoints failed', { error, ctx: { customerId, campaignId } });
+    throw error;
+  }
+  const row = Array.isArray(data) ? (data[0] as { tx_id: string | null; new_balance: number }) : (data as { tx_id: string | null; new_balance: number });
+  structuredLog('[LEDGER_ADJUST]', {
+    customer_id: customerId,
+    campaign_id: campaignId,
+    op: 'reset',
+    tx_id: row?.tx_id ?? null,
+    balance_after: row?.new_balance ?? 0,
+  });
+  if (row?.new_balance != null) {
+    applyLedgerBalance(customerId, campaignId, row.new_balance);
+  }
+  return row ?? { tx_id: null, new_balance: 0 };
+}
+
+/**
+ * Phase 3.4 — Realtime subscription for `point_transactions`. New ledger
+ * rows are pushed into the history cache so every connected device sees
+ * them without polling.
+ */
+let ledgerChannel: RealtimeChannel | null = null;
+
+export function subscribePointTransactionsRealtime(onInsert?: (tx: LedgerTransaction) => void): () => void {
+  if (ledgerChannel) return () => { /* shared channel */ };
+  ledgerChannel = supabase
+    .channel('point_transactions_changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'point_transactions' },
+      (payload) => {
+        const tx = payload.new as unknown as LedgerTransaction;
+        if (!tx?.id) return;
+        applyLedgerInsert(tx);
+        try { onInsert?.(tx); } catch (err) { console.error('[ledger] rt cb', err); }
+      },
+    )
+    .subscribe((status) => {
+      console.info('[ledger] realtime status', status);
+    });
+  return () => {
+    if (ledgerChannel) {
+      supabase.removeChannel(ledgerChannel);
+      ledgerChannel = null;
+    }
+  };
 }
 
 /** Read recent ledger entries for a customer (RLS scoped). */
