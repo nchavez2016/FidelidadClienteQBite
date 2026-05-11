@@ -70,9 +70,10 @@ export default function StaffPanel() {
   // Defense in depth: even if ProtectedRoute were bypassed, refuse to render
   // staff UI for any session that is not explicitly admin/cashier.
   const hasStaffRole = roles.includes('admin') || roles.includes('cashier');
+  console.debug('[STAFF_PANEL_RENDER]', { roles, userId: user?.id, hasStaffRole, rolesLoaded });
   if (!user || !rolesLoaded || !hasStaffRole) {
     if (rolesLoaded && (!user || !hasStaffRole)) {
-      console.warn('[AUTHZ] StaffPanel internal guard denied', { roles, hasStaffRole, hasUser: !!user });
+      console.warn('[AUTHZ_DENY]', { route: '/staff/panel', roles, required: ['admin','cashier'], reason: 'panel_internal_guard' });
     }
     return null;
   }
