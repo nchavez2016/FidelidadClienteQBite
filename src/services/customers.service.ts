@@ -365,6 +365,11 @@ export function loginCustomerDetailed(phone: string, password: string): Customer
   return { ok: true, customer: c };
 }
 
+/**
+ * @deprecated Phase 2.7 — read auth state from `useAuth()` instead.
+ * Kept as a transitional shim so legacy sync consumers (customer pages,
+ * `useCustomerSession`) keep working until they are migrated.
+ */
 export function getCurrentCustomer(): Customer | null {
   const stored = db.readValueSync<any>(TABLES.sessionCustomer, null);
   if (!stored) return null;
