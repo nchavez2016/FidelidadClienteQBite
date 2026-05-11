@@ -206,7 +206,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
     return { totalVisits, totalPoints, totalRedeemed, totalReversals, pendingPoints, funnel, genderData, peakHours, returnDays };
   }, [filteredTx, allCustomers, campaign, branchCampaignId, pointsOf]);
 
-  const genderLabels: Record<string, string> = { masculino: '♂ Masculino', femenino: '♀ Femenino', otro: '⚧ Otro' };
+  const genderLabels: Record<string, string> = { masculino: '♂ Masculino', femenino: '♀ Femenino', otro: '⚧ Otro', sin_genero: '— Sin género' };
   const maxFunnel = Math.max(...analytics.funnel.map(f => f.count), 1);
   const clearFilters = () => { setDateFrom(''); setDateTo(''); };
   const customerNameById = useMemo(
