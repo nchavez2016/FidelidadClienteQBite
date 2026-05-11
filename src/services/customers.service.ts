@@ -468,8 +468,15 @@ export function revokeCustomerConsent(customerId: string): {
   }
 
   // 2) Puntos a 0 en todas las campañas.
-  for (const campaignId of Object.keys(pointsByCampaign)) {
-    setPoints(customerId, campaignId, 0);
+  // Phase 3.2: balances are now driven by the ledger. Zeroing on consent
+  // revocation must go through `adjust_points` RPC (admin-only). This loop
+  // is intentionally a no-op until the consent flow runs as admin.
+  // TODO(Phase 3.3): call adjustPoints({ customerId, campaignId, delta: -current, reason: 'consent_revocation' })
+  if (Object.keys(pointsByCampaign).length > 0) {
+    console.warn(
+      '[customers] consent revoke: ledger zeroing pending (use adjust_points RPC).',
+      { customerId, campaigns: Object.keys(pointsByCampaign) },
+    );
   }
 
   // 3) Liberar el teléfono y desactivar.
