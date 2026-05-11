@@ -70,7 +70,7 @@ function profileToCustomer(r: ProfileRow): Customer {
     id: r.id,
     phone: r.phone ?? '',
     name: r.display_name || (r.phone ?? ''),
-    gender: (r.gender ?? 'otro') as Gender,
+    gender: (r.gender ?? null) as Gender | null,
     pointsByCampaign: {},
     acceptedCampaigns: r.accepted_campaigns ?? [],
     isActive: r.is_active,
