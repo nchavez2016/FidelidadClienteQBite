@@ -14,6 +14,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { createLogger } from '@/lib/logger';
 import { applyLedgerBalance } from './customerPoints.service';
+import { applyLedgerInsert } from './ledgerHistory.service';
 
 const log = createLogger('points-ledger');
 
@@ -65,8 +66,13 @@ function newIdempotencyKey(prefix: string): string {
 }
 
 function reconcile(tx: LedgerTransaction | null | undefined): void {
-  if (!tx || tx.balance_after == null) return;
-  applyLedgerBalance(tx.customer_id, tx.campaign_id, tx.balance_after);
+  if (!tx) return;
+  if (tx.balance_after != null) {
+    applyLedgerBalance(tx.customer_id, tx.campaign_id, tx.balance_after);
+  }
+  // Mirror the new ledger row into the in-memory history cache so the
+  // UI sees it immediately without waiting for a re-hydrate.
+  applyLedgerInsert(tx);
 }
 
 export interface EarnPointsInput {
