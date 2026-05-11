@@ -21,6 +21,28 @@ import type { LedgerTransaction, LedgerTxKind } from './pointsLedger.service';
 const TABLE = 'point_transactions';
 const DEFAULT_PAGE_SIZE = 500;
 
+/** Phase 4 — pagination/filter primitives for the admin ledger view. */
+export type LedgerKindFilter = LedgerTxKind;
+export interface QueryTransactionsInput {
+  from?: string;          // ISO date (inclusive)
+  to?: string;            // ISO date (inclusive end-of-day handled by caller)
+  campaignId?: string;
+  branchId?: string;
+  kinds?: LedgerKindFilter[];
+  customerId?: string;
+  page?: number;          // 0-based
+  pageSize?: number;      // default 50, max 200
+}
+export interface QueryTransactionsResult {
+  rows: Transaction[];
+  page: number;
+  pageSize: number;
+  /** Estimated total (Postgres planner stat). null = unavailable. */
+  estimatedTotal: number | null;
+  /** Always reliable: derived from rows.length === pageSize + 1. */
+  hasMore: boolean;
+}
+
 // ─── Staff display-name resolver (Phase 3.4) ──────────────────────
 const staffNameById: Record<string, string> = {};
 const inflightProfile: Record<string, Promise<void>> = {};
@@ -154,6 +176,7 @@ let cache: LedgerRow[] = [];
 let reversedIds = new Set<string>();
 let hydrated = false;
 let inflight: Promise<Transaction[]> | null = null;
+let lastHydrateAt = 0;
 const subscribers = new Set<() => void>();
 
 function recomputeReversed(): void {
