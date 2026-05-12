@@ -193,10 +193,16 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
       });
       const gaps: number[] = [];
       Object.values(customerVisits).forEach(dates => {
-        const sorted = dates.sort();
-        for (let i = 1; i < sorted.length; i++) {
-          const diff = (new Date(sorted[i]).getTime() - new Date(sorted[i - 1]).getTime()) / (1000 * 60 * 60 * 24);
-          gaps.push(diff);
+        // Dedup same-day visits (one visit per calendar day).
+        const uniqueDays = Array.from(
+          new Set(dates.map(d => new Date(d).toISOString().slice(0, 10))),
+        ).sort();
+        if (uniqueDays.length < 2) return;
+        for (let i = 1; i < uniqueDays.length; i++) {
+          const diff =
+            (new Date(uniqueDays[i]).getTime() - new Date(uniqueDays[i - 1]).getTime()) /
+            (1000 * 60 * 60 * 24);
+          if (diff > 0) gaps.push(diff);
         }
       });
       if (gaps.length === 0) return null;
