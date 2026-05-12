@@ -127,6 +127,13 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
   const handleRedeem = useCallback(async () => {
     if (!selectedCustomer || !selectedReward) return;
     if (!currentCampaignId) { toast.error('Selecciona una sucursal'); return; }
+    // Structured trace before any RPC call.
+    // eslint-disable-next-line no-console
+    console.info('[REDEEM_SELECTED_REWARD]', {
+      customerId: selectedCustomer.id,
+      campaignId: currentCampaignId,
+      reward: selectedReward,
+    });
     if (!isUuid(selectedCustomer.id) || !isUuid(currentCampaignId)) {
       toast.error('Cliente o campaña legacy: no se puede canjear en el ledger.');
       return;
@@ -134,10 +141,13 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     if (!isUuid(selectedReward.id)) {
       // Legacy/local milestone id (e.g. "m-1778..."). The campaign needs to be
       // re-saved by an admin so its milestones get real UUIDs.
-      console.error('[INVALID_REWARD_ID]', { rewardId: selectedReward.id });
+      // eslint-disable-next-line no-console
+      console.error('[REDEEM_UUID_INVALID]', { rewardId: selectedReward.id, campaignId: currentCampaignId });
       toast.error('Premio no válido: pide a un administrador volver a guardar la campaña.');
       return;
     }
+    // eslint-disable-next-line no-console
+    console.info('[REDEEM_UUID_VALID]', { rewardId: selectedReward.id, campaignId: currentCampaignId });
     const current = getCustomerPoints(selectedCustomer, currentCampaignId);
     if (current < selectedReward.requiredPoints) {
       toast.error('El cliente no tiene puntos suficientes');

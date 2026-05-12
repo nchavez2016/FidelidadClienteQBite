@@ -29,7 +29,18 @@ const carouselImages = [dishImg1, dishImg2, dishImg3];
 export default function StaffPanel() {
   const { staff, isAdmin, logout } = useStaffAuth();
   const { roles, rolesLoaded, user } = useAuth();
-  const [activeTab, setActiveTab] = useState('operations');
+  const TAB_KEY = 'staff.activeTab';
+  const VALID_TABS = ['operations', 'dashboard', 'campaigns', 'reports', 'users'];
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? sessionStorage.getItem(TAB_KEY) : null;
+      return saved && VALID_TABS.includes(saved) ? saved : 'operations';
+    } catch { return 'operations'; }
+  });
+  const handleTabChange = (v: string) => {
+    setActiveTab(v);
+    try { sessionStorage.setItem(TAB_KEY, v); } catch { /* ignore */ }
+  };
   const [, setTick] = useState(0);
   const refresh = () => setTick(t => t + 1);
 
@@ -236,7 +247,7 @@ export default function StaffPanel() {
       <CampaignStrip campaign={currentCampaign} selectedCustomer={ops.selectedCustomer} />
 
       <div className="max-w-4xl mx-auto p-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-1'} bg-muted/60`}>
             <TabsTrigger value="operations" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'operations' ? '#C5A059' : 'transparent' }}><Activity className="w-4 h-4" />Operaciones</TabsTrigger>
             {isAdmin && <TabsTrigger value="dashboard" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'dashboard' ? '#C5A059' : 'transparent' }}><BarChart3 className="w-4 h-4" />Dashboard</TabsTrigger>}
