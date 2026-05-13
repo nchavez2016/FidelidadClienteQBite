@@ -11,16 +11,14 @@
  *  - Aprobar valida nuevamente que los puntos sigan siendo suficientes.
  */
 import { RedemptionRequest } from '@/lib/types';
-import { storage } from './storage/localAdapter';
-import { STORAGE_KEYS } from './storage/keys';
-import { addTransaction } from './transactions.service';
+import { db, TABLES } from './dbAdapter';
 
 function load(): RedemptionRequest[] {
-  return storage.get<RedemptionRequest[]>(STORAGE_KEYS.redemptionRequests, []);
+  return db.readSync<RedemptionRequest>(TABLES.redemptionRequests);
 }
 
 function save(list: RedemptionRequest[]): void {
-  storage.set(STORAGE_KEYS.redemptionRequests, list);
+  db.writeSync(TABLES.redemptionRequests, list);
 }
 
 export function getRedemptionRequests(): RedemptionRequest[] {
@@ -141,19 +139,10 @@ interface AuditCtx {
 }
 
 export function logRequestCreated(req: RedemptionRequest, ctx: AuditCtx): void {
-  addTransaction({
-    customerId: ctx.customerId,
-    campaignId: ctx.campaignId,
-    type: 'redemption_request',
-    points: 0,
-    balanceAfter: ctx.balanceAfter,
-    rewardId: req.rewardId,
-    rewardName: req.rewardName,
-    staffId: ctx.staffId,
-    staffName: ctx.staffName,
-    commentCategory: 'observation',
-    commentText: `Cliente solicitó canjear "${req.rewardName}" (${req.requiredPoints} pts) · req:${req.id}`,
-  });
+  // Phase 3.3: 0-pt audit mirror in localStorage is removed. Request
+  // lifecycle is tracked in `redemption_requests`; the points ledger
+  // only records actual point movements.
+  void req; void ctx;
 }
 
 export function logRequestCancelled(
@@ -161,18 +150,7 @@ export function logRequestCancelled(
   ctx: AuditCtx,
   cancelledBy: 'customer' | 'staff',
 ): void {
-  const who = cancelledBy === 'customer' ? 'Cliente canceló' : 'Cajero rechazó';
-  addTransaction({
-    customerId: ctx.customerId,
-    campaignId: ctx.campaignId,
-    type: 'redemption_request_cancelled',
-    points: 0,
-    balanceAfter: ctx.balanceAfter,
-    rewardId: req.rewardId,
-    rewardName: req.rewardName,
-    staffId: ctx.staffId,
-    staffName: ctx.staffName,
-    commentCategory: 'observation',
-    commentText: `${who} la solicitud de "${req.rewardName}" · req:${req.id}`,
-  });
+  // Phase 3.3: see logRequestCreated. Lifecycle is tracked in
+  // `redemption_requests` itself.
+  void req; void ctx; void cancelledBy;
 }

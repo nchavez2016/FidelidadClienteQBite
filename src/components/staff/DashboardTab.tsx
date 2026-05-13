@@ -1,5 +1,6 @@
-import { useState, useMemo, type ReactNode } from 'react';
+import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { getCustomers, getTransactions, getCampaignById, getCustomerById, getCustomerPoints, getCustomerTotalPoints } from '@/lib/store';
+import { getCustomerCounts, type CustomerCounts } from '@/services/analytics/customerCounts.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,15 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
   const allTransactions = getTransactions();
   const campaign = branchCampaignId ? getCampaignById(branchCampaignId) : undefined;
 
+  // Authoritative customer membership counts (profiles ∩ user_roles=customer).
+  // Never derive "Clientes Totales" from ledger activity.
+  const [customerCounts, setCustomerCounts] = useState<CustomerCounts | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void getCustomerCounts().then((c) => { if (!cancelled) setCustomerCounts(c); });
+    return () => { cancelled = true; };
+  }, []);
+
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CommentCategory | null>(null);
@@ -93,14 +103,23 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
     return allTransactions.filter(t => {
       const d = new Date(t.createdAt);
       if (branchCampaignId && t.campaignId !== branchCampaignId) return false;
-      return t.type === 'accumulation' && !t.isReversed && d >= prevFrom && d <= prevTo;
+      const isVisit = t.ledgerKind ? (t.ledgerKind === 'earn' || t.ledgerKind === 'bonus') : (t.type === 'accumulation');
+      return isVisit && !t.isReversed && d >= prevFrom && d <= prevTo;
     }).length;
   }, [allTransactions, dateFrom, dateTo, branchCampaignId]);
 
   const analytics = useMemo(() => {
-    const accumulations = filteredTx.filter(t => t.type === 'accumulation' && !t.isReversed);
-    const redemptions = filteredTx.filter(t => t.type === 'redemption');
-    const reversals = filteredTx.filter(t => t.type === 'reversal');
+    // Visits: only real earn/bonus transactions (manual_adjustment never counts).
+    const accumulations = filteredTx.filter(t =>
+      (t.ledgerKind ? (t.ledgerKind === 'earn' || t.ledgerKind === 'bonus') : t.type === 'accumulation')
+      && !t.isReversed,
+    );
+    const redemptions = filteredTx.filter(t =>
+      (t.ledgerKind ? t.ledgerKind === 'redeem' : t.type === 'redemption') && !t.isReversed,
+    );
+    const reversals = filteredTx.filter(t =>
+      t.ledgerKind ? t.ledgerKind === 'reversal' : t.type === 'reversal',
+    );
     const totalVisits = accumulations.length;
     const totalPoints = accumulations.reduce((s, t) => s + t.points, 0);
     const totalRedeemed = redemptions.length;
@@ -142,14 +161,20 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
     })();
 
     // --- Gender analysis (filtered) ---
-    const genderData = (['masculino', 'femenino', 'otro'] as const).map(g => {
-      const customers = allCustomers.filter(c => c.gender === g);
-      const ids = new Set(customers.map(c => c.id));
+    // Use DISTINCT customer ids — never derive counts from joined tx rows.
+    // Null gender is preserved as its own bucket so:
+    //   masculino + femenino + otro + sin_genero === total customers
+    const genderBuckets = (['masculino', 'femenino', 'otro', 'sin_genero'] as const).map(g => {
+      const matches = allCustomers.filter(c =>
+        g === 'sin_genero' ? c.gender == null : c.gender === g,
+      );
+      const ids = new Set(matches.map(c => c.id));
       const visits = accumulations.filter(t => ids.has(t.customerId)).length;
       const canjes = redemptions.filter(t => ids.has(t.customerId)).length;
       const pctCanje = visits > 0 ? ((canjes / visits) * 100).toFixed(1) : '0.0';
-      return { gender: g, count: customers.length, visits, canjes, pctCanje };
+      return { gender: g, count: ids.size, visits, canjes, pctCanje };
     });
+    const genderData = genderBuckets.filter(b => b.gender !== 'sin_genero' || b.count > 0);
 
     // --- Peak hours (filtered) ---
     const hourBuckets = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0 }));
@@ -168,10 +193,16 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
       });
       const gaps: number[] = [];
       Object.values(customerVisits).forEach(dates => {
-        const sorted = dates.sort();
-        for (let i = 1; i < sorted.length; i++) {
-          const diff = (new Date(sorted[i]).getTime() - new Date(sorted[i - 1]).getTime()) / (1000 * 60 * 60 * 24);
-          gaps.push(diff);
+        // Dedup same-day visits (one visit per calendar day).
+        const uniqueDays = Array.from(
+          new Set(dates.map(d => new Date(d).toISOString().slice(0, 10))),
+        ).sort();
+        if (uniqueDays.length < 2) return;
+        for (let i = 1; i < uniqueDays.length; i++) {
+          const diff =
+            (new Date(uniqueDays[i]).getTime() - new Date(uniqueDays[i - 1]).getTime()) /
+            (1000 * 60 * 60 * 24);
+          if (diff > 0) gaps.push(diff);
         }
       });
       if (gaps.length === 0) return null;
@@ -181,7 +212,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
     return { totalVisits, totalPoints, totalRedeemed, totalReversals, pendingPoints, funnel, genderData, peakHours, returnDays };
   }, [filteredTx, allCustomers, campaign, branchCampaignId, pointsOf]);
 
-  const genderLabels: Record<string, string> = { masculino: '♂ Masculino', femenino: '♀ Femenino', otro: '⚧ Otro' };
+  const genderLabels: Record<string, string> = { masculino: '♂ Masculino', femenino: '♀ Femenino', otro: '⚧ Otro', sin_genero: '— Sin género' };
   const maxFunnel = Math.max(...analytics.funnel.map(f => f.count), 1);
   const clearFilters = () => { setDateFrom(''); setDateTo(''); };
   const customerNameById = useMemo(
@@ -275,11 +306,46 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
       {/* ═══ NIVEL 1 — Resumen Operativo ═══ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         {[
-          { label: 'Clientes Totales', value: allCustomers.length, icon: Users, trend: null },
-          { label: 'Visitas del Período', value: analytics.totalVisits, icon: ShoppingBag, trend: visitsTrend },
-          { label: 'Puntos Emitidos', value: analytics.totalPoints, icon: TrendingUp, trend: null },
-          { label: 'Canjes Realizados', value: analytics.totalRedeemed, icon: Award, trend: null },
-          { label: 'Pts. Pendientes', value: analytics.pendingPoints, icon: Coins, trend: null },
+          {
+            label: 'Clientes Totales',
+            value: customerCounts?.total ?? allCustomers.length,
+            icon: Users,
+            trend: null,
+            description: 'Total de clientes registrados en el programa',
+            info: 'Número acumulado de clientes que se han registrado alguna vez en la campaña. No depende del filtro de fechas.',
+          },
+          {
+            label: 'Visitas del Período',
+            value: analytics.totalVisits,
+            icon: ShoppingBag,
+            trend: visitsTrend,
+            description: 'Compras registradas en el rango filtrado',
+            info: 'Cantidad de acumulaciones de puntos válidas (compras) realizadas dentro del rango de fechas y sucursal seleccionados. La flecha compara contra el período anterior de igual duración.',
+          },
+          {
+            label: 'Puntos Emitidos',
+            value: analytics.totalPoints,
+            icon: TrendingUp,
+            trend: null,
+            description: 'Suma de puntos entregados en el período',
+            info: 'Total de puntos otorgados a los clientes por las compras del período. Mide cuánto valor de fidelidad estás liberando al mercado.',
+          },
+          {
+            label: 'Canjes Realizados',
+            value: analytics.totalRedeemed,
+            icon: Award,
+            trend: null,
+            description: 'Premios entregados a los clientes',
+            info: 'Número de premios efectivamente canjeados en el período. Indica qué tanto los clientes están reclamando los beneficios de la campaña.',
+          },
+          {
+            label: 'Pts. Pendientes',
+            value: analytics.pendingPoints,
+            icon: Coins,
+            trend: null,
+            description: 'Puntos vivos en manos de los clientes',
+            info: 'Saldo total de puntos que los clientes aún no han canjeado. Representa una obligación futura de la campaña: tarde o temprano se traducirán en premios.',
+          },
         ].map((s, i) => (
           <Card key={i} className="border-[0.5px] shadow-md hover:shadow-lg transition-shadow" style={{ borderColor: 'rgba(197,160,89,0.35)' }}>
             <CardContent className="pt-4 pb-3 text-center relative">
@@ -290,7 +356,11 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
                 {s.trend === 'down' && <ArrowDownRight className="w-4 h-4 text-destructive" />}
                 {s.trend === 'neutral' && dateFrom && dateTo && <Minus className="w-4 h-4 text-muted-foreground" />}
               </div>
-              <p className="text-[11px] text-muted-foreground">{s.label}</p>
+              <div className="flex items-center justify-center gap-1">
+                <p className="text-[11px] font-medium text-muted-foreground">{s.label}</p>
+                <InfoHint label={`Interpretación de ${s.label}`} content={<p>{s.info}</p>} />
+              </div>
+              <p className="mt-1 text-[10px] leading-snug text-muted-foreground">{s.description}</p>
             </CardContent>
           </Card>
         ))}

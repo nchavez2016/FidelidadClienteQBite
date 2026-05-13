@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Customer, CommentCategory, Milestone, Campaign, RedemptionRequest } from '@/lib/types';
-import { getCustomerTransactions, resetCustomerPassword, updateCustomerPhone, getCustomerById, getCustomerPoints } from '@/lib/store';
+import { getCustomerTransactions, resetCustomerPassword, updateCustomerPhone, getCustomerById, getCustomerPoints, customerNeedsPasswordChange } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +11,11 @@ import RegisterCustomerDialog from '@/components/staff/RegisterCustomerDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { motion } from 'framer-motion';
-import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check } from 'lucide-react';
+import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check, Flame, AlertTriangle } from 'lucide-react';
+import { evaluateBonus } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+import ResetPointsDialog from './ResetPointsDialog';
 
 const IDLE_TIMEOUT_MS = 60_000; // 60s para limpiar pantalla
 const IDLE_WARNING_MS = 50_000; // aviso visual a los 50s
@@ -49,7 +52,11 @@ export default function OperationsTab({
   pendingRequest, onApproveRequest, onRejectRequest, onRefresh,
 }: OperationsTabProps) {
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const bonus = evaluateBonus(campaign);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showResetPointsDialog, setShowResetPointsDialog] = useState(false);
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
   const [newPassword, setNewPassword] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [idleWarning, setIdleWarning] = useState(false);
@@ -275,7 +282,7 @@ export default function OperationsTab({
                     </span>
                   );
                 })()}
-                {selectedCustomer.password === selectedCustomer.phone && (
+                {customerNeedsPasswordChange(selectedCustomer) && (
                   <span
                     className="inline-flex items-center gap-1 text-[10px] font-body font-semibold px-2.5 py-1 rounded-full"
                     style={{
@@ -356,15 +363,21 @@ export default function OperationsTab({
               <div className="grid grid-cols-3 gap-2">
                 <Button onClick={handleAddPoint} className="bg-success hover:bg-success/90 text-success-foreground gap-1 h-auto py-3 flex-col">
                   <Plus className="w-5 h-5" />
-                  <span className="text-[10px] leading-tight text-center">+1 Punto<br/>{campaign?.branch ? `(${campaign.branch})` : ''}</span>
+                  <span className="text-[10px] leading-tight text-center">
+                    {bonus.multiplier > 1 ? (
+                      <span className="inline-flex items-center gap-0.5"><Flame className="w-3 h-3" />+{bonus.multiplier} Pts (x{bonus.multiplier})</span>
+                    ) : '+1 Punto'}
+                    <br/>{campaign?.branch ? `(${campaign.branch})` : ''}
+                  </span>
                 </Button>
                 <Button
                   onClick={() => {
                     if (pendingRequest && onApproveRequest) { onApproveRequest(); return; }
-                    if (rewards.length > 0) setShowRedeemDialog(true);
-                    else toast.error('No hay premios disponibles');
+                    toast.info('El canje sólo se habilita cuando el cliente solicita un premio desde su pantalla.');
                   }}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground gap-1 h-auto py-3 flex-col"
+                  disabled={!pendingRequest}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground gap-1 h-auto py-3 flex-col disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={pendingRequest ? 'Confirmar el canje solicitado por el cliente' : 'Esperando que el cliente seleccione un premio en su pantalla'}
                 >
                   <Gift className="w-5 h-5" />
                   <span className="text-xs">{pendingRequest ? 'Canjear pedido' : 'Canjear'}</span>
@@ -384,6 +397,17 @@ export default function OperationsTab({
                   <KeyRound className="w-3.5 h-3.5" />
                   <span className="text-xs">Gestionar cuenta</span>
                 </Button>
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5"
+                    onClick={() => setShowResetPointsDialog(true)}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span className="text-xs">Resetear puntos</span>
+                  </Button>
+                )}
               </div>
 
               <div className="border-t pt-3">
@@ -457,6 +481,14 @@ export default function OperationsTab({
           )}
         </DialogContent>
       </Dialog>
+
+      <ResetPointsDialog
+        open={showResetPointsDialog}
+        onOpenChange={setShowResetPointsDialog}
+        customer={selectedCustomer}
+        defaultCampaignId={currentCampaignId}
+        onDone={() => onRefresh?.()}
+      />
     </div>
   );
 }

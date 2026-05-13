@@ -13,14 +13,17 @@ import { bootstrapStore } from './bootstrap';
 bootstrapStore();
 
 export * from './customers.service';
-export * from './staff.service';
 export * from './transactions.service';
 export * from './campaigns.service';
 export * from './branches.service';
 export * from './redemptionRequests.service';
+export * from './bonusRules.service';
 export * from './auth';
 export * from './rules';
 export * from './analytics';
+export * from './consent.service';
+export * from './audit.service';
+export { db, TABLES } from './dbAdapter';
 export * as Validation from './validation';
 export {
   STORAGE_KEYS,

@@ -1,19 +1,19 @@
 /**
- * Transactions domain service.
+ * Phase 3.3 — Transactions service: thin read-only shim over the ledger.
  *
- * Holds the business rules for movement records: append-only log,
- * reversal flag, and the per-campaign anti-abuse window.
+ * The legacy local mirror of transactions has been removed. All readers
+ * now go through `ledgerHistory.service` (Supabase `point_transactions`).
+ *
+ * Mutation helpers (`addTransaction`, `markTransactionReversed`) have been
+ * deleted — points changes live exclusively in the ledger RPCs
+ * (earn/redeem/adjust/reverse) inside `pointsLedger.service`.
  */
 import { Transaction } from '@/lib/types';
-import { storage } from './storage/localAdapter';
-import { POINT_COOLDOWN_MS, STORAGE_KEYS } from './storage/keys';
-import {
-  validateOrThrow,
-  transactionCreationSchema,
-} from './validation';
+import { POINT_COOLDOWN_MS } from './storage/keys';
+import { getLedgerCache, getLastReversibleFromCache } from './ledgerHistory.service';
 
 export function getTransactions(): Transaction[] {
-  return storage.get<Transaction[]>(STORAGE_KEYS.transactions, []);
+  return getLedgerCache();
 }
 
 /** List transactions; if `campaignId` is given filter to that campaign. */
@@ -21,43 +21,17 @@ export function getCustomerTransactions(
   customerId: string,
   campaignId?: string,
 ): Transaction[] {
-  return getTransactions().filter(
+  return getLedgerCache().filter(
     t => t.customerId === customerId && (!campaignId || t.campaignId === campaignId),
   );
 }
 
-export function addTransaction(t: Omit<Transaction, 'id' | 'createdAt'>): Transaction {
-  // Validate at the boundary; throws ValidationError on bad input so the
-  // caller (UI/hook) can surface the toast — same contract Supabase RPCs
-  // will provide once they're wired in.
-  validateOrThrow(transactionCreationSchema, t);
-  const transaction: Transaction = {
-    ...t,
-    id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    createdAt: new Date().toISOString(),
-  };
-  storage.set(STORAGE_KEYS.transactions, [...getTransactions(), transaction]);
-  return transaction;
-}
-
-export function markTransactionReversed(txId: string): void {
-  const txs = getTransactions().map(t =>
-    t.id === txId ? { ...t, isReversed: true } : t,
-  );
-  storage.set(STORAGE_KEYS.transactions, txs);
-}
-
+/** Last point-affecting, non-reversed transaction for the customer/campaign. */
 export function getLastCustomerTransaction(
   customerId: string,
   campaignId?: string,
 ): Transaction | undefined {
-  const txs = getCustomerTransactions(customerId, campaignId).filter(
-    t =>
-      t.type !== 'terms_acceptance' &&
-      t.type !== 'redemption_request' &&
-      t.type !== 'redemption_request_cancelled',
-  );
-  return txs[txs.length - 1];
+  return getLastReversibleFromCache(customerId, campaignId);
 }
 
 /** Anti-abuse rule per campaign: minimum spacing between accumulations. */

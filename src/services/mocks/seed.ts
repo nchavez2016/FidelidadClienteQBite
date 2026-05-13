@@ -1,8 +1,11 @@
 /**
  * Demo / seed data.
  *
- * This file is the single source of mock content. When migrating to
- * Supabase, this file can be deleted (or moved to a `supabase/seed.sql`).
+ * Passwords now live in `credentials.service` (separate table). The seed
+ * for them is exported alongside as `SEED_CREDENTIALS` and applied in
+ * bootstrap.
+ *
+ * TODO(Supabase): replace this file with a `supabase/seed.sql`.
  */
 import { Campaign, Customer, Milestone, StaffUser, Transaction } from '@/lib/types';
 import { EXPRESS_ID, MATRIZ_ID } from '@/services/storage/keys';
@@ -37,6 +40,10 @@ export const SEED_CAMPAIGNS: Campaign[] = [
     endDate: '2027-12-31',
     status: 'active',
     milestones: expressMilestones,
+    bonusRules: [
+      { id: 'bonus-express-1', label: 'Doble gaviota L-M-X mañana', multiplier: 2, days: [1, 2, 3], startTime: '09:00', endTime: '12:00', active: true },
+      { id: 'bonus-express-2', label: 'Sábado doble', multiplier: 2, days: [6], startTime: '10:00', endTime: '14:00', active: true },
+    ],
     termsAndConditions:
       'Cada compra mayor a $5 acumula 1 punto en la sucursal Express. Los puntos no son transferibles entre sucursales. Premios sujetos a disponibilidad.',
     createdAt: new Date().toISOString(),
@@ -49,6 +56,9 @@ export const SEED_CAMPAIGNS: Campaign[] = [
     endDate: '2027-12-31',
     status: 'active',
     milestones: matrizMilestones,
+    bonusRules: [
+      { id: 'bonus-matriz-1', label: 'Triple martes noche', multiplier: 3, days: [2], startTime: '19:00', endTime: '22:00', active: true },
+    ],
     termsAndConditions:
       'Cada compra mayor a $8 acumula 1 punto en la sucursal Matriz. Los puntos son independientes por sucursal. Premios sujetos a disponibilidad.',
     createdAt: new Date().toISOString(),
@@ -56,16 +66,27 @@ export const SEED_CAMPAIGNS: Campaign[] = [
 ];
 
 export const SEED_CUSTOMERS: Customer[] = [
-  { id: 'cust-demo-1', phone: '0990000001', name: 'María José', password: '0990000001', gender: 'femenino', pointsByCampaign: { [EXPRESS_ID]: 7, [MATRIZ_ID]: 4 }, acceptedCampaigns: [], createdAt: daysAgo(18, 12) },
-  { id: 'cust-demo-2', phone: '0990000002', name: 'Carlos Vega', password: '1234', gender: 'masculino', pointsByCampaign: { [EXPRESS_ID]: 3, [MATRIZ_ID]: 1 }, acceptedCampaigns: [EXPRESS_ID], createdAt: daysAgo(15, 13) },
-  { id: 'cust-demo-3', phone: '0990000003', name: 'Andrea Ruiz', password: '1234', gender: 'femenino', pointsByCampaign: { [EXPRESS_ID]: 12, [MATRIZ_ID]: 8 }, acceptedCampaigns: [EXPRESS_ID, MATRIZ_ID], createdAt: daysAgo(12, 14) },
-  { id: 'cust-demo-4', phone: '0990000004', name: 'Alex Paredes', password: '0990000004', gender: 'otro', pointsByCampaign: { [EXPRESS_ID]: 0, [MATRIZ_ID]: 2 }, acceptedCampaigns: [], createdAt: daysAgo(9, 11) },
+  { id: 'cust-demo-1', phone: '0990000001', name: 'María José', gender: 'femenino', pointsByCampaign: { [EXPRESS_ID]: 7, [MATRIZ_ID]: 4 }, acceptedCampaigns: [], isActive: true, createdAt: daysAgo(18, 12) },
+  { id: 'cust-demo-2', phone: '0990000002', name: 'Carlos Vega', gender: 'masculino', pointsByCampaign: { [EXPRESS_ID]: 3, [MATRIZ_ID]: 1 }, acceptedCampaigns: [EXPRESS_ID], isActive: true, createdAt: daysAgo(15, 13) },
+  { id: 'cust-demo-3', phone: '0990000003', name: 'Andrea Ruiz', gender: 'femenino', pointsByCampaign: { [EXPRESS_ID]: 12, [MATRIZ_ID]: 8 }, acceptedCampaigns: [EXPRESS_ID, MATRIZ_ID], isActive: true, createdAt: daysAgo(12, 14) },
+  { id: 'cust-demo-4', phone: '0990000004', name: 'Alex Paredes', gender: 'otro', pointsByCampaign: { [EXPRESS_ID]: 0, [MATRIZ_ID]: 2 }, acceptedCampaigns: [], isActive: true, createdAt: daysAgo(9, 11) },
 ];
 
 export const SEED_STAFF: StaffUser[] = [
-  { id: 'admin-1', username: 'admin', password: 'admin123', role: 'admin', name: 'Administrador', branchCampaignId: EXPRESS_ID },
-  { id: 'cashier-1', username: 'cajero', password: 'cajero123', role: 'cashier', name: 'Cajero Express', branchCampaignId: EXPRESS_ID },
-  { id: 'cashier-2', username: 'cajero2', password: 'cajero123', role: 'cashier', name: 'Cajero Matriz', branchCampaignId: MATRIZ_ID },
+  { id: 'admin-1', username: 'admin', role: 'admin', name: 'Administrador', branchCampaignId: EXPRESS_ID, active: true },
+  { id: 'cashier-1', username: 'cajero', role: 'cashier', name: 'Cajero Express', branchCampaignId: EXPRESS_ID, active: true },
+  { id: 'cashier-2', username: 'cajero2', role: 'cashier', name: 'Cajero Matriz', branchCampaignId: MATRIZ_ID, active: true },
+];
+
+/** Default credentials for the seeded demo users. */
+export const SEED_CREDENTIALS: Array<{ id: string; factor: 'phone' | 'username'; identifier: string; password: string }> = [
+  { id: 'cust-demo-1', factor: 'phone', identifier: '0990000001', password: '0990000001' },
+  { id: 'cust-demo-2', factor: 'phone', identifier: '0990000002', password: '1234' },
+  { id: 'cust-demo-3', factor: 'phone', identifier: '0990000003', password: '1234' },
+  { id: 'cust-demo-4', factor: 'phone', identifier: '0990000004', password: '0990000004' },
+  { id: 'admin-1', factor: 'username', identifier: 'admin', password: 'admin123' },
+  { id: 'cashier-1', factor: 'username', identifier: 'cajero', password: 'cajero123' },
+  { id: 'cashier-2', factor: 'username', identifier: 'cajero2', password: 'cajero123' },
 ];
 
 export const SEED_TRANSACTIONS: Transaction[] = [

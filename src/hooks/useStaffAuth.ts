@@ -1,20 +1,79 @@
-import { useEffect } from 'react';
+/**
+ * Staff auth hook — Supabase-backed.
+ *
+ * Single source of truth: AuthContext (Supabase session + user_roles).
+ * No localStorage, no legacy `sessionStaff`/`getCurrentStaff()`.
+ */
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentStaff, logoutStaff } from '@/lib/store';
+import { useAuth } from '@/hooks/useAuth';
+import { clearLegacySessions } from '@/services/auth/legacyBridge';
+import type { StaffUser } from '@/lib/types';
 
 export function useStaffAuth() {
   const navigate = useNavigate();
-  const staff = getCurrentStaff();
-  const isAdmin = staff?.role === 'admin';
+  const { user, roles, loading, rolesLoaded, signOut } = useAuth();
+  // Derive auth purely from AuthContext roles. Never trust legacy storage
+  // as the source of truth for "is this user staff?".
+  const isStaffRole = useMemo(
+    () => roles.includes('admin') || roles.includes('cashier'),
+    [roles],
+  );
+  const [staff, setStaff] = useState<StaffUser | null>(null);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!staff) navigate('/staff/login');
-  }, [staff, navigate]);
+    try {
+      console.info('[AUTHZ] useStaffAuth', { hasUser: !!user, roles, isStaffRole, loading, rolesLoaded });
+      if (loading || (user && !rolesLoaded)) return;
+      if (!user) {
+        setStaff(null);
+        clearLegacySessions();
+        navigate('/staff/login', { replace: true });
+        return;
+      }
+      if (!isStaffRole) {
+        // Customer (o sin role) navegó al área staff: rechazo duro.
+        clearLegacySessions();
+        setStaff(null);
+        setRuntimeError(`Acceso denegado: rol no autorizado (${roles.join(',') || 'none'})`);
+        navigate('/cliente/dashboard', { replace: true });
+        return;
+      }
+      // Construir el objeto staff puramente desde AuthContext + user_metadata.
+      // Sin localStorage. Multirol-friendly: no asumimos que sea solo staff.
+      const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+      const username =
+        (meta.staff_username as string | undefined) ??
+        (meta.identifier as string | undefined) ??
+        (user.email?.split('@')[0] ?? user.id);
+      const role: 'admin' | 'cashier' = roles.includes('admin') ? 'admin' : 'cashier';
+      setStaff({
+        id: user.id,
+        username,
+        name: (meta.display_name as string | undefined) ?? username,
+        role,
+        active: true,
+      });
+      setRuntimeError(null);
+    } catch (error) {
+      console.error('🚨 [useStaffAuth] crashed', error);
+      setRuntimeError(error instanceof Error ? error.message : String(error));
+    }
+  }, [user, roles, isStaffRole, loading, rolesLoaded, navigate]);
 
-  const logout = () => {
-    logoutStaff();
-    navigate('/staff/login');
+  const isAdmin = roles.includes('admin');
+
+  const logout = async () => {
+    try {
+      await signOut();
+      setStaff(null);
+      navigate('/staff/login', { replace: true });
+    } catch (error) {
+      console.error('🚨 [useStaffAuth] logout failed', error);
+      setRuntimeError(error instanceof Error ? error.message : String(error));
+    }
   };
 
-  return { staff, isAdmin, logout };
+  return { staff, isAdmin, logout, runtimeError };
 }

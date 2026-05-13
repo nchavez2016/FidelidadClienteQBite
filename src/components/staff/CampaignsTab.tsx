@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProgressRoute from '@/components/ProgressRoute';
-import { Plus, Settings, Pause, Play } from 'lucide-react';
+import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
 
@@ -27,6 +29,7 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
     newMilestoneDesc, setNewMilestoneDesc,
     addMilestone, removeMilestone, saveCampaignChanges,
     startNewCampaign, startEditCampaign, cancelEdit,
+    addBonusRule, updateBonusRule, removeBonusRule,
   } = useCampaignEditor(onRefresh);
 
   return (
@@ -59,6 +62,80 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                   }</span>
                 </div>
                 <ProgressRoute currentPoints={0} animate={false} />
+
+                {/* Vista previa rápida de configuración (sin necesidad de editar) */}
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {/* Hitos */}
+                  <div className="rounded-lg p-2.5 bg-muted/50 border border-border">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Trophy className="w-3.5 h-3.5 text-accent" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Hitos ({c.milestones.length})
+                      </span>
+                    </div>
+                    {c.milestones.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground">Sin hitos configurados.</p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {[...c.milestones]
+                          .sort((a, b) => a.requiredPoints - b.requiredPoints)
+                          .map(m => (
+                            <li key={m.id} className="text-[11px] flex items-center justify-between gap-2">
+                              <span className="truncate">
+                                <span className="font-semibold">{m.requiredPoints} pts</span> · {m.rewardName}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </div>
+                  {/* Bonus rules */}
+                  <div
+                    className="rounded-lg p-2.5"
+                    style={{
+                      background: (c.bonusRules?.length ?? 0) > 0 ? 'rgba(245,158,11,0.06)' : undefined,
+                      border: (c.bonusRules?.length ?? 0) > 0 ? '1px solid rgba(245,158,11,0.25)' : '1px solid hsl(var(--border))',
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Flame className="w-3.5 h-3.5" style={{ color: (c.bonusRules?.length ?? 0) > 0 ? '#d97706' : undefined }} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: (c.bonusRules?.length ?? 0) > 0 ? '#92400e' : undefined }}>
+                        Bonus de puntos ({c.bonusRules?.length ?? 0})
+                      </span>
+                    </div>
+                    {(c.bonusRules?.length ?? 0) === 0 ? (
+                      <p className="text-[11px] text-muted-foreground">Sin reglas bonus configuradas.</p>
+                    ) : (
+                      <ul className="space-y-1">
+                        {c.bonusRules!.map(r => (
+                          <li key={r.id} className="text-[11px] flex items-center justify-between gap-2">
+                            <span className="truncate" style={{ color: r.active ? '#92400e' : '#94a3b8', textDecoration: r.active ? 'none' : 'line-through' }}>
+                              {r.label || `Bonus x${r.multiplier}`} · {r.days.map(d => DAY_LABELS[d]).join(',')} · {r.startTime}-{r.endTime}
+                            </span>
+                            <span
+                              className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                              style={{
+                                background: r.active ? 'rgba(217,119,6,0.18)' : 'rgba(0,0,0,0.04)',
+                                color: r.active ? '#b45309' : '#94a3b8',
+                              }}
+                            >
+                              x{r.multiplier}{r.active ? '' : ' · off'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                {/* T&C preview */}
+                {c.termsAndConditions && (
+                  <div className="mt-2 text-[11px] text-muted-foreground">
+                    <span className="font-semibold">T&C:</span>{' '}
+                    <span className="line-clamp-2">{c.termsAndConditions}</span>
+                  </div>
+                )}
+
                 <div className="flex gap-2 mt-3">
                   <Button size="sm" variant="outline" onClick={() => startEditCampaign(c)}>Editar</Button>
                   {c.status === 'draft' && (
@@ -212,6 +289,121 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                 <Input placeholder="Descripción (opc.)" value={newMilestoneDesc} onChange={e => setNewMilestoneDesc(e.target.value)} className="flex-1 min-w-[150px]" />
                 <Button onClick={addMilestone} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1"><Plus className="w-4 h-4" />Agregar</Button>
               </div>
+            </div>
+
+            {/* Bonus rules */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-heading font-bold flex items-center gap-1.5">
+                  <Flame className="w-4 h-4" style={{ color: '#d97706' }} />
+                  Bonus de puntos (opcional)
+                </h3>
+                <Button size="sm" variant="outline" onClick={addBonusRule} className="gap-1 border-amber-400 text-amber-700 hover:bg-amber-50">
+                  <Plus className="w-3.5 h-3.5" />Nueva regla
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                Define multiplicadores (x2, x3...) por día y franja horaria para acelerar la frecuencia de visita. Ejemplo: doble gaviota lunes a miércoles de 9:00 a 12:00.
+              </p>
+              {(editingCampaign.bonusRules || []).length === 0 ? (
+                <div className="text-[11px] text-center text-muted-foreground py-3 rounded-lg" style={{ border: '1px dashed rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.04)' }}>
+                  Aún no hay reglas bonus. Agrega una para premiar visitas en horarios estratégicos.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {(editingCampaign.bonusRules || []).map(rule => (
+                    <div key={rule.id} className="rounded-lg p-3" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                      {/* Fila 1: etiqueta a ancho completo + acciones */}
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <Label className="text-[10px]">Etiqueta</Label>
+                          <Input
+                            value={rule.label || ''}
+                            placeholder="Doble gaviota lunes 9-12"
+                            onChange={e => updateBonusRule(rule.id, { label: e.target.value })}
+                            className="h-9 text-sm"
+                          />
+                        </div>
+                        <div className="flex flex-col items-center gap-1 pt-0.5">
+                          <Label className="text-[10px]">Activa</Label>
+                          <Switch checked={rule.active} onCheckedChange={v => updateBonusRule(rule.id, { active: v })} />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive h-9 mt-4"
+                          onClick={() => removeBonusRule(rule.id)}
+                          aria-label="Eliminar regla"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      {/* Fila 2: multiplicador + horas (grid responsive, no se aprietan) */}
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div>
+                          <Label className="text-[10px]">Multiplicador</Label>
+                          <Input
+                            type="number"
+                            min={2}
+                            max={10}
+                            value={rule.multiplier}
+                            onChange={e => updateBonusRule(rule.id, { multiplier: Math.max(2, parseInt(e.target.value) || 2) })}
+                            className="h-9 text-sm w-full"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px]">Desde</Label>
+                          <Input
+                            type="time"
+                            step={300}
+                            value={rule.startTime}
+                            onChange={e => updateBonusRule(rule.id, { startTime: e.target.value })}
+                            className="h-9 text-sm w-full"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px]">Hasta</Label>
+                          <Input
+                            type="time"
+                            step={300}
+                            value={rule.endTime}
+                            onChange={e => updateBonusRule(rule.id, { endTime: e.target.value })}
+                            className="h-9 text-sm w-full"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <Label className="text-[10px]">Días de la semana</Label>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {DAY_LABELS.map((d, idx) => {
+                            const selected = rule.days.includes(idx);
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  const next = selected
+                                    ? rule.days.filter(x => x !== idx)
+                                    : [...rule.days, idx].sort();
+                                  updateBonusRule(rule.id, { days: next });
+                                }}
+                                className="text-[10px] px-2 py-1 rounded-md font-semibold transition-colors"
+                                style={{
+                                  background: selected ? '#d97706' : '#fff',
+                                  color: selected ? '#fff' : '#92400e',
+                                  border: `1px solid ${selected ? '#d97706' : 'rgba(245,158,11,0.4)'}`,
+                                }}
+                              >
+                                {d}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Preview */}

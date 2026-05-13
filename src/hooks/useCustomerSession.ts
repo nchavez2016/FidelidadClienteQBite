@@ -1,41 +1,78 @@
 /**
- * Customer session hook.
+ * Customer session hook — 100% Supabase-backed (Phase 2.8).
  *
- * Centralizes "who is logged in" + redirect on logout. Pages should
- * use this instead of calling `getCurrentCustomer()` directly so the
- * future Supabase Auth swap only touches this file.
+ * Auth identity comes exclusively from `useAuth()`. The Customer object
+ * is read from the in-memory cache hydrated from `public.profiles`. If
+ * the cache hasn't caught up yet, we fetch the profile directly from
+ * Supabase. localStorage is NEVER consulted for identity.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  getCurrentCustomer,
-  getCustomerById,
-  logoutCustomer,
-} from '@/services';
-import type { Customer } from '@/lib/types';
+import { useAuth } from '@/hooks/useAuth';
+import { getCustomerById, hydrateCustomers } from '@/services';
+import { supabase } from '@/integrations/supabase/client';
+import type { Customer, Gender } from '@/lib/types';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function resolveCustomer(userId: string): Promise<Customer | null> {
+  if (!UUID_RE.test(userId)) {
+    console.warn('[useCustomerSession] non-uuid auth user id rejected', { userId });
+    return null;
+  }
+  const cached = getCustomerById(userId);
+  if (cached) return cached;
+  // Not in cache yet → fetch own profile (RLS: customer_select_own).
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error || !data) {
+    console.error('[useCustomerSession] profile fetch failed', error);
+    return null;
+  }
+  const r = data as { id: string; display_name: string; phone: string | null; gender: Gender | null; is_active: boolean; deleted_at: string | null; created_at: string; accepted_campaigns: string[] | null };
+  void hydrateCustomers();
+  return {
+    id: r.id,
+    phone: r.phone ?? '',
+    name: r.display_name || (r.phone ?? ''),
+    gender: (r.gender ?? null) as Gender | null,
+    pointsByCampaign: {},
+    acceptedCampaigns: r.accepted_campaigns ?? [],
+    isActive: r.is_active,
+    createdAt: r.created_at,
+  };
+}
 
 export function useCustomerSession(redirectTo: string = '/cliente/login') {
   const navigate = useNavigate();
-  const [customer, setCustomer] = useState<Customer | null>(() => getCurrentCustomer());
+  const { user, loading, rolesLoaded, signOut } = useAuth();
+  const [customer, setCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
-    if (!customer) navigate(redirectTo);
-  }, [customer, navigate, redirectTo]);
-
-  const refresh = useCallback(() => {
-    const current = getCurrentCustomer();
-    if (!current) {
+    if (loading || !rolesLoaded) return;
+    if (!user) {
       setCustomer(null);
+      navigate(redirectTo, { replace: true });
       return;
     }
-    setCustomer(getCustomerById(current.id) ?? current);
-  }, []);
+    let cancelled = false;
+    void resolveCustomer(user.id).then((c) => { if (!cancelled) setCustomer(c); });
+    return () => { cancelled = true; };
+  }, [user, loading, rolesLoaded, navigate, redirectTo]);
 
-  const logout = useCallback(() => {
-    logoutCustomer();
+  const refresh = useCallback(() => {
+    if (!user) { setCustomer(null); return; }
+    void resolveCustomer(user.id).then(setCustomer);
+  }, [user]);
+
+  const logout = useCallback(async () => {
+    await signOut();
     setCustomer(null);
-    navigate(redirectTo);
-  }, [navigate, redirectTo]);
+    navigate(redirectTo, { replace: true });
+  }, [signOut, navigate, redirectTo]);
 
   return { customer, setCustomer, refresh, logout };
 }

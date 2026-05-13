@@ -1,34 +1,49 @@
 /**
- * Unified session hook.
- *
- * Reads the cross-audience `Session` produced by the auth service and
- * exposes role-aware helpers. Existing `useStaffAuth` / `useCustomerSession`
- * keep working untouched; new code can adopt this hook to be agnostic to
- * which audience is signed in (handy for shared UI like headers).
- *
- * On Supabase swap, the only change here is replacing `getCurrentSession()`
- * with a `useSyncExternalStore` over `supabase.auth.onAuthStateChange`.
+ * Unified session hook — bridges Supabase Auth into the legacy
+ * `Session` shape so shared UI (headers, etc.) works for both
+ * audiences without knowing which signed in.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentSession, clearSession } from '@/services';
+import { useAuth } from '@/hooks/useAuth';
 import type { Session, Role } from '@/services/auth/types';
 
 export function useSession(redirectTo?: string) {
+  const { user, roles, signOut } = useAuth();
+
+  const session: Session | null = useMemo(() => {
+    if (!user) return null;
+    const role: Role = roles.includes('admin')
+      ? 'admin'
+      : roles.includes('cashier')
+        ? 'cashier'
+        : 'customer';
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const identifier = String(meta.identifier ?? user.email ?? '');
+    const displayName = String(meta.display_name ?? identifier);
+    return {
+      user: { id: user.id, identifier, factor: role === 'customer' ? 'phone' : 'username' },
+      profile: { id: user.id, role, displayName },
+    };
+  }, [user, roles]);
+
   const navigate = useNavigate();
-  const [session, setSession] = useState<Session | null>(() => getCurrentSession());
 
-  const refresh = useCallback(() => setSession(getCurrentSession()), []);
+  const refresh = useCallback(() => {
+    /* No-op: AuthContext is the source of truth. */
+  }, []);
 
-  const logout = useCallback(() => {
-    clearSession();
-    setSession(null);
-    if (redirectTo) navigate(redirectTo);
-  }, [navigate, redirectTo]);
+  const logout = useCallback(async () => {
+    await signOut();
+    if (redirectTo) navigate(redirectTo, { replace: true });
+  }, [signOut, navigate, redirectTo]);
 
   const hasRole = useCallback(
-    (...roles: Role[]) => Boolean(session && roles.includes(session.profile.role)),
-    [session],
+    (...wanted: Role[]) => {
+      if (roles.some((r) => wanted.includes(r as Role))) return true;
+      return Boolean(session && wanted.includes(session.profile.role));
+    },
+    [roles, session],
   );
 
   return { session, refresh, logout, hasRole };

@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react';
-import { getOperableCampaigns, getCampaignById, setStaffBranch } from '@/lib/store';
+import { getOperableCampaigns, getCampaignById } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { useStaffAuth } from '@/hooks/useStaffAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useCustomerOperations } from '@/hooks/useCustomerOperations';
 import OperationsTab from '@/components/staff/OperationsTab';
 import DashboardTab from '@/components/staff/DashboardTab';
 import CampaignsTab from '@/components/staff/CampaignsTab';
 import ReportsTab from '@/components/staff/ReportsTab';
+import UsersTab from '@/components/staff/UsersTab';
 import RedeemDialog from '@/components/staff/RedeemDialog';
 import ReverseDialog from '@/components/staff/ReverseDialog';
 import CampaignDialogs from '@/components/staff/CampaignDialogs';
 import FloatingPoint from '@/components/FloatingPoint';
 import StaffShiftStats from '@/components/staff/StaffShiftStats';
 import CampaignStrip from '@/components/staff/CampaignStrip';
-import { LogOut, Activity, BarChart3, Settings, TrendingUp, MapPin, ArrowLeftRight } from 'lucide-react';
+import { LogOut, Activity, BarChart3, Settings, TrendingUp, MapPin, ArrowLeftRight, Users } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import logo from '@/assets/logo-gaviota.png';
 import dishImg1 from '@/assets/papa_ahogada.png';
@@ -26,7 +28,19 @@ const carouselImages = [dishImg1, dishImg2, dishImg3];
 
 export default function StaffPanel() {
   const { staff, isAdmin, logout } = useStaffAuth();
-  const [activeTab, setActiveTab] = useState('operations');
+  const { roles, rolesLoaded, user } = useAuth();
+  const TAB_KEY = 'staff.activeTab';
+  const VALID_TABS = ['operations', 'dashboard', 'campaigns', 'reports', 'users'];
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? sessionStorage.getItem(TAB_KEY) : null;
+      return saved && VALID_TABS.includes(saved) ? saved : 'operations';
+    } catch { return 'operations'; }
+  });
+  const handleTabChange = (v: string) => {
+    setActiveTab(v);
+    try { sessionStorage.setItem(TAB_KEY, v); } catch { /* ignore */ }
+  };
   const [, setTick] = useState(0);
   const refresh = () => setTick(t => t + 1);
 
@@ -58,19 +72,33 @@ export default function StaffPanel() {
 
   const handleBranchChange = (id: string) => {
     setBranchCampaignId(id);
-    if (staff) setStaffBranch(staff.id, id);
     refresh();
   };
 
   const ops = useCustomerOperations(staff!, branchCampaignId);
 
+  // Defense in depth: even if ProtectedRoute were bypassed, refuse to render
+  // staff UI for any session that is not explicitly admin/cashier.
+  const hasStaffRole = roles.includes('admin') || roles.includes('cashier');
+  console.debug('[STAFF_PANEL_RENDER]', { roles, userId: user?.id, hasStaffRole, rolesLoaded });
+  if (!user || !rolesLoaded || !hasStaffRole) {
+    if (rolesLoaded && (!user || !hasStaffRole)) {
+      console.warn('[AUTHZ_DENY]', { route: '/staff/panel', roles, required: ['admin','cashier'], reason: 'panel_internal_guard' });
+    }
+    return null;
+  }
   if (!staff) return null;
 
   const currentCampaign = getCampaignById(branchCampaignId);
 
   return (
     <div className="min-h-screen bg-background">
-      <FloatingPoint show={ops.showFloating} onDone={() => ops.setShowFloating(false)} />
+      <FloatingPoint
+        show={ops.showFloating}
+        onDone={() => ops.setShowFloating(false)}
+        amount={ops.floatingAmount}
+        multiplier={ops.floatingMultiplier}
+      />
 
       <div className="relative overflow-hidden px-4 py-6" style={{ background: '#001F3F' }}>
         <svg className="absolute inset-0 w-full h-full opacity-[0.07]" preserveAspectRatio="none" viewBox="0 0 800 200">
@@ -219,12 +247,13 @@ export default function StaffPanel() {
       <CampaignStrip campaign={currentCampaign} selectedCustomer={ops.selectedCustomer} />
 
       <div className="max-w-4xl mx-auto p-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-1'} bg-muted/60`}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-1'} bg-muted/60`}>
             <TabsTrigger value="operations" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'operations' ? '#C5A059' : 'transparent' }}><Activity className="w-4 h-4" />Operaciones</TabsTrigger>
             {isAdmin && <TabsTrigger value="dashboard" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'dashboard' ? '#C5A059' : 'transparent' }}><BarChart3 className="w-4 h-4" />Dashboard</TabsTrigger>}
             {isAdmin && <TabsTrigger value="campaigns" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'campaigns' ? '#C5A059' : 'transparent' }}><Settings className="w-4 h-4" />Campañas</TabsTrigger>}
             {isAdmin && <TabsTrigger value="reports" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'reports' ? '#C5A059' : 'transparent' }}><TrendingUp className="w-4 h-4" />Reportes</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="users" className="gap-2 font-heading text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'users' ? '#C5A059' : 'transparent' }}><Users className="w-4 h-4" />Usuarios</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="operations">
@@ -259,6 +288,8 @@ export default function StaffPanel() {
           )}
 
           {isAdmin && <TabsContent value="reports"><ReportsTab branchCampaignId={branchCampaignId} /></TabsContent>}
+
+          {isAdmin && <TabsContent value="users"><UsersTab /></TabsContent>}
         </Tabs>
       </div>
 
@@ -270,6 +301,7 @@ export default function StaffPanel() {
         commentCat={ops.commentCat} commentText={ops.commentText}
         setCommentCat={ops.setCommentCat} setCommentText={ops.setCommentText}
         onRedeem={ops.handleRedeem}
+        lockedFromRequest={!!ops.pendingRequest && ops.selectedReward?.id === ops.pendingRequest.rewardId}
       />
 
       <ReverseDialog

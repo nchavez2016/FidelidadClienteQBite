@@ -1,0 +1,4 @@
+project_id = "vleopegtuhrjenletylm"
+
+[functions.staff-admin]
+verify_jwt = true

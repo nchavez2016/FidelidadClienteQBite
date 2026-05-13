@@ -7,6 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Download, Users, MessageSquare, Gift, List, CalendarDays } from 'lucide-react';
+import LedgerHistoryView from './LedgerHistoryView';
+import AdminAuditView from './AdminAuditView';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/hooks/useAuth';
 
 const commentLabels: Record<CommentCategory, string> = {
   positive: '😊 Positivo',
@@ -40,6 +44,8 @@ interface ReportsTabProps {
 }
 
 export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -77,7 +83,9 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
   const exportCustomerDB = () => {
     const header = 'Nombre,Teléfono,Género,Puntos Actuales,Fecha Registro,Última Visita,Días Promedio Retorno,Total Visitas';
     const rows = allCustomers.map(c => {
-      const custTx = filtered.filter(t => t.customerId === c.id && t.type === 'accumulation' && !t.isReversed)
+      const custTx = filtered.filter(t => t.customerId === c.id
+          && (t.ledgerKind ? (t.ledgerKind === 'earn' || t.ledgerKind === 'bonus') : t.type === 'accumulation')
+          && !t.isReversed)
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       const lastVisit = custTx.length > 0 ? custTx[custTx.length - 1].createdAt : '';
       let avgReturn = '-';
@@ -88,7 +96,7 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
         }
         avgReturn = (totalDays / (custTx.length - 1)).toFixed(1);
       }
-      return `"${c.name}","${c.phone}","${c.gender}","${pointsOf(c)}","${fmtDateShort(c.createdAt)}","${lastVisit ? fmtDateShort(lastVisit) : 'Sin visitas'}","${avgReturn}","${custTx.length}"`;
+      return `"${c.name}","${c.phone}","${c.gender ?? ''}","${pointsOf(c)}","${fmtDateShort(c.createdAt)}","${lastVisit ? fmtDateShort(lastVisit) : 'Sin visitas'}","${avgReturn}","${custTx.length}"`;
     });
     downloadCSV(`base_clientes_${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
   };
@@ -96,8 +104,10 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
   // --- 3. Reporte Análisis de Potencial de Canje ---
   const exportRewards = () => {
     const milestones = campaign?.milestones?.slice().sort((a, b) => a.requiredPoints - b.requiredPoints) || [];
-    const redemptions = filtered.filter(t => t.type === 'redemption');
-    const accumulations = allTx.filter(t => t.customerId && t.type === 'accumulation' && !t.isReversed && (!branchCampaignId || t.campaignId === branchCampaignId));
+    const redemptions = filtered.filter(t => t.ledgerKind ? t.ledgerKind === 'redeem' : t.type === 'redemption');
+    const accumulations = allTx.filter(t => t.customerId
+      && (t.ledgerKind ? (t.ledgerKind === 'earn' || t.ledgerKind === 'bonus') : t.type === 'accumulation')
+      && !t.isReversed && (!branchCampaignId || t.campaignId === branchCampaignId));
 
     const header = 'Premio / Hito,Puntos Requeridos,Canjes Realizados,Clientes Elegibles (sin canjear),Días Promedio de Consecución,Puntos en Espera (50-99%)';
 
@@ -191,8 +201,16 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
 
   return (
     <div className="space-y-4 mt-4">
-      {/* Date Filter */}
-      <Card>
+      <Tabs defaultValue="reports" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="reports">Reportes</TabsTrigger>
+          <TabsTrigger value="ledger">Historial</TabsTrigger>
+          {isAdmin && <TabsTrigger value="audit">Auditoría</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="reports" className="space-y-4">
+        {/* Date Filter */}
+        <Card>
         <CardContent className="pt-5 pb-4">
           <div className="flex items-end gap-3 flex-wrap">
             <CalendarDays className="w-5 h-5 text-secondary mb-2" />
@@ -239,6 +257,18 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
           </Card>
         ))}
       </div>
+        </TabsContent>
+
+        <TabsContent value="ledger">
+          <LedgerHistoryView />
+        </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="audit">
+            <AdminAuditView />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

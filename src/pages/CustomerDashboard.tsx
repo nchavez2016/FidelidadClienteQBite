@@ -5,12 +5,14 @@ import { Star, Clock, ShieldAlert, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
-  getCurrentCustomer, getCustomerById, getActiveCampaigns,
-  getCustomerTransactions, logoutCustomer, resetCustomerPassword,
-  acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints, addTransaction,
+  getActiveCampaigns,
+  getCustomerTransactions, resetCustomerPassword,
+  acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints,
   getPendingRequest, createRedemptionRequest, cancelRedemptionRequestByCustomer,
   logRequestCreated, logRequestCancelled,
+  getConsentStatus, revokeCustomerConsent, getCustomerTotalPoints,
 } from '@/lib/store';
+import { useCustomerSession } from '@/hooks/useCustomerSession';
 
 import ProgressRoute from '@/components/ProgressRoute';
 import TransactionItem from '@/components/TransactionItem';
@@ -21,10 +23,12 @@ import RewardsCard from '@/components/customer/RewardsCard';
 import TermsSection from '@/components/customer/TermsSection';
 import PasswordChangeModal from '@/components/customer/PasswordChangeModal';
 import StatsGrid from '@/components/customer/StatsGrid';
+import BonusRuleBadge from '@/components/BonusRuleBadge';
 
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
+  const { customer, refresh: refreshCustomer, logout } = useCustomerSession('/cliente/login');
   const [, setTick] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -32,8 +36,6 @@ export default function CustomerDashboard() {
   const [confirmPwd, setConfirmPwd] = useState('');
   const [heroImgIdx, setHeroImgIdx] = useState(0);
 
-  const stored = getCurrentCustomer();
-  const customer = stored ? (getCustomerById(stored.id) || stored) : null;
   // Solo mostramos al cliente campañas activas que estén realmente configuradas
   // (con al menos un hito). Una campaña activa sin hitos es indistinguible de
   // "sin promoción" para el cliente y no debe aparecer en el switcher ni en el hero.
@@ -80,7 +82,6 @@ export default function CustomerDashboard() {
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('fixture') === 'progress';
 
-  useEffect(() => { if (!stored) navigate('/cliente/login'); }, [stored, navigate]);
   useEffect(() => { if (needsPasswordChange) setShowPasswordModal(true); }, [needsPasswordChange]);
   useEffect(() => {
     const interval = setInterval(() => setHeroImgIdx(prev => (prev + 1) % 3), 3500);
@@ -149,7 +150,36 @@ export default function CustomerDashboard() {
     setTick(t => t + 1);
   };
 
-  const handleLogout = () => { logoutCustomer(); navigate('/cliente/login'); };
+  const handleLogout = () => { void logout(); };
+
+  const handleRevokeConsent = () => {
+    if (!customer) return;
+    const totalPts = getCustomerTotalPoints(customer);
+    const warning =
+      `⚠️ ATENCIÓN — Esta acción es IRREVERSIBLE.\n\n` +
+      `Si continúas:\n` +
+      `  • Tu cuenta será DADA DE BAJA y dejará de funcionar.\n` +
+      `  • Perderás TODOS tus puntos acumulados (${totalPts} pts en total) en todas las sucursales.\n` +
+      `  • Perderás los beneficios y premios pendientes.\n` +
+      `  • No podrás iniciar sesión nuevamente con esta cuenta.\n` +
+      `  • Si te registras de nuevo en el futuro, será como un cliente NUEVO ` +
+      `(sin los puntos ni beneficios anteriores).\n\n` +
+      `¿Confirmas que deseas revocar tu consentimiento y dar de baja tu cuenta?`;
+    if (!window.confirm(warning)) return;
+    const result = revokeCustomerConsent(customer.id);
+    if (!result) {
+      toast.error('No se pudo revocar el consentimiento. Intenta de nuevo.');
+      return;
+    }
+    toast.success(
+      `Consentimiento revocado. Tu cuenta fue dada de baja${
+        result.totalPointsLost > 0 ? ` y se anularon ${result.totalPointsLost} pt(s)` : ''
+      }.`,
+    );
+    setTimeout(() => { void logout(); }, 1200);
+  };
+
+  const consentStatus = customer ? getConsentStatus(customer.id) : { hasActiveConsent: false };
 
   if (!customer) return null;
 
@@ -163,24 +193,18 @@ export default function CustomerDashboard() {
     setNewPwd('');
     setConfirmPwd('');
     setTick(t => t + 1);
+    refreshCustomer();
   };
 
   const handleAcceptTerms = (checked: boolean) => {
     if (checked && selectedCampaign && !hasAcceptedTerms) {
       acceptCampaignTerms(customer.id, selectedCampaign.id);
-      addTransaction({
-        customerId: customer.id,
-        campaignId: selectedCampaign.id,
-        type: 'terms_acceptance',
-        points: 0,
-        balanceAfter: currentPoints,
-        staffId: customer.id,
-        staffName: customer.name,
-        commentCategory: 'observation',
-        commentText: `Aceptación de términos y condiciones de la campaña ${selectedCampaign.name}`,
-      });
+      // Phase 3.3: terms acceptance is no longer mirrored as a 0-pt
+      // transaction in the local audit log. Consent state lives on the
+      // profile (`accepted_campaigns`); the ledger only records points.
       toast.success('¡Gracias por aceptar los términos! ✅');
       setTick(t => t + 1);
+      refreshCustomer();
     }
   };
 
@@ -306,6 +330,7 @@ export default function CustomerDashboard() {
             </motion.div>
 
             <StatsGrid currentPoints={currentPoints} pointsToNext={pointsToNext} maxPoints={maxPoints} nextMilestone={nextMilestone} />
+            {selectedCampaign && <BonusRuleBadge campaign={selectedCampaign} variant="card" />}
             <RewardsCard
               milestones={milestones}
               currentPoints={currentPoints}
@@ -358,6 +383,17 @@ export default function CustomerDashboard() {
         onConfirmPwdChange={setConfirmPwd}
         onSubmit={handleChangePassword}
       />
+
+      {consentStatus.hasActiveConsent && (
+        <div className="max-w-[720px] mx-auto px-3 sm:px-4 pb-6">
+          <button
+            onClick={handleRevokeConsent}
+            className="w-full text-[11px] font-body text-muted-foreground underline hover:text-destructive py-2"
+          >
+            Revocar consentimiento de uso de mi número (LOPDP)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

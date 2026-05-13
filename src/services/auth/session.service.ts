@@ -1,52 +1,29 @@
 /**
- * Unified session service.
+ * Phase 2.8 — sessions live exclusively in `AuthContext`.
  *
- * Today: reads the legacy `currentCustomer` / `currentStaff` localStorage
- * slots and projects them into a unified `Session`.
- * Tomorrow (Supabase): replace the bodies with `supabase.auth.getSession()`
- * + a join on `public.profiles`. Public API does NOT change.
+ * These helpers are no-ops kept ONLY so older imports do not break the
+ * build. New code must consume `useAuth()` / `useSession()`.
  */
 import { storage } from '../storage/localAdapter';
 import { STORAGE_KEYS } from '../storage/keys';
-import type { Customer, StaffUser } from '@/lib/types';
-import type { Session, Profile, AuthUser, Role } from './types';
+import type { Session, Role } from './types';
 
-function customerToSession(c: Customer): Session {
-  const user: AuthUser = { id: c.id, identifier: c.phone, factor: 'phone' };
-  const profile: Profile = { id: c.id, role: 'customer', displayName: c.name };
-  return { user, profile };
-}
-
-function staffToSession(s: StaffUser): Session {
-  const user: AuthUser = { id: s.id, identifier: s.username, factor: 'username' };
-  const profile: Profile = {
-    id: s.id,
-    role: s.role as Role,
-    displayName: s.name,
-    branchId: s.branchCampaignId,
-  };
-  return { user, profile };
-}
-
-/** Returns the active session, regardless of which audience signed in. */
+/** @deprecated Phase 2.8 — always null. Read identity via `useAuth()`. */
 export function getCurrentSession(): Session | null {
-  const staff = storage.get<StaffUser | null>(STORAGE_KEYS.currentStaff, null);
-  if (staff) return staffToSession(staff);
-  const customer = storage.get<Customer | null>(STORAGE_KEYS.currentCustomer, null);
-  if (customer) return customerToSession(customer);
   return null;
 }
 
+/** @deprecated Phase 2.8 — always null. */
 export function getCurrentRole(): Role | null {
-  return getCurrentSession()?.profile.role ?? null;
+  return null;
 }
 
-export function hasRole(...roles: Role[]): boolean {
-  const role = getCurrentRole();
-  return role !== null && roles.includes(role);
+/** @deprecated Phase 2.8 — always false. */
+export function hasRole(..._roles: Role[]): boolean {
+  return false;
 }
 
-/** Centralized logout — clears whichever session is active. */
+/** Defensive cleanup of legacy session slots. */
 export function clearSession(): void {
   storage.remove(STORAGE_KEYS.currentCustomer);
   storage.remove(STORAGE_KEYS.currentStaff);

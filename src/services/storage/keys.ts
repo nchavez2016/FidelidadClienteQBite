@@ -6,7 +6,6 @@
 export const STORAGE_KEYS = {
   customers: 'gaviota_customers',
   staff: 'gaviota_staff',
-  transactions: 'gaviota_transactions',
   campaigns: 'gaviota_campaigns',
   currentCustomer: 'gaviota_current_customer',
   currentStaff: 'gaviota_current_staff',
