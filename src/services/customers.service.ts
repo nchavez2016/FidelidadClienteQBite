@@ -30,6 +30,7 @@ import {
 import {
   getPoints,
   getPointsByCustomer,
+  applyLedgerBalance,
 } from './customerPoints.service';
 import { registerConsent, revokeConsent as revokeConsentRecord } from './consent.service';
 import { logAudit } from './audit.service';
@@ -220,23 +221,63 @@ export async function searchCustomerByPhoneRemote(phone: string): Promise<Custom
   const trimmed = phone.trim();
   if (!trimmed) return null;
   try {
-    const { data, error } = await supabase
+    const { data: profile, error } = await supabase
       .from(PROFILES_TABLE)
       .select('*')
       .eq('phone', trimmed)
       .is('deleted_at', null)
       .maybeSingle();
+
     if (error) {
       console.error('[customers] searchCustomerByPhoneRemote failed', error);
-    } else if (data) {
-      const fresh = profileToCustomer(data as ProfileRow);
+    } else if (profile) {
+      const pRow = profile as ProfileRow;
+      console.log('[CASHIER_SEARCH_PROFILE]', { id: pRow.id, phone: pRow.phone });
+
+      const { data: pointsData, error: pointsErr } = await supabase
+        .from('customer_points')
+        .select('*')
+        .eq('customer_id', pRow.id);
+
+      if (pointsErr) {
+        console.error('[customers] searchCustomerByPhoneRemote points failed', pointsErr);
+      }
+
+      console.log('[CASHIER_SEARCH_POINTS]', pointsData?.map(p => ({
+        customer_id: p.customer_id,
+        campaign_id: p.campaign_id,
+        points: p.points
+      })));
+
+      const fresh = profileToCustomer(pRow);
+      const pointsByCampaign: Record<string, number> = {};
+
+      if (pointsData && pointsData.length > 0) {
+        for (const pt of pointsData) {
+          if (pt.customer_id === pRow.id) {
+            pointsByCampaign[pt.campaign_id] = pt.points;
+            // Seed the synchronous points cache so immediate callers get the correct balance
+            applyLedgerBalance(pt.customer_id, pt.campaign_id, pt.points);
+          }
+        }
+      }
+
       // Merge into local cache so subsequent sync getters see this row.
       const local = db.readSync<any>(TABLES.customers);
       const idx = local.findIndex((c: any) => c.id === fresh.id);
       const merged = { ...(idx >= 0 ? local[idx] : {}), ...fresh };
+      // Overwrite local points with the fresh server truth
+      merged.pointsByCampaign = pointsByCampaign;
+
       if (idx >= 0) local[idx] = merged; else local.push(merged);
       db.writeSync(TABLES.customers, local);
-      return withDerivedFields(merged);
+
+      // We don't use withDerivedFields here because it would blindly read the cache,
+      // which we just seeded above. It's safer to explicitly attach the points we just built.
+      return {
+        ...withDerivedFields(merged),
+        pointsByCampaign
+      };
     }
   } catch (err) {
     console.error('[customers] searchCustomerByPhoneRemote crashed', err);

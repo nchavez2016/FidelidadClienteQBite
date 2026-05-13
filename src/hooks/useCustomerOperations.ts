@@ -48,6 +48,15 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     const c = await searchCustomerByPhoneRemote(phoneSearch);
     const inactive = getInactiveAccountsForPhone(phoneSearch);
     if (c) {
+      // Temporary log to confirm the rendered customer object shape matches expectations
+      console.log('[CASHIER_SEARCH_MERGED]', {
+        id: c.id,
+        customer_id: c.id,
+        phone: c.phone,
+        display_name: c.name,
+        points: c.pointsByCampaign
+      });
+      
       setSelectedCustomer(c);
       if (inactive.length > 0) {
         // Cuenta activa + historial de bajas previas con el mismo número.
