@@ -269,6 +269,7 @@ export default function StaffPanel() {
               activeCampaigns={activeCampaigns}
               currentCampaignId={branchCampaignId}
               pendingRequest={ops.pendingRequest}
+              historicalRequests={ops.historicalRequests}
               onApproveRequest={ops.approvePendingRequest}
               onRejectRequest={ops.rejectPendingRequest}
               onRefresh={ops.refresh}

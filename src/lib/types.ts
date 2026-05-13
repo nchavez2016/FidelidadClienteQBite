@@ -51,6 +51,8 @@ export type TransactionType =
   | 'terms_acceptance'
   | 'redemption_request'
   | 'redemption_request_cancelled'
+  | 'redemption_request_rejected'
+  | 'redemption_request_approved'
   | 'consent_revocation';
 
 export type CommentCategory = 'positive' | 'complaint' | 'observation' | 'promotion' | 'suggestion' | 'other';
@@ -133,7 +135,7 @@ export interface Campaign {
   createdAt: string;
 }
 
-export type RedemptionRequestStatus = 'pending' | 'approved' | 'cancelled';
+export type RedemptionRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 /**
  * Solicitud de canje iniciada por el cliente.

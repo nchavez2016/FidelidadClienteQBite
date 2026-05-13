@@ -8,11 +8,17 @@ import {
   getActiveCampaigns,
   getCustomerTransactions, resetCustomerPassword,
   acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints,
-  getPendingRequest, createRedemptionRequest, cancelRedemptionRequestByCustomer,
-  logRequestCreated, logRequestCancelled,
-  getConsentStatus, revokeCustomerConsent, getCustomerTotalPoints,
+  getCustomerTotalPoints, getConsentStatus, revokeCustomerConsent
 } from '@/lib/store';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { 
+  getPendingRequest, 
+  createRedemptionRequest, 
+  cancelRedemptionRequestByCustomer,
+  getHistoricalRequests
+} from '@/services/redemptionRequests.service';
 import { useCustomerSession } from '@/hooks/useCustomerSession';
+import { Transaction } from '@/lib/types';
 
 import ProgressRoute from '@/components/ProgressRoute';
 import TransactionItem from '@/components/TransactionItem';
@@ -35,6 +41,8 @@ export default function CustomerDashboard() {
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
   const [heroImgIdx, setHeroImgIdx] = useState(0);
+
+  const queryClient = useQueryClient();
 
   // Solo mostramos al cliente campañas activas que estén realmente configuradas
   // (con al menos un hito). Una campaña activa sin hitos es indistinguible de
@@ -63,9 +71,45 @@ export default function CustomerDashboard() {
 
   const selectedCampaign = activeCampaigns.find(c => c.id === selectedCampaignId);
   const currentPoints = customer && selectedCampaignId ? getCustomerPoints(customer, selectedCampaignId) : 0;
-  const transactions = customer && selectedCampaignId
-    ? getCustomerTransactions(customer.id, selectedCampaignId).slice(-20).reverse()
+  const ledgerTransactions = customer && selectedCampaignId
+    ? getCustomerTransactions(customer.id, selectedCampaignId).slice(-20)
     : [];
+
+  const { data: historicalRequests } = useQuery({
+    queryKey: ['historicalRequests', customer?.id, selectedCampaignId],
+    queryFn: () => getHistoricalRequests(customer!.id, selectedCampaignId),
+    enabled: !!customer && !!selectedCampaignId,
+    refetchInterval: 3000,
+  });
+
+  // Hybrid History: Ledger + Redemption Requests (excluding 'approved' to avoid duplication)
+  const transactions: Transaction[] = [...ledgerTransactions];
+  if (historicalRequests) {
+    historicalRequests.forEach(req => {
+      const mappedType =
+        req.status === 'pending' ? 'redemption_request' :
+        req.status === 'rejected' ? 'redemption_request_rejected' :
+        req.status === 'approved' ? 'redemption_request_approved' :
+        'redemption_request_cancelled';
+      
+      transactions.push({
+        id: req.id,
+        customerId: req.customerId,
+        campaignId: req.campaignId,
+        type: mappedType,
+        points: -req.requiredPoints, // show negative visually
+        balanceAfter: 0, // not applicable for requests
+        rewardId: req.rewardId,
+        rewardName: req.rewardName,
+        staffId: req.resolvedByStaffId || '',
+        staffName: req.resolvedByStaffId ? 'Staff' : '',
+        createdAt: req.resolvedAt || req.createdAt,
+      });
+    });
+  }
+  // Sort combined array descending by date and take last 20
+  transactions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const displayTransactions = transactions.slice(0, 20);
 
   const milestones = selectedCampaign?.milestones
     ? [...selectedCampaign.milestones].sort((a, b) => a.requiredPoints - b.requiredPoints)
@@ -88,66 +132,52 @@ export default function CustomerDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Polling para detectar resoluciones del cajero (aprobado/rechazado).
-  useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 2500);
-    const onStorage = () => setTick(t => t + 1);
-    window.addEventListener('storage', onStorage);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, []);
+  const { data: pendingRequest, refetch: refetchPending } = useQuery({
+    queryKey: ['pendingRequest', customer?.id, selectedCampaignId],
+    queryFn: () => getPendingRequest(customer!.id, selectedCampaignId),
+    enabled: !!customer && !!selectedCampaignId,
+    refetchInterval: 3000, // Poll Supabase every 3 seconds to catch staff approval/rejection
+  });
 
-  const pendingRequest = customer && selectedCampaignId
-    ? getPendingRequest(customer.id, selectedCampaignId)
-    : undefined;
-
-  const handleRequestReward = (m: import('@/lib/types').Milestone) => {
+  const handleRequestReward = async (m: import('@/lib/types').Milestone) => {
     if (!customer || !selectedCampaignId) return;
     if (currentPoints < m.requiredPoints) {
       toast.error('Aún no tienes suficientes puntos para este premio');
       return;
     }
     try {
-      const req = createRedemptionRequest({
+      console.info('[REQUEST_START] Creating redemption request', { rewardId: m.id, requiredPoints: m.requiredPoints });
+      const req = await createRedemptionRequest({
         customerId: customer.id,
         campaignId: selectedCampaignId,
         rewardId: m.id,
         rewardName: m.rewardName,
         requiredPoints: m.requiredPoints,
       });
-      logRequestCreated(req, {
-        customerId: customer.id,
-        campaignId: selectedCampaignId,
-        balanceAfter: currentPoints,
-        staffId: customer.id,
-        staffName: customer.name,
-      });
+      console.info('[REQUEST_SUCCESS] Result:', req);
+      console.info('[REQUEST_INVALIDATE] invalidating pendingRequest', { customerId: customer.id });
+      await queryClient.invalidateQueries({ queryKey: ['pendingRequest', customer.id] });
       toast.success('Solicitud enviada. Acércate al cajero para confirmar 🎁');
       setTick(t => t + 1);
     } catch (e: any) {
+      console.error('[REQUEST_FAILED]', e);
       toast.error(e?.message || 'No se pudo crear la solicitud');
     }
   };
 
-  const handleCancelRequest = (req: import('@/lib/types').RedemptionRequest) => {
-    cancelRedemptionRequestByCustomer(req.id);
-    if (customer && selectedCampaignId) {
-      logRequestCancelled(
-        req,
-        {
-          customerId: customer.id,
-          campaignId: selectedCampaignId,
-          balanceAfter: currentPoints,
-          staffId: customer.id,
-          staffName: customer.name,
-        },
-        'customer',
-      );
+  const handleCancelRequest = async (req: import('@/lib/types').RedemptionRequest) => {
+    try {
+      console.info('[CANCEL_START] Calling cancelRedemptionRequest', { reqId: req.id });
+      const result = await cancelRedemptionRequestByCustomer(req.id);
+      console.info('[CANCEL_SUCCESS] Result:', result);
+      console.info('[CANCEL_INVALIDATE] invalidating pendingRequest', { customerId: customer!.id });
+      await queryClient.invalidateQueries({ queryKey: ['pendingRequest', customer!.id] });
+      toast.success('Solicitud cancelada');
+      setTick(t => t + 1);
+    } catch (e: any) {
+      console.error('[CANCEL_FAILED]', e);
+      toast.error(e?.message || 'No se pudo cancelar la solicitud');
     }
-    toast.success('Solicitud cancelada');
-    setTick(t => t + 1);
   };
 
   const handleLogout = () => { void logout(); };
@@ -365,9 +395,9 @@ export default function CustomerDashboard() {
                 Actividad — {selectedCampaign?.branch || 'Sucursal'}
               </h2>
             </div>
-            {transactions.length === 0
+            {displayTransactions.length === 0
               ? <p className="text-sm text-muted-foreground text-center py-4 font-body">Aún no tienes movimientos en esta sucursal</p>
-              : transactions.map(tx => <TransactionItem key={tx.id} tx={tx} />)
+              : displayTransactions.map(tx => <TransactionItem key={tx.id} tx={tx} />)
             }
           </motion.div>
         )}

@@ -39,6 +39,7 @@ interface OperationsTabProps {
   activeCampaigns: Campaign[];
   currentCampaignId: string;
   pendingRequest?: RedemptionRequest;
+  historicalRequests?: RedemptionRequest[];
   onApproveRequest?: () => void;
   onRejectRequest?: () => void;
   onRefresh?: () => void;
@@ -49,8 +50,14 @@ export default function OperationsTab({
   handleAddPoint, rewards, setShowRedeemDialog, setShowReverseDialog,
   commentCat, commentText, setCommentCat, setCommentText, campaign,
   currentPoints, activeCampaigns, currentCampaignId,
-  pendingRequest, onApproveRequest, onRejectRequest, onRefresh,
+  pendingRequest, historicalRequests, onApproveRequest, onRejectRequest, onRefresh,
 }: OperationsTabProps) {
+  console.log('[OPERATIONS_TAB_RENDER]', { 
+    hasCustomer: !!selectedCustomer, 
+    hasPendingRequest: !!pendingRequest,
+    requestId: pendingRequest?.id,
+    requestStatus: pendingRequest?.status
+  });
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const bonus = evaluateBonus(campaign);
   const [showResetDialog, setShowResetDialog] = useState(false);
@@ -115,19 +122,9 @@ export default function OperationsTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCustomer?.id]);
 
-  // Poll para detectar nuevas solicitudes de canje creadas por el cliente
-  // (otra pestaña / dispositivo). Storage events sólo viajan entre pestañas,
-  // así que combinamos ambos.
-  useEffect(() => {
-    if (!onRefresh) return;
-    const interval = setInterval(onRefresh, 2500);
-    const onStorage = () => onRefresh();
-    window.addEventListener('storage', onStorage);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, [onRefresh]);
+  // Nota: El polling de solicitudes pendientes ahora lo maneja React Query
+  // en useCustomerOperations con refetchInterval, eliminando la necesidad
+  // de intervals manuales y listeners de storage aquí.
 
   const handleResetPassword = () => {
     if (!selectedCustomer || !newPassword.trim() || newPassword.length < 4) {
@@ -410,15 +407,80 @@ export default function OperationsTab({
                 )}
               </div>
 
-              <div className="border-t pt-3">
-                <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-secondary" />
-                  Últimos movimientos — {campaign?.branch || 'Sucursal'}
-                </p>
-                {custTx.length === 0
-                  ? <p className="text-xs text-muted-foreground text-center py-2">Sin movimientos aún</p>
-                  : custTx.map(tx => <TransactionItem key={tx.id} tx={tx} compact />)
-                }
+              <div className="border-t pt-3 space-y-4">
+                {/* Timeline Operacional (Solicitudes) */}
+                <div>
+                  <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                    <Hourglass className="w-4 h-4 text-accent" />
+                    Timeline de Solicitudes (Operacional)
+                  </p>
+                  <div className="space-y-2">
+                    {!historicalRequests || historicalRequests.length === 0 ? (
+                      <p className="text-[10px] text-muted-foreground text-center py-2 italic">Sin solicitudes históricas</p>
+                    ) : (
+                      historicalRequests.slice(0, 5).map(req => {
+                        let statusLabel = '';
+                        let statusColor = '';
+                        let statusIcon: any = null;
+
+                        switch (req.status) {
+                          case 'pending':
+                            statusLabel = 'Pendiente';
+                            statusColor = '#2E6DB4';
+                            statusIcon = Hourglass;
+                            break;
+                          case 'approved':
+                            statusLabel = 'Aprobado';
+                            statusColor = '#16a34a';
+                            statusIcon = Check;
+                            break;
+                          case 'rejected':
+                            statusLabel = 'Rechazado';
+                            statusColor = '#dc2626';
+                            statusIcon = X;
+                            break;
+                          case 'cancelled':
+                            statusLabel = 'Cancelado';
+                            statusColor = '#6b7280';
+                            statusIcon = Undo2;
+                            break;
+                        }
+
+                        const Icon = statusIcon;
+                        return (
+                          <div key={req.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/50 text-[11px]">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: `${statusColor}15` }}>
+                                <Icon className="w-3.5 h-3.5" style={{ color: statusColor }} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-bold truncate">{req.rewardName}</p>
+                                <p className="text-[9px] text-muted-foreground">
+                                  {new Date(req.createdAt).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="font-semibold uppercase tracking-wider text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: `${statusColor}15`, color: statusColor }}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Historial Financiero (Ledger) */}
+                <div>
+                  <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-secondary" />
+                    Historial Financiero (Ledger) — {campaign?.branch || 'Sucursal'}
+                  </p>
+                  {custTx.length === 0
+                    ? <p className="text-xs text-muted-foreground text-center py-2">Sin movimientos aún</p>
+                    : custTx.map(tx => <TransactionItem key={tx.id} tx={tx} compact />)
+                  }
+                </div>
               </div>
             </CardContent>
           </Card>
