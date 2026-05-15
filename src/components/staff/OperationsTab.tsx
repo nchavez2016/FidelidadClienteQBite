@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Customer, CommentCategory, Milestone, Campaign, RedemptionRequest } from '@/lib/types';
+import { Customer, CommentCategory, Milestone, Campaign, RedemptionRequest, Transaction } from '@/lib/types';
 import { getCustomerTransactions, resetCustomerPassword, updateCustomerPhone, getCustomerById, getCustomerPoints, customerNeedsPasswordChange } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import TransactionItem from '@/components/TransactionItem';
 import RegisterCustomerDialog from '@/components/staff/RegisterCustomerDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check, Flame, AlertTriangle } from 'lucide-react';
 import { evaluateBonus } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
@@ -40,6 +40,7 @@ interface OperationsTabProps {
   currentCampaignId: string;
   pendingRequest?: RedemptionRequest;
   historicalRequests?: RedemptionRequest[];
+  customerTransactions?: Transaction[];
   onApproveRequest?: () => void;
   onRejectRequest?: () => void;
   onRefresh?: () => void;
@@ -50,10 +51,10 @@ export default function OperationsTab({
   handleAddPoint, rewards, setShowRedeemDialog, setShowReverseDialog,
   commentCat, commentText, setCommentCat, setCommentText, campaign,
   currentPoints, activeCampaigns, currentCampaignId,
-  pendingRequest, historicalRequests, onApproveRequest, onRejectRequest, onRefresh,
+  pendingRequest, historicalRequests, customerTransactions, onApproveRequest, onRejectRequest, onRefresh,
 }: OperationsTabProps) {
-  console.log('[OPERATIONS_TAB_RENDER]', { 
-    hasCustomer: !!selectedCustomer, 
+  console.log('[OPERATIONS_TAB_RENDER]', {
+    hasCustomer: !!selectedCustomer,
     hasPendingRequest: !!pendingRequest,
     requestId: pendingRequest?.id,
     requestStatus: pendingRequest?.status
@@ -70,10 +71,10 @@ export default function OperationsTab({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const idleTimerRef = useRef<number | null>(null);
   const warningTimerRef = useRef<number | null>(null);
+  const [showOperationalTimeline, setShowOperationalTimeline] = useState(false);
+  const [showFinancialLedger, setShowFinancialLedger] = useState(false);
 
-  const custTx = selectedCustomer
-    ? getCustomerTransactions(selectedCustomer.id, currentCampaignId).slice(-5).reverse()
-    : [];
+  const custTx = customerTransactions || [];
 
   // Limpiar cliente y enfocar buscador (memoizable manualmente vía ref-stable callback)
   const clearAndFocus = () => {
@@ -364,7 +365,7 @@ export default function OperationsTab({
                     {bonus.multiplier > 1 ? (
                       <span className="inline-flex items-center gap-0.5"><Flame className="w-3 h-3" />+{bonus.multiplier} Pts (x{bonus.multiplier})</span>
                     ) : '+1 Punto'}
-                    <br/>{campaign?.branch ? `(${campaign.branch})` : ''}
+                    <br />{campaign?.branch ? `(${campaign.branch})` : ''}
                   </span>
                 </Button>
                 <Button
@@ -408,78 +409,129 @@ export default function OperationsTab({
               </div>
 
               <div className="border-t pt-3 space-y-4">
-                {/* Timeline Operacional (Solicitudes) */}
-                <div>
-                  <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                {/* ── Timeline Operacional (Solicitudes) ─────────── */}
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Hourglass className="w-4 h-4 text-accent" />
-                    Timeline de Solicitudes (Operacional)
+                    Timeline de Solicitudes
                   </p>
-                  <div className="space-y-2">
-                    {!historicalRequests || historicalRequests.length === 0 ? (
-                      <p className="text-[10px] text-muted-foreground text-center py-2 italic">Sin solicitudes históricas</p>
-                    ) : (
-                      historicalRequests.slice(0, 5).map(req => {
-                        let statusLabel = '';
-                        let statusColor = '';
-                        let statusIcon: any = null;
 
-                        switch (req.status) {
-                          case 'pending':
-                            statusLabel = 'Pendiente';
-                            statusColor = '#2E6DB4';
-                            statusIcon = Hourglass;
-                            break;
-                          case 'approved':
-                            statusLabel = 'Aprobado';
-                            statusColor = '#16a34a';
-                            statusIcon = Check;
-                            break;
-                          case 'rejected':
-                            statusLabel = 'Rechazado';
-                            statusColor = '#dc2626';
-                            statusIcon = X;
-                            break;
-                          case 'cancelled':
-                            statusLabel = 'Cancelado';
-                            statusColor = '#6b7280';
-                            statusIcon = Undo2;
-                            break;
-                        }
+                  {/* Botón ancho azul */}
+                  <button
+                    type="button"
+                    onClick={() => setShowOperationalTimeline(v => !v)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
+                    style={{ background: 'linear-gradient(135deg, #1e4d8c 0%, #2563eb 100%)' }}
+                  >
+                    <Clock className="w-4 h-4" />
+                    {showOperationalTimeline ? 'Ocultar historial' : 'Ver historial'}
+                  </button>
 
-                        const Icon = statusIcon;
-                        return (
-                          <div key={req.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/50 text-[11px]">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: `${statusColor}15` }}>
-                                <Icon className="w-3.5 h-3.5" style={{ color: statusColor }} />
+                  <AnimatePresence initial={false}>
+                    {showOperationalTimeline && (
+                      <motion.div
+                        key="ops-timeline"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        className="overflow-hidden space-y-2"
+                      >
+                        {!historicalRequests || historicalRequests.length === 0 ? (
+                          <p className="text-[10px] text-muted-foreground text-center py-3 bg-muted/20 rounded-lg border border-dashed border-border/50 italic">
+                            Sin solicitudes históricas
+                          </p>
+                        ) : (() => {
+                          const STATUS_CFG: Record<string, { label: string; color: string; Icon: any }> = {
+                            pending:   { label: 'SOLICITADO', color: '#2E6DB4', Icon: Hourglass },
+                            approved:  { label: 'APROBADO',   color: '#16a34a', Icon: Check },
+                            rejected:  { label: 'RECHAZADO',  color: '#dc2626', Icon: X },
+                            cancelled: { label: 'CANCELADO',  color: '#6b7280', Icon: Undo2 },
+                          };
+                          const fmt = (iso: string) =>
+                            new Date(iso).toLocaleDateString('es-EC', {
+                              day: '2-digit', month: 'short',
+                              hour: '2-digit', minute: '2-digit',
+                            });
+
+                          // Build a flat list of events sorted newest-first
+                          const allEvents: { key: string; rewardName: string; date: string; cfgKey: string }[] = [];
+                          historicalRequests.forEach(req => {
+                            // Event: created
+                            allEvents.push({ key: `${req.id}:created`, rewardName: req.rewardName, date: req.createdAt, cfgKey: 'pending' });
+                            // Event: resolution (if resolved)
+                            if (req.status !== 'pending' && req.resolvedAt) {
+                              allEvents.push({ key: `${req.id}:${req.status}`, rewardName: req.rewardName, date: req.resolvedAt, cfgKey: req.status });
+                            }
+                          });
+                          allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                          return allEvents.slice(0, 15).map(ev => {
+                            const { label, color, Icon } = STATUS_CFG[ev.cfgKey] ?? STATUS_CFG.pending;
+                            return (
+                              <div
+                                key={ev.key}
+                                className="flex items-center justify-between p-2.5 rounded-xl bg-card border border-border/40 shadow-sm hover:border-border/70 transition-colors"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
+                                    <Icon className="w-3.5 h-3.5" style={{ color }} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-bold text-xs text-foreground truncate">{ev.rewardName}</p>
+                                    <p className="text-[10px] text-muted-foreground">{fmt(ev.date)}</p>
+                                  </div>
+                                </div>
+                                <span className="shrink-0 font-black text-[8px] tracking-wide px-2 py-0.5 rounded-md" style={{ background: `${color}15`, color }}>
+                                  {label}
+                                </span>
                               </div>
-                              <div className="min-w-0">
-                                <p className="font-bold truncate">{req.rewardName}</p>
-                                <p className="text-[9px] text-muted-foreground">
-                                  {new Date(req.createdAt).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                </p>
-                              </div>
-                            </div>
-                            <span className="font-semibold uppercase tracking-wider text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: `${statusColor}15`, color: statusColor }}>
-                              {statusLabel}
-                            </span>
-                          </div>
-                        );
-                      })
+                            );
+                          });
+                        })()}
+                      </motion.div>
                     )}
-                  </div>
+                  </AnimatePresence>
                 </div>
 
-                {/* Historial Financiero (Ledger) */}
-                <div>
-                  <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                {/* ── Historial Financiero (Ledger) ─────────────── */}
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Clock className="w-4 h-4 text-secondary" />
-                    Historial Financiero (Ledger) — {campaign?.branch || 'Sucursal'}
+                    Historial Financiero
                   </p>
-                  {custTx.length === 0
-                    ? <p className="text-xs text-muted-foreground text-center py-2">Sin movimientos aún</p>
-                    : custTx.map(tx => <TransactionItem key={tx.id} tx={tx} compact />)
-                  }
+
+                  {/* Botón ancho azul */}
+                  <button
+                    type="button"
+                    onClick={() => setShowFinancialLedger(v => !v)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
+                    style={{ background: 'linear-gradient(135deg, #1e4d8c 0%, #2563eb 100%)' }}
+                  >
+                    <Clock className="w-4 h-4" />
+                    {showFinancialLedger ? 'Ocultar movimientos' : 'Ver movimientos'}
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {showFinancialLedger && (
+                      <motion.div
+                        key="fin-ledger"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        className="overflow-hidden space-y-1.5"
+                      >
+                        {custTx.length === 0 ? (
+                          <p className="text-[10px] text-muted-foreground text-center py-3 bg-muted/20 rounded-lg border border-dashed border-border/50 italic">
+                            Sin movimientos aún
+                          </p>
+                        ) : (
+                          custTx.map(tx => <TransactionItem key={tx.id} tx={tx} compact />)
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </CardContent>

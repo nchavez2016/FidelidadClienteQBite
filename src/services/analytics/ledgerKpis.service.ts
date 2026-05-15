@@ -46,8 +46,7 @@ async function fetchWindow(w: KpiWindow, branchId?: string): Promise<LedgerRow[]
     .from('point_transactions')
     .select('id, customer_id, campaign_id, kind, points_delta, actor_id, created_at')
     .gte('created_at', windowStart(w))
-    .order('created_at', { ascending: false })
-    .limit(5000);
+    .order('created_at', { ascending: false });
   if (branchId) q = q.eq('branch_id', branchId);
   const { data, error } = await q;
   if (error) {

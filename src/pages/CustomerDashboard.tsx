@@ -15,8 +15,9 @@ import {
   getPendingRequest, 
   createRedemptionRequest, 
   cancelRedemptionRequestByCustomer,
-  getHistoricalRequests
+  getHistoricalRequests,
 } from '@/services/redemptionRequests.service';
+import { listCustomerLedger } from '@/services/pointsLedger.service';
 import { useCustomerSession } from '@/hooks/useCustomerSession';
 import { Transaction } from '@/lib/types';
 
@@ -71,9 +72,33 @@ export default function CustomerDashboard() {
 
   const selectedCampaign = activeCampaigns.find(c => c.id === selectedCampaignId);
   const currentPoints = customer && selectedCampaignId ? getCustomerPoints(customer, selectedCampaignId) : 0;
-  const ledgerTransactions = customer && selectedCampaignId
-    ? getCustomerTransactions(customer.id, selectedCampaignId).slice(-20)
-    : [];
+  
+  const { data: ledgerTx } = useQuery({
+    queryKey: ['ledgerTransactions', customer?.id, selectedCampaignId],
+    queryFn: async () => {
+      const rows = await listCustomerLedger(customer!.id, { campaignId: selectedCampaignId, limit: 10 });
+      return rows.map(r => ({
+        id: r.id,
+        customerId: r.customer_id,
+        campaignId: r.campaign_id,
+        type: (r.kind === 'earn' || r.kind === 'bonus') ? 'accumulation' :
+              (r.kind === 'redeem') ? 'redemption' :
+              (r.kind === 'reversal') ? 'reversal' : 'accumulation',
+        ledgerKind: r.kind,
+        points: r.points_delta,
+        balanceAfter: r.balance_after || 0,
+        rewardId: r.reward_id || undefined,
+        rewardName: r.metadata?.reward_name as string || undefined,
+        staffId: r.actor_id || '',
+        staffName: r.actor_role === 'admin' ? 'Administrador' : 'Cajero',
+        createdAt: r.created_at,
+      } as Transaction));
+    },
+    enabled: !!customer && !!selectedCampaignId,
+    refetchInterval: 5000,
+  });
+
+  const ledgerTransactions = ledgerTx || [];
 
   const { data: historicalRequests } = useQuery({
     queryKey: ['historicalRequests', customer?.id, selectedCampaignId],
@@ -82,29 +107,48 @@ export default function CustomerDashboard() {
     refetchInterval: 3000,
   });
 
-  // Hybrid History: Ledger + Redemption Requests (excluding 'approved' to avoid duplication)
+  // Hybrid History: Ledger + Redemption Requests as full traceability cycle.
+  // Each resolved request generates TWO entries:
+  //   1. "Solicitado" → at createdAt (always)
+  //   2. "Aprobado / Rechazado / Cancelado" → at resolvedAt (when not pending)
   const transactions: Transaction[] = [...ledgerTransactions];
   if (historicalRequests) {
     historicalRequests.forEach(req => {
-      const mappedType =
-        req.status === 'pending' ? 'redemption_request' :
-        req.status === 'rejected' ? 'redemption_request_rejected' :
-        req.status === 'approved' ? 'redemption_request_approved' :
-        'redemption_request_cancelled';
-      
+      // Entry 1: always — the moment the customer requested the reward
       transactions.push({
-        id: req.id,
+        id: `${req.id}:created`,
         customerId: req.customerId,
         campaignId: req.campaignId,
-        type: mappedType,
-        points: -req.requiredPoints, // show negative visually
-        balanceAfter: 0, // not applicable for requests
+        type: 'redemption_request',
+        points: 0,
+        balanceAfter: 0,
         rewardId: req.rewardId,
         rewardName: req.rewardName,
-        staffId: req.resolvedByStaffId || '',
-        staffName: req.resolvedByStaffId ? 'Staff' : '',
-        createdAt: req.resolvedAt || req.createdAt,
+        staffId: '',
+        staffName: '',
+        createdAt: req.createdAt,
       });
+
+      // Entry 2: only when resolved — the outcome event
+      if (req.status !== 'pending' && req.resolvedAt) {
+        const resolvedType =
+          req.status === 'approved'   ? 'redemption_request_approved'   :
+          req.status === 'rejected'   ? 'redemption_request_rejected'   :
+                                        'redemption_request_cancelled';
+        transactions.push({
+          id: `${req.id}:${req.status}`,
+          customerId: req.customerId,
+          campaignId: req.campaignId,
+          type: resolvedType,
+          points: req.status === 'approved' ? -req.requiredPoints : 0,
+          balanceAfter: 0,
+          rewardId: req.rewardId,
+          rewardName: req.rewardName,
+          staffId: req.resolvedByStaffId || '',
+          staffName: req.resolvedByStaffId ? 'Staff' : '',
+          createdAt: req.resolvedAt,
+        });
+      }
     });
   }
   // Sort combined array descending by date and take last 20
@@ -155,8 +199,9 @@ export default function CustomerDashboard() {
         requiredPoints: m.requiredPoints,
       });
       console.info('[REQUEST_SUCCESS] Result:', req);
-      console.info('[REQUEST_INVALIDATE] invalidating pendingRequest', { customerId: customer.id });
+      console.info('[REQUEST_INVALIDATE] invalidating queries', { customerId: customer.id });
       await queryClient.invalidateQueries({ queryKey: ['pendingRequest', customer.id] });
+      await queryClient.invalidateQueries({ queryKey: ['historicalRequests', customer.id] });
       toast.success('Solicitud enviada. Acércate al cajero para confirmar 🎁');
       setTick(t => t + 1);
     } catch (e: any) {
@@ -170,8 +215,9 @@ export default function CustomerDashboard() {
       console.info('[CANCEL_START] Calling cancelRedemptionRequest', { reqId: req.id });
       const result = await cancelRedemptionRequestByCustomer(req.id);
       console.info('[CANCEL_SUCCESS] Result:', result);
-      console.info('[CANCEL_INVALIDATE] invalidating pendingRequest', { customerId: customer!.id });
+      console.info('[CANCEL_INVALIDATE] invalidating queries', { customerId: customer!.id });
       await queryClient.invalidateQueries({ queryKey: ['pendingRequest', customer!.id] });
+      await queryClient.invalidateQueries({ queryKey: ['historicalRequests', customer!.id] });
       toast.success('Solicitud cancelada');
       setTick(t => t + 1);
     } catch (e: any) {

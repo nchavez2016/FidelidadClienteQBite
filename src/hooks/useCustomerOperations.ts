@@ -11,6 +11,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   getPendingRequest, 
+  getHistoricalRequests,
   approveRedemptionRequest, 
   rejectRedemptionRequest 
 } from '@/services/redemptionRequests.service';
@@ -22,7 +23,7 @@ import {
   reverseTransaction as ledgerReverse,
   listCustomerLedger,
 } from '@/services/pointsLedger.service';
-import { Customer, CommentCategory, Milestone, StaffUser, RedemptionRequest } from '@/lib/types';
+import { Customer, CommentCategory, Milestone, StaffUser, RedemptionRequest, Transaction } from '@/lib/types';
 import { toast } from 'sonner';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -219,10 +220,22 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     try {
       if (fromRequest) {
         console.info('[APPROVE_START] Using RPC approve_redemption_request', { reqId: fromRequest.id, branchId });
-        await approveRedemptionRequest(fromRequest.id, staff.id, commentText, branchId || undefined);
-        console.info('[APPROVE_SUCCESS] invalidating query pendingRequest');
+        await approveRedemptionRequest(
+          fromRequest.id, 
+          staff.id, 
+          commentText, 
+          branchId || undefined,
+          commentCat || undefined
+        );
+        console.info('[APPROVE_SUCCESS] invalidating queries');
         await queryClient.invalidateQueries({ queryKey: ['pendingRequest', selectedCustomer.id] });
         await queryClient.invalidateQueries({ queryKey: ['historicalRequests', selectedCustomer.id] });
+        await queryClient.invalidateQueries({ queryKey: ['ledgerTransactions', selectedCustomer.id] });
+        await Promise.all([
+          refetchPending(),
+          refetchHistorical(),
+          refetchLedger()
+        ]);
       } else {
         console.info('[REDEEM_START] Using direct ledgerRedeem', { rewardId: selectedReward.id, branchId });
         await ledgerRedeem({
@@ -233,6 +246,8 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
           requiredPoints: selectedReward.requiredPoints,
           branchId,
           idempotencyKey: crypto.randomUUID(),
+          commentCategory: commentCat || undefined,
+          commentText: commentText || undefined,
         });
         console.info('[REDEEM_SUCCESS] ledgerRedeem finished');
       }
@@ -314,12 +329,15 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       console.info('[REJECT_START] Calling rejectRedemptionRequest', { reqId: pendingRequest.id });
       const result = await rejectRedemptionRequest(pendingRequest.id, staff.id, 'Rechazado por el staff');
       console.info('[REJECT_SUCCESS] Result:', result);
-      console.info('[REJECT_INVALIDATE] invalidating pendingRequest', { customerId: selectedCustomer.id });
+      console.info('[REJECT_INVALIDATE] invalidating queries', { customerId: selectedCustomer.id });
       await queryClient.invalidateQueries({ queryKey: ['pendingRequest', selectedCustomer.id] });
       await queryClient.invalidateQueries({ queryKey: ['historicalRequests', selectedCustomer.id] });
+      
+      await Promise.all([
+        refetchPending(),
+        refetchHistorical()
+      ]);
       toast.success('Solicitud del cliente rechazada');
-      await refetchPending();
-      await refetchHistorical();
       refresh();
     } catch (err) {
       console.error('[useCustomerOperations] reject pending failed', err);

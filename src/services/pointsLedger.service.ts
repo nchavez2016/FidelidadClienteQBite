@@ -142,6 +142,8 @@ export interface RedeemRewardInput {
   requiredPoints: number;
   branchId?: string | null;
   idempotencyKey?: string;
+  commentCategory?: string;
+  commentText?: string;
 }
 
 export async function redeemReward(input: RedeemRewardInput): Promise<LedgerTransaction> {
@@ -164,6 +166,8 @@ export async function redeemReward(input: RedeemRewardInput): Promise<LedgerTran
     p_required_points: input.requiredPoints,
     p_branch_id: input.branchId ?? null,
     p_idempotency_key: key,
+    p_comment_category: input.commentCategory ?? null,
+    p_comment_text: input.commentText ?? null,
   } as never);
   if (error) {
     log.error('redeemReward failed', { error, ctx: input });
