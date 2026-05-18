@@ -143,7 +143,12 @@ async function resolveRequest(
   resolvedByStaffId?: string,
   notes?: string,
 ): Promise<RedemptionRequest> {
-  const updatePayload: Record<string, unknown> = {
+  const updatePayload: {
+    status: RedemptionRequestStatus;
+    resolved_at: string;
+    resolved_by?: string;
+    notes?: string;
+  } = {
     status,
     resolved_at: new Date().toISOString(),
   };
