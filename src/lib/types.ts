@@ -40,6 +40,8 @@ export interface StaffUser {
   name: string;
   /** Sucursal/campaña activa de la sesión del staff. */
   branchCampaignId?: string;
+  /** ID de la sucursal asignada en el perfil del staff. */
+  branchId?: string;
   /** Si está activo. Inactivo = no puede iniciar sesión. Default true. */
   active?: boolean;
 }
@@ -123,6 +125,8 @@ export interface BonusRule {
 export interface Campaign {
   id: string;
   name: string;
+  /** ID de la sucursal asociada en base de datos. */
+  branchId?: string;
   /** Nombre corto de la sucursal asociada (ej: "Gaviota Azul Express"). */
   branch: string;
   startDate: string;

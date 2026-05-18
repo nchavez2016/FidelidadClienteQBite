@@ -142,7 +142,9 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     // Phase 3.4 — cooldown is now enforced server-side in earn_points RPC.
     const campaign = getCampaignById(currentCampaignId);
     const bonus = evaluateBonus(campaign);
-    const branchId = getBranchForCampaign(currentCampaignId)?.id ?? null;
+    const branchId = staff.role === 'admin'
+      ? (campaign?.branchId || staff.branchId || null)
+      : (staff.branchId || campaign?.branchId || null);
     const baseComment = bonus.rule
       ? `Compra acreditada en horario promocional “${bonus.rule.label || 'Bonus activo'}” (${bonus.rule.startTime}–${bonus.rule.endTime}) · Bonus x${bonus.multiplier} · rule:${bonus.rule.id}`
       : `Compra registrada`;
@@ -211,7 +213,10 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
       toast.error('El cliente no tiene puntos suficientes');
       return;
     }
-    const branchId = getBranchForCampaign(currentCampaignId)?.id ?? null;
+    const currentCampaign = getCampaignById(currentCampaignId);
+    const branchId = staff.role === 'admin'
+      ? (currentCampaign?.branchId || staff.branchId || null)
+      : (staff.branchId || currentCampaign?.branchId || null);
     // Usa la solicitud pendiente ya cargada en el hook
     const fromRequest = pendingRequest && pendingRequest.rewardId === selectedReward.id ? pendingRequest : null;
     const traceComment = fromRequest

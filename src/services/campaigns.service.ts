@@ -72,6 +72,7 @@ function fromRow(r: CampaignRow): Campaign {
   return {
     id: r.id,
     name: r.name,
+    branchId: r.branch_id,
     branch: branch?.name ?? r.name,
     startDate: r.start_date,
     endDate: r.end_date,

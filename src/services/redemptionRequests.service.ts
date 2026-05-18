@@ -213,6 +213,7 @@ export async function approveRedemptionRequest(
   branchId?: string,
   commentCategory?: string,
 ): Promise<void> {
+  // ✅ Firma sincronizada con BD (v2). Casting reward_id::uuid manejado internamente. Log usa named params.
   const { error } = await supabase.rpc('approve_redemption_request', {
     p_request_id: id,
     p_staff_id: staffId,
@@ -268,5 +269,5 @@ export async function getHistoricalRequests(
 }
 
 // ─── Legacy no-op stubs (backwards compat) ────────────────────────────────────
-export function logRequestCreated(): void {}
-export function logRequestCancelled(): void {}
+export function logRequestCreated(): void { }
+export function logRequestCancelled(): void { }
