@@ -59,9 +59,10 @@ export default function StaffPanel() {
   }, []);
 
   const activeCampaigns = getOperableCampaigns();
-  const initialBranchId = staff?.branchCampaignId && activeCampaigns.find(c => c.id === staff.branchCampaignId)
-    ? staff.branchCampaignId
-    : activeCampaigns[0]?.id || '';
+  const campaignForStaffBranch = staff?.branchId
+    ? activeCampaigns.find(c => c.branchId === staff.branchId)
+    : undefined;
+  const initialBranchId = campaignForStaffBranch?.id ?? activeCampaigns[0]?.id ?? '';
   const [branchCampaignId, setBranchCampaignId] = useState<string>(initialBranchId);
 
   useEffect(() => {
@@ -69,6 +70,18 @@ export default function StaffPanel() {
       setBranchCampaignId(activeCampaigns[0].id);
     }
   }, [activeCampaigns, branchCampaignId]);
+
+  // Sync to the branch assigned to this staff user whenever it (re)loads,
+  // so a cashier always lands on the branch the admin assigned — not the
+  // first active campaign in the list.
+  useEffect(() => {
+    if (!staff?.branchId) return;
+    const match = activeCampaigns.find(c => c.branchId === staff.branchId);
+    if (match && match.id !== branchCampaignId) {
+      setBranchCampaignId(match.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staff?.branchId, activeCampaigns.length]);
 
   const handleBranchChange = (id: string) => {
     setBranchCampaignId(id);
