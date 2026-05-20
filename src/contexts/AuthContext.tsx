@@ -11,6 +11,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -124,6 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Mantener el último user.id visto por el listener para distinguir
+  // TOKEN_REFRESHED / USER_UPDATED del mismo usuario (no debe remount)
+  // vs SIGNED_IN de un usuario distinto (sí re-hidratar roles).
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // 1. Subscribe FIRST so we never miss an event.
@@ -132,6 +137,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       if (nextSession?.user) {
+        const prevUserId = lastUserIdRef.current;
+        const sameUser = prevUserId === nextSession.user.id;
+        lastUserIdRef.current = nextSession.user.id;
+
+        // Para el mismo usuario, un TOKEN_REFRESHED / USER_UPDATED no debe
+        // disparar setRolesLoaded(false): eso desmonta StaffPanel y borra el
+        // estado local (cliente seleccionado, búsqueda, comentarios…) cada
+        // vez que la pestaña del navegador pierde y recupera el foco.
+        if (sameUser && (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
+          return;
+        }
+
         setRolesLoaded(false);
         // Defer Supabase calls to avoid deadlocks inside the listener.
         setTimeout(() => {
@@ -152,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }, 0);
       } else {
+        lastUserIdRef.current = null;
         setRoles([]);
         setRolesLoaded(true);
         clearLegacySessions();
@@ -164,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.session?.user ?? null);
       console.info('🚨 [Auth] getSession:done', { hasSession: !!data.session, uid: data.session?.user?.id });
       if (data.session?.user) {
+        lastUserIdRef.current = data.session.user.id;
         fetchProfile(data.session.user.id).catch((error) => console.error('🚨 [Auth] init profile rejected', error));
         fetchRoles(data.session.user.id).then((r) => {
           console.info('🚨 [Auth] roles fetched (init)', r);
