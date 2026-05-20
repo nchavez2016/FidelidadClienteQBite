@@ -56,7 +56,7 @@ export default function RewardsCard({
               Premio: <strong>{pendingRequest.rewardName}</strong> ({pendingRequest.requiredPoints} pts)
             </p>
           </div>
-          {onCancelRequest && (
+          {onCancelRequest && pendingRequest.status === 'pending' && (
             <button
               onClick={() => onCancelRequest(pendingRequest)}
               className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md transition-colors"

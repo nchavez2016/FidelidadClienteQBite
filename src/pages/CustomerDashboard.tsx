@@ -213,6 +213,21 @@ export default function CustomerDashboard() {
   const handleCancelRequest = async (req: import('@/lib/types').RedemptionRequest) => {
     try {
       console.info('[CANCEL_START] Calling cancelRedemptionRequest', { reqId: req.id });
+      // Re-verificar contra DB antes de cancelar: si el cajero ya aprobó/rechazó,
+      // no debemos enviar la solicitud de cancelación (el guard del servidor también
+      // lo bloquearía, pero así damos mejor feedback al cliente).
+      const fresh = await getPendingRequest(customer!.id, selectedCampaignId);
+      if (!fresh || fresh.id !== req.id || fresh.status !== 'pending') {
+        console.warn('[CANCEL_ABORT] request no longer pending', { reqId: req.id, fresh });
+        toast.error('Tu premio ya fue entregado o la solicitud ya no está pendiente');
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['pendingRequest', customer!.id] }),
+          queryClient.invalidateQueries({ queryKey: ['historicalRequests', customer!.id] }),
+          queryClient.invalidateQueries({ queryKey: ['ledgerTransactions', customer!.id] }),
+        ]);
+        setTick(t => t + 1);
+        return;
+      }
       const result = await cancelRedemptionRequestByCustomer(req.id);
       console.info('[CANCEL_SUCCESS] Result:', result);
       console.info('[CANCEL_INVALIDATE] invalidating queries', { customerId: customer!.id });
@@ -222,7 +237,19 @@ export default function CustomerDashboard() {
       setTick(t => t + 1);
     } catch (e: any) {
       console.error('[CANCEL_FAILED]', e);
-      toast.error(e?.message || 'No se pudo cancelar la solicitud');
+      const msg = String(e?.message || '');
+      // Guard server-side: la fila ya no estaba en estado 'pending'.
+      if (msg.includes('ya fue procesada') || msg.includes('no existe')) {
+        toast.error('Tu premio ya fue entregado o la solicitud ya no está pendiente');
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['pendingRequest', customer!.id] }),
+          queryClient.invalidateQueries({ queryKey: ['historicalRequests', customer!.id] }),
+          queryClient.invalidateQueries({ queryKey: ['ledgerTransactions', customer!.id] }),
+        ]);
+        setTick(t => t + 1);
+      } else {
+        toast.error(msg || 'No se pudo cancelar la solicitud');
+      }
     }
   };
 
