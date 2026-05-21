@@ -90,7 +90,7 @@ export default function OperationsTab({
     if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
     if (warningTimerRef.current) window.clearTimeout(warningTimerRef.current);
     setIdleWarning(false);
-    if (!selectedCustomer) return;
+    if (!selectedCustomer || document.visibilityState !== 'visible') return;
     warningTimerRef.current = window.setTimeout(() => setIdleWarning(true), IDLE_WARNING_MS);
     idleTimerRef.current = window.setTimeout(() => {
       toast.info('Pantalla limpiada por inactividad. Listo para el siguiente cliente.', { duration: 4000 });
@@ -112,13 +112,24 @@ export default function OperationsTab({
   useEffect(() => {
     if (!selectedCustomer) return;
     const handler = () => resetIdleTimer();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
+        if (warningTimerRef.current) window.clearTimeout(warningTimerRef.current);
+        setIdleWarning(false);
+        return;
+      }
+      resetIdleTimer();
+    };
     window.addEventListener('mousemove', handler);
     window.addEventListener('keydown', handler);
     window.addEventListener('touchstart', handler);
+    document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       window.removeEventListener('mousemove', handler);
       window.removeEventListener('keydown', handler);
       window.removeEventListener('touchstart', handler);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCustomer?.id]);
