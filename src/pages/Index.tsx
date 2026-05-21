@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import BrandHeader from '@/components/BrandHeader';
-import { motion } from 'framer-motion';
 import { Users, Shield } from 'lucide-react';
 
 export default function Index() {
@@ -9,11 +8,8 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-gradient-navy flex items-center justify-center p-4">
-      <motion.div
+      <div
         className="text-center space-y-8 max-w-md w-full"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
       >
         <BrandHeader />
         <div>
@@ -46,7 +42,7 @@ export default function Index() {
         <p className="text-primary-foreground/40 text-xs">
           Desde 1984 · Quito, Ecuador
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 }

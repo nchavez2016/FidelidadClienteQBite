@@ -145,7 +145,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // disparar setRolesLoaded(false): eso desmonta StaffPanel y borra el
         // estado local (cliente seleccionado, búsqueda, comentarios…) cada
         // vez que la pestaña del navegador pierde y recupera el foco.
-        if (sameUser && (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
+        // Supabase también puede emitir SIGNED_IN al reenfocar una pestaña con
+        // la misma sesión; debe tratarse como continuidad, no como nuevo login.
+        if (sameUser) {
           return;
         }
 
@@ -230,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data?.session && data.user) {
       // Set state synchronously so callers can navigate immediately
       // without racing the onAuthStateChange listener.
+      lastUserIdRef.current = data.user.id;
       setSession(data.session);
       setUser(data.user);
       setRolesLoaded(false);
