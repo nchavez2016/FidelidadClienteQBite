@@ -250,14 +250,17 @@ export default function OperationsTab({
                 </div>
               </div>
 
-              {/* Puntos por sucursal */}
-              {activeCampaigns.length > 1 && (
+              {/* Puntos por sucursal (solo campañas activas) */}
+              {(() => {
+                const liveCampaigns = activeCampaigns.filter(c => c.status === 'active');
+                if (liveCampaigns.length <= 1) return null;
+                return (
                 <div className="mt-3 rounded-lg p-2.5" style={{ background: 'rgba(197,160,89,0.06)', border: '1px solid rgba(197,160,89,0.2)' }}>
                   <p className="text-[10px] uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#8B6914' }}>
                     <MapPin className="w-3 h-3" /> Puntos por sucursal
                   </p>
                   <div className="grid grid-cols-2 gap-1.5">
-                    {activeCampaigns.map(c => {
+                    {liveCampaigns.map(c => {
                       const pts = getCustomerPoints(selectedCustomer, c.id);
                       const isCurrent = c.id === currentCampaignId;
                       return (
@@ -272,7 +275,8 @@ export default function OperationsTab({
                     })}
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               <div className="flex flex-wrap gap-2 mt-2">
                 {(() => {
