@@ -42,8 +42,25 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               <Plus className="w-4 h-4" />Nueva Campaña
             </Button>
           </div>
-          {getCampaigns().map(c => (
-            <Card key={c.id}>
+          {(() => {
+            const statusOrder: Record<string, number> = { active: 0, paused: 1, draft: 2, finished: 3 };
+            return [...getCampaigns()].sort((a, b) => {
+              const sa = statusOrder[a.status] ?? 99;
+              const sb = statusOrder[b.status] ?? 99;
+              if (sa !== sb) return sa - sb;
+              return (a.name || '').localeCompare(b.name || '');
+            });
+          })().map(c => {
+            const statusStyles =
+              c.status === 'active'
+                ? { borderColor: 'hsl(var(--success))', borderLeftWidth: '4px', background: 'hsl(var(--card))' }
+                : c.status === 'paused'
+                ? { borderColor: 'rgb(251,191,36)', borderLeftWidth: '4px', background: 'rgba(251,191,36,0.04)' }
+                : c.status === 'draft'
+                ? { borderColor: 'hsl(var(--muted-foreground) / 0.4)', borderLeftWidth: '4px', borderStyle: 'dashed' as const, background: 'hsl(var(--muted) / 0.3)' }
+                : { borderColor: 'hsl(var(--destructive) / 0.4)', borderLeftWidth: '4px', background: 'hsl(var(--destructive) / 0.04)', opacity: 0.85 };
+            return (
+            <Card key={c.id} style={statusStyles}>
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
@@ -180,7 +197,8 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </>
       ) : (
         <Card>
