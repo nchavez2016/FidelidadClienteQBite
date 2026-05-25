@@ -58,10 +58,10 @@ export default function StaffPanel() {
     return () => clearInterval(interval);
   }, []);
 
-  // Solo campañas ACTIVAS son operables desde el panel.
-  // Las pausadas no deben aparecer en el selector de sucursal,
-  // en "Puntos por sucursal", ni permitir asignar puntos.
-  const activeCampaigns = getOperableCampaigns().filter(c => c.status === 'active');
+  // Campañas operables (activas + pausadas) — se usan para el selector de sucursal,
+  // dashboard y reportes. La restricción de "solo activas" se aplica únicamente
+  // dentro de Operaciones (no se pueden asignar/canjear puntos en pausadas).
+  const activeCampaigns = getOperableCampaigns();
   const campaignForStaffBranch = staff?.branchId
     ? activeCampaigns.find(c => c.branchId === staff.branchId)
     : undefined;
