@@ -2,15 +2,15 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import BrandHeader from '@/components/BrandHeader';
 import { Users, Shield } from 'lucide-react';
+import SocialFooter from '@/components/SocialFooter';
 
 export default function Index() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-navy flex items-center justify-center p-4">
-      <div
-        className="text-center space-y-8 max-w-md w-full"
-      >
+    <div className="min-h-screen bg-gradient-navy flex flex-col items-center p-4">
+      <div className="flex-1 flex items-center justify-center w-full">
+      <div className="text-center space-y-8 max-w-md w-full">
         <BrandHeader />
         <div>
           <h1 className="text-3xl font-heading font-bold text-primary-foreground mb-2">
@@ -42,6 +42,10 @@ export default function Index() {
         <p className="text-primary-foreground/40 text-xs">
           Desde 1984 · Quito, Ecuador
         </p>
+      </div>
+      </div>
+      <div className="w-full text-primary-foreground/80">
+        <SocialFooter />
       </div>
     </div>
   );
