@@ -61,6 +61,7 @@ export default function OperationsTab({
   });
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const bonus = evaluateBonus(campaign);
+  const isCampaignPaused = !!campaign && campaign.status !== 'active';
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showResetPointsDialog, setShowResetPointsDialog] = useState(false);
   const { hasRole } = useAuth();
