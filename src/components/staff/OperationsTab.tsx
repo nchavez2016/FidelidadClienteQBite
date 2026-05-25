@@ -323,6 +323,23 @@ export default function OperationsTab({
 
               <CommentInput category={commentCat} text={commentText} onCategoryChange={setCommentCat} onTextChange={setCommentText} />
 
+              {isCampaignPaused && (
+                <div
+                  className="rounded-lg p-3 flex items-start gap-2"
+                  style={{
+                    background: 'rgba(251,191,36,0.08)',
+                    border: '1px solid rgba(251,191,36,0.45)',
+                  }}
+                >
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#b45309' }} />
+                  <div className="text-xs leading-snug" style={{ color: '#92400e' }}>
+                    <strong>Campaña en pausa.</strong> No se pueden acumular ni canjear puntos en
+                    <span className="font-semibold"> {campaign?.branch}</span> mientras esté pausada.
+                    Cambia de sucursal o reactiva la campaña desde la pestaña Campañas.
+                  </div>
+                </div>
+              )}
+
               {pendingRequest && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
@@ -375,7 +392,18 @@ export default function OperationsTab({
               )}
 
               <div className="grid grid-cols-3 gap-2">
-                <Button onClick={handleAddPoint} className="bg-success hover:bg-success/90 text-success-foreground gap-1 h-auto py-3 flex-col">
+                <Button
+                  onClick={() => {
+                    if (isCampaignPaused) {
+                      toast.error('La campaña está pausada. No se pueden acumular puntos.');
+                      return;
+                    }
+                    handleAddPoint();
+                  }}
+                  disabled={isCampaignPaused}
+                  className="bg-success hover:bg-success/90 text-success-foreground gap-1 h-auto py-3 flex-col disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={isCampaignPaused ? 'Campaña pausada — no disponible' : undefined}
+                >
                   <Plus className="w-5 h-5" />
                   <span className="text-[10px] leading-tight text-center">
                     {bonus.multiplier > 1 ? (
@@ -386,12 +414,16 @@ export default function OperationsTab({
                 </Button>
                 <Button
                   onClick={() => {
+                    if (isCampaignPaused) {
+                      toast.error('La campaña está pausada. No se pueden confirmar canjes.');
+                      return;
+                    }
                     if (pendingRequest && onApproveRequest) { onApproveRequest(); return; }
                     toast.info('El canje sólo se habilita cuando el cliente solicita un premio desde su pantalla.');
                   }}
-                  disabled={!pendingRequest}
+                  disabled={!pendingRequest || isCampaignPaused}
                   className="bg-accent hover:bg-accent/90 text-accent-foreground gap-1 h-auto py-3 flex-col disabled:opacity-40 disabled:cursor-not-allowed"
-                  title={pendingRequest ? 'Confirmar el canje solicitado por el cliente' : 'Esperando que el cliente seleccione un premio en su pantalla'}
+                  title={isCampaignPaused ? 'Campaña pausada — no disponible' : (pendingRequest ? 'Confirmar el canje solicitado por el cliente' : 'Esperando que el cliente seleccione un premio en su pantalla')}
                 >
                   <Gift className="w-5 h-5" />
                   <span className="text-xs">{pendingRequest ? 'Canjear pedido' : 'Canjear'}</span>
