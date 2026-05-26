@@ -10,6 +10,7 @@ import {
   acceptCampaignTerms, customerNeedsPasswordChange, getCustomerPoints,
   getCustomerTotalPoints, getConsentStatus, revokeCustomerConsent
 } from '@/lib/store';
+import { hydrateCampaigns, isCampaignsHydrated } from '@/services/campaigns.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   getPendingRequest, 
@@ -43,6 +44,16 @@ export default function CustomerDashboard() {
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
   const [heroImgIdx, setHeroImgIdx] = useState(0);
+  const [campaignsReady, setCampaignsReady] = useState<boolean>(isCampaignsHydrated());
+
+  useEffect(() => {
+    if (campaignsReady) return;
+    let alive = true;
+    void hydrateCampaigns().then(() => {
+      if (alive) setCampaignsReady(true);
+    });
+    return () => { alive = false; };
+  }, [campaignsReady]);
 
   const queryClient = useQueryClient();
 
@@ -315,6 +326,17 @@ export default function CustomerDashboard() {
   const cardShadow = '0 4px 20px -6px rgba(27,58,107,0.10)';
 
   // Estado vacío: no hay ninguna sucursal con campaña configurada.
+  if (!campaignsReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#f0f4f8' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#1B3A6B', borderTopColor: 'transparent' }} />
+          <p className="text-xs font-body" style={{ color: '#6b7a8c' }}>Cargando tus campañas…</p>
+        </div>
+      </div>
+    );
+  }
+
   if (activeCampaigns.length === 0) {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: '#f0f4f8' }}>
