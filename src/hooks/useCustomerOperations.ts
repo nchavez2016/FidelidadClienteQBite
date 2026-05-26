@@ -76,6 +76,7 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
         rewardName: r.metadata?.reward_name as string || undefined,
         staffId: r.actor_id || '',
         staffName: r.actor_role === 'admin' ? 'Administrador' : 'Cajero',
+        actorRole: (r.actor_role as Transaction['actorRole']) ?? null,
         commentCategory: r.comment_category as any || undefined,
         commentText: r.comment_text || undefined,
         reversedTransactionId: r.reverses_tx_id || undefined,
