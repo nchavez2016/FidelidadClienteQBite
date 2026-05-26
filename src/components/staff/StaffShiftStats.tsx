@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Users, Plus, Gift } from 'lucide-react';
 import { getTransactions } from '@/lib/store';
+import { subscribeLedgerHistory, hydrateLedgerHistory, isLedgerHistoryHydrated } from '@/services/ledgerHistory.service';
 
 interface Props {
   staffId: string;
@@ -10,6 +11,17 @@ interface Props {
 
 /** Cards uniformes con stats del turno actual (hoy) para el cajero/admin en la sucursal activa. */
 export default function StaffShiftStats({ staffId, branchCampaignId, refreshKey = 0 }: Props) {
+  // Re-render automáticamente cuando el cache del ledger cambia
+  // (inserción de earn/redeem/reverse) o cuando se hidrata por primera vez.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!isLedgerHistoryHydrated()) {
+      void hydrateLedgerHistory().catch(() => { /* noop */ });
+    }
+    const unsub = subscribeLedgerHistory(() => setTick(t => t + 1));
+    return () => { unsub(); };
+  }, []);
+
   const stats = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
