@@ -77,6 +77,8 @@ export interface Transaction {
   rewardName?: string;
   staffId: string;
   staffName: string;
+  /** Rol del actor que registró la transacción (para mostrar quién la hizo). */
+  actorRole?: 'admin' | 'cashier' | 'customer' | 'system' | null;
   commentCategory?: CommentCategory;
   commentText?: string;
   reversedTransactionId?: string;

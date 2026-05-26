@@ -160,6 +160,7 @@ export function mapLedgerToTransaction(
     rewardName,
     staffId: row.actor_id ?? 'system',
     staffName,
+    actorRole: (row.actor_role as Transaction['actorRole']) ?? null,
     commentCategory: asCommentCategory(row.comment_category),
     commentText: row.comment_text ?? undefined,
     reversedTransactionId: row.reverses_tx_id ?? undefined,
