@@ -37,7 +37,7 @@ import TermsSection from "@/components/customer/TermsSection";
 import PasswordChangeModal from "@/components/customer/PasswordChangeModal";
 import StatsGrid from "@/components/customer/StatsGrid";
 import BonusRuleBadge from "@/components/BonusRuleBadge";
-import SocialFooter from "@/components/SocialFooter.tsx";
+import SocialFooter from "@/components/SocialFooter";
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
