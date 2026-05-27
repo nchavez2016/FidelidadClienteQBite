@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import BrandHeader from '@/components/BrandHeader';
 import { Users, Shield } from 'lucide-react';
-import SocialFooter from '@/components/SocialFooter.tsx';
+import SocialFooter from '@/components/SocialFooter';
 
 export default function Index() {
   const navigate = useNavigate();
