@@ -5,7 +5,7 @@
  * (migrations + seeding) and exposes every domain service.
  *
  * UI code should prefer this entry point over reaching into individual
- * service files. The legacy `@/lib/store` import path keeps working
+ * service files. The legacy `@/services` import path keeps working
  * via a thin re-export façade.
  */
 import { bootstrapStore } from './bootstrap';

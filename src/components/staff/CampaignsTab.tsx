@@ -1,4 +1,4 @@
-import { getCampaigns, setCampaignStatus } from '@/lib/store';
+import { getCampaigns, setCampaignStatus } from '@/services';
 import { Campaign } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -7,7 +7,7 @@ import {
   REVERSAL_WINDOW_MS,
   evaluateBonus, getCampaignById,
   getInactiveAccountsForPhone,
-} from '@/lib/store';
+} from '@/services';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   getPendingRequest, 

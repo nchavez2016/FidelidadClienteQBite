@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { registerCustomer } from '@/lib/store';
+import { registerCustomer } from '@/services';
 import { Gender } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

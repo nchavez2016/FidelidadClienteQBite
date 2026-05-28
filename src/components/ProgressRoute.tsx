@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Milestone } from "@/lib/types";
-import { getActiveCampaign } from "@/lib/store";
+import { getActiveCampaign } from "@/services";
 import { Gift, Lock, Check, Flag, Trophy } from "lucide-react";
 import gaviotaImg from "@/assets/gaviota3d.png";
 

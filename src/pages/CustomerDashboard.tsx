@@ -14,7 +14,7 @@ import {
   getCustomerTotalPoints,
   getConsentStatus,
   revokeCustomerConsent,
-} from "@/lib/store";
+} from "@/services";
 import { hydrateCampaigns, isCampaignsHydrated } from "@/services/campaigns.service";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
