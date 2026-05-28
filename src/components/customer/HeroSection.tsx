@@ -82,13 +82,8 @@ export default function HeroSection({
         </p>
 
         <div className="mt-4 mb-4 flex items-center gap-0">
-          <AnimatePresence mode="wait">
-            <motion.div
+          <div
               key={campaign?.id || 'no-campaign'}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
               className="flex-1 flex flex-col items-center px-6 sm:px-10 py-6 rounded-2xl relative z-10"
               style={{
                 background: 'rgba(255,255,255,0.08)',
@@ -132,18 +127,17 @@ export default function HeroSection({
                   </span>
                 </div>
               )}
-            </motion.div>
-          </AnimatePresence>
+            </div>
 
           <div className="hidden sm:block relative w-36 h-36 -ml-8 z-20">
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               <motion.img
                 key={heroImgIdx}
                 src={heroCarouselImages[heroImgIdx]}
                 alt="Plato destacado"
                 className="absolute inset-0 w-36 h-36 object-contain"
                 style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.4))' }}
-                initial={{ opacity: 0 }}
+                initial={false}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.8, ease: 'easeInOut' }}
