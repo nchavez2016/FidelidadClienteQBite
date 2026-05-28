@@ -513,7 +513,7 @@ export default function CustomerDashboard() {
                 {currentPoints} / {maxPoints} puntos · {selectedCampaign?.branch || "Sin sucursal"}
               </p>
               <div className="w-full" style={{ padding: "0 16px", boxSizing: "border-box" }}>
-                <ProgressRoute currentPoints={currentPoints} milestones={milestones} />
+                <ProgressRoute currentPoints={currentPoints} milestones={milestones} animate={false} />
               </div>
               {showProgressFixture && (
                 <div className="mt-3 grid gap-3 border-t pt-3">
