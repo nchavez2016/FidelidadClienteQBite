@@ -339,8 +339,8 @@ export default function CustomerDashboard() {
               currentPoints={currentPoints}
               nextMilestoneId={nextMilestone?.id}
               pendingRequest={pendingRequest}
-              onRequest={handleRequestReward}
-              onCancelRequest={handleCancelRequest}
+              onRequest={(m) => requestReward(m, currentPoints)}
+              onCancelRequest={cancelRequest}
             />
 
             {selectedCampaign && (
