@@ -129,6 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // TOKEN_REFRESHED / USER_UPDATED del mismo usuario (no debe remount)
   // vs SIGNED_IN de un usuario distinto (sí re-hidratar roles).
   const lastUserIdRef = useRef<string | null>(null);
+  // Tracks which user id we have ALREADY fetched roles for. Used to dedupe
+  // the listener's deferred fetch when signIn()/getSession() already
+  // resolved roles for the same user — otherwise rolesLoaded flips
+  // false→true twice in a row and ProtectedRoute remounts the page
+  // (visible as a "double reload / flash" right after login).
+  const rolesLoadedForUserRef = useRef<string | null>(null);
 
   useEffect(() => {
     // 1. Subscribe FIRST so we never miss an event.
@@ -154,6 +160,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRolesLoaded(false);
         // Defer Supabase calls to avoid deadlocks inside the listener.
         setTimeout(() => {
+          // Dedupe: if signIn()/getSession() already loaded roles for
+          // this user between the listener firing and this microtask
+          // running, skip the redundant round-trip + state churn.
+          if (rolesLoadedForUserRef.current === nextSession.user.id) {
+            setRolesLoaded(true);
+            return;
+          }
           fetchProfile(nextSession.user.id).catch((error) => console.error('🚨 [Auth] listener profile rejected', error));
           fetchRoles(nextSession.user.id).then((r) => {
             console.info('🚨 [Auth] roles fetched (listener)', r);
@@ -162,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // so that ProtectedRoute / CustomerDashboard see a hydrated
             // sessionCustomer slot on the very same render that unblocks them.
             bridgeLegacy(nextSession.user, r);
+            rolesLoadedForUserRef.current = nextSession.user.id;
             setRolesLoaded(true);
             postAuthHydrate();
           }).catch((error) => {
@@ -172,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }, 0);
       } else {
         lastUserIdRef.current = null;
+        rolesLoadedForUserRef.current = null;
         setRoles([]);
         setRolesLoaded(true);
         clearLegacySessions();
@@ -192,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Hydrate legacy customer slot BEFORE flipping rolesLoaded so
           // sync consumers (getCurrentCustomer) find the row immediately.
           bridgeLegacy(data.session!.user, r);
+          rolesLoadedForUserRef.current = data.session!.user.id;
           setRolesLoaded(true);
           postAuthHydrate();
           setLoading(false);
@@ -241,6 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.info('🚨 [Auth] signIn roles', { audience, r });
       setRoles(r);
       bridgeLegacy(data.user, r);
+      rolesLoadedForUserRef.current = data.user.id;
       setRolesLoaded(true);
       postAuthHydrate();
     }
@@ -264,6 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const r = await fetchRoles(data.user.id);
       setRoles(r);
       bridgeLegacy(data.user, r);
+      rolesLoadedForUserRef.current = data.user.id;
       setRolesLoaded(true);
       postAuthHydrate();
     }
@@ -277,6 +295,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setRoles([]);
     setRolesLoaded(true);
+    rolesLoadedForUserRef.current = null;
+    lastUserIdRef.current = null;
   }, []);
 
   const hasRole = useCallback(
