@@ -113,7 +113,7 @@ export default function HeroSection({
                     style={{ height: 4, background: 'rgba(255,255,255,0.1)' }}
                   >
                     <motion.div
-                      initial={{ width: 0 }}
+                      initial={false}
                       animate={{ width: `${progressPct}%` }}
                       transition={{ duration: 0.8, ease: 'easeOut' }}
                       style={{ height: '100%', background: '#C5A059', borderRadius: 999 }}
