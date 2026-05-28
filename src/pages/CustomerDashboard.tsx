@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Star, Clock, ShieldAlert, KeyRound } from "lucide-react";
+import { Clock, Instagram, KeyRound, MessageCircle, Music2, ShieldAlert, Star, type LucideIcon } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import type { Milestone, RedemptionRequest, Transaction } from "@/lib/types";
 import {
   getActiveCampaigns,
   resetCustomerPassword,
@@ -14,8 +16,14 @@ import {
   revokeCustomerConsent,
 } from "@/services";
 import { hydrateCampaigns, isCampaignsHydrated } from "@/services/campaigns.service";
+import { listCustomerLedger } from "@/services/pointsLedger.service";
+import {
+  cancelRedemptionRequestByCustomer,
+  createRedemptionRequest,
+  getHistoricalRequests,
+  getPendingRequest,
+} from "@/services/redemptionRequests.service";
 import { useCustomerSession } from "@/hooks/useCustomerSession";
-import { useCustomerActivity } from "@/hooks/useCustomerActivity";
 
 import ProgressRoute from "@/components/ProgressRoute";
 import TransactionItem from "@/components/TransactionItem";
@@ -25,8 +33,106 @@ import RewardsCard from "@/components/customer/RewardsCard";
 import TermsSection from "@/components/customer/TermsSection";
 import PasswordChangeModal from "@/components/customer/PasswordChangeModal";
 import StatsGrid from "@/components/customer/StatsGrid";
-import SocialFooter from "@/components/customer/SocialFooter";
 import BonusRuleBadge from "@/components/BonusRuleBadge";
+
+type SocialLink = {
+  name: string;
+  href: string;
+  handle: string;
+  icon: LucideIcon;
+};
+
+const socialLinks: SocialLink[] = [
+  {
+    name: "Instagram",
+    href: "https://instagram.com/cevicheriagaviotaazul",
+    handle: "@cevicheriagaviotaazul",
+    icon: Instagram,
+  },
+  {
+    name: "TikTok",
+    href: "https://tiktok.com/@cevicheriagaviotaazul",
+    handle: "@cevicheriagaviotaazul",
+    icon: Music2,
+  },
+  {
+    name: "WhatsApp",
+    href: "https://wa.me/593990000000",
+    handle: "Escríbenos",
+    icon: MessageCircle,
+  },
+];
+
+function SocialFooter() {
+  return (
+    <footer className="w-full py-6 px-4">
+      <div className="max-w-md mx-auto flex items-center justify-center gap-6">
+        {socialLinks.map((link) => {
+          const Icon = link.icon;
+          return (
+            <a
+              key={link.name}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${link.name} ${link.handle}`}
+              className="flex flex-col items-center gap-1 text-xs opacity-80 hover:opacity-100 transition-opacity"
+            >
+              <Icon className="w-5 h-5" />
+              <span>{link.name}</span>
+            </a>
+          );
+        })}
+      </div>
+    </footer>
+  );
+}
+
+const mapLedgerToTransaction = (row: Awaited<ReturnType<typeof listCustomerLedger>>[number]): Transaction => ({
+  id: row.id,
+  customerId: row.customer_id,
+  campaignId: row.campaign_id,
+  type:
+    row.kind === "redeem"
+      ? "redemption"
+      : row.kind === "reversal"
+        ? "reversal"
+        : "accumulation",
+  ledgerKind: row.kind,
+  points: row.points_delta,
+  balanceAfter: row.balance_after ?? 0,
+  rewardId: row.reward_id ?? undefined,
+  rewardName: (row.metadata?.reward_name as string | undefined) ?? undefined,
+  staffId: row.actor_id ?? "",
+  staffName: row.actor_role === "admin" ? "Administrador" : row.actor_role === "customer" ? "Cliente" : "Cajero",
+  actorRole: (row.actor_role as Transaction["actorRole"]) ?? null,
+  commentCategory: (row.comment_category as Transaction["commentCategory"]) ?? undefined,
+  commentText: row.comment_text ?? undefined,
+  reversedTransactionId: row.reverses_tx_id ?? undefined,
+  createdAt: row.created_at,
+});
+
+const mapRequestToTransaction = (request: RedemptionRequest): Transaction => ({
+  id: `request-${request.id}`,
+  customerId: request.customerId,
+  campaignId: request.campaignId,
+  type:
+    request.status === "approved"
+      ? "redemption_request_approved"
+      : request.status === "rejected"
+        ? "redemption_request_rejected"
+        : request.status === "cancelled"
+          ? "redemption_request_cancelled"
+          : "redemption_request",
+  points: 0,
+  balanceAfter: 0,
+  rewardId: request.rewardId,
+  rewardName: request.rewardName,
+  staffId: request.resolvedByStaffId ?? "",
+  staffName: request.resolvedByStaffName ?? (request.resolvedByStaffId ? "Staff" : "Cliente"),
+  actorRole: request.status === "pending" || request.resolvedBy === "customer" ? "customer" : "cashier",
+  createdAt: request.resolvedAt ?? request.createdAt,
+});
 
 export default function CustomerDashboard() {
   const { customer, refresh: refreshCustomer, logout } = useCustomerSession("/cliente/login");
