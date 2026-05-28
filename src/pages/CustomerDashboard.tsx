@@ -180,13 +180,86 @@ export default function CustomerDashboard() {
 
   const selectedCampaign = activeCampaigns.find((c) => c.id === selectedCampaignId);
   const currentPoints = customer && selectedCampaignId ? getCustomerPoints(customer, selectedCampaignId) : 0;
+  const queryClient = useQueryClient();
+  const activityEnabled = !!customer?.id && !!selectedCampaignId;
 
-  const {
-    displayTransactions,
-    pendingRequest,
-    requestReward,
-    cancelRequest,
-  } = useCustomerActivity(customer?.id, selectedCampaignId);
+  const { data: pendingRequest = null } = useQuery({
+    queryKey: ["pendingRequest", customer?.id, selectedCampaignId],
+    queryFn: () => getPendingRequest(customer!.id, selectedCampaignId),
+    enabled: activityEnabled,
+    refetchInterval: 3000,
+  });
+
+  const { data: historicalRequests = [] } = useQuery({
+    queryKey: ["historicalRequests", customer?.id, selectedCampaignId],
+    queryFn: () => getHistoricalRequests(customer!.id, selectedCampaignId),
+    enabled: activityEnabled,
+    refetchInterval: 3000,
+  });
+
+  const { data: ledgerTransactions = [] } = useQuery({
+    queryKey: ["ledgerTransactions", customer?.id, selectedCampaignId],
+    queryFn: async () => {
+      const rows = await listCustomerLedger(customer!.id, { campaignId: selectedCampaignId, limit: 20 });
+      return rows.map(mapLedgerToTransaction);
+    },
+    enabled: activityEnabled,
+    refetchInterval: 5000,
+  });
+
+  const invalidateActivity = useCallback(async () => {
+    if (!customer?.id) return;
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["pendingRequest", customer.id] }),
+      queryClient.invalidateQueries({ queryKey: ["historicalRequests", customer.id] }),
+      queryClient.invalidateQueries({ queryKey: ["ledgerTransactions", customer.id] }),
+    ]);
+  }, [customer?.id, queryClient]);
+
+  const requestReward = useCallback(
+    async (milestone: Milestone, points: number) => {
+      if (!customer?.id || !selectedCampaignId) return;
+      if (points < milestone.requiredPoints) {
+        toast.error("Aún no tienes puntos suficientes para este premio");
+        return;
+      }
+      try {
+        await createRedemptionRequest({
+          customerId: customer.id,
+          campaignId: selectedCampaignId,
+          rewardId: milestone.id,
+          rewardName: milestone.rewardName,
+          requiredPoints: milestone.requiredPoints,
+        });
+        await invalidateActivity();
+        toast.success("Solicitud enviada al cajero");
+      } catch (err) {
+        toast.error((err as Error).message || "No se pudo solicitar el canje");
+      }
+    },
+    [customer?.id, invalidateActivity, selectedCampaignId],
+  );
+
+  const cancelRequest = useCallback(
+    async (request: RedemptionRequest) => {
+      if (!customer?.id) return;
+      try {
+        await cancelRedemptionRequestByCustomer(request.id, customer.id);
+        await invalidateActivity();
+        toast.success("Solicitud cancelada");
+      } catch (err) {
+        toast.error((err as Error).message || "No se pudo cancelar la solicitud");
+      }
+    },
+    [customer?.id, invalidateActivity],
+  );
+
+  const displayTransactions = useMemo(() => {
+    const requestTransactions = historicalRequests.map(mapRequestToTransaction);
+    return [...ledgerTransactions, ...requestTransactions]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 20);
+  }, [historicalRequests, ledgerTransactions]);
 
   const milestones = selectedCampaign?.milestones
     ? [...selectedCampaign.milestones].sort((a, b) => a.requiredPoints - b.requiredPoints)
