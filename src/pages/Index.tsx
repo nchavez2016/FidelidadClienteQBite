@@ -2,34 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import BrandHeader from '@/components/BrandHeader';
 import { Users, Shield } from 'lucide-react';
-import socialInstagram from '@/assets/social-instagram.png';
-import socialTiktok from '@/assets/social-tiktok.png';
-import socialWhatsapp from '@/assets/social-whatsapp.png';
-
-const socialLinks = [
-  { name: 'Instagram', href: 'https://www.instagram.com/lagaviotaazulexpress/', handle: '@lagaviotaazulexpress', icon: socialInstagram },
-  { name: 'TikTok', href: 'https://www.tiktok.com/@lagaviotaazulexpr', handle: '@lagaviotaazulexpr', icon: socialTiktok },
-  { name: 'WhatsApp', href: 'https://api.whatsapp.com/send/?phone=593993763382&text&type=phone_number&app_absent=0', handle: '+593 99 376 3382', icon: socialWhatsapp },
-];
-
-function SocialFooter() {
-  return (
-    <footer className="mt-8 w-full border-t border-accent/30 bg-primary/95 backdrop-blur">
-      <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 py-5">
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent">Síguenos</p>
-        <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6">
-          {socialLinks.map((link) => (
-            <a key={link.name} href={link.href} target="_blank" rel="noopener noreferrer" aria-label={`${link.name} ${link.handle}`} title={`${link.name} · ${link.handle}`} className="group inline-flex flex-col items-center gap-1 transition-transform hover:scale-110 active:scale-95">
-              <img src={link.icon} alt={link.name} loading="lazy" className="h-14 w-14 drop-shadow-md sm:h-16 sm:w-16" />
-              <span className="text-[10px] text-primary-foreground/70 group-hover:text-accent">{link.name}</span>
-            </a>
-          ))}
-        </div>
-        <p className="text-[10px] text-primary-foreground/50">© {new Date().getFullYear()} Cevichería Gaviota Azul</p>
-      </div>
-    </footer>
-  );
-}
+import SocialFooter from '@/components/customer/SocialFooter';
 
 export default function Index() {
   const navigate = useNavigate();
