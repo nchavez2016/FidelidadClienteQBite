@@ -5,7 +5,7 @@ import dishImg1 from '@/assets/papa_ahogada.png';
 import dishImg2 from '@/assets/camaron_apanado.png';
 import dishImg3 from '@/assets/gaviota_especial.png';
 import type { Customer, Campaign, Milestone } from '@/lib/types';
-import { getCustomerPoints } from '@/lib/store';
+import { getCustomerPoints } from '@/services';
 
 const heroCarouselImages = [dishImg1, dishImg2, dishImg3];
 

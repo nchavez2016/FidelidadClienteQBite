@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { getTransactions, getCustomerById, getCustomers, getCampaignById, getCustomerPoints, getCustomerTotalPoints } from '@/lib/store';
+import { getTransactions, getCustomerById, getCustomers, getCampaignById, getCustomerPoints, getCustomerTotalPoints } from '@/services';
 import { CommentCategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

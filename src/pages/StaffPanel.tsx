@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getOperableCampaigns, getCampaignById } from '@/lib/store';
+import { getOperableCampaigns, getCampaignById } from '@/services';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { MapPin } from 'lucide-react';
 import type { Campaign, Customer } from '@/lib/types';
-import { getCustomerPoints } from '@/lib/store';
+import { getCustomerPoints } from '@/services';
 
 interface CampaignSwitcherProps {
   campaigns: Campaign[];

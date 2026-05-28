@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Users, Plus, Gift } from 'lucide-react';
-import { getTransactions } from '@/lib/store';
+import { getTransactions } from '@/services';
 import { subscribeLedgerHistory, hydrateLedgerHistory, isLedgerHistoryHydrated } from '@/services/ledgerHistory.service';
 
 interface Props {
