@@ -324,23 +324,6 @@ export function getCustomerTotalPoints(customer: Customer | undefined | null): n
   return Object.values(getPointsByCustomer(customer.id)).reduce((s, n) => s + (n || 0), 0);
 }
 
-/**
- * @deprecated Phase 3.2 — direct point writes are forbidden. Use the ledger
- * RPCs (`earnPoints`, `redeemReward`, `adjustPoints`, `reverseTransaction`)
- * exported from `@/services/pointsLedger.service`.
- */
-export function setCustomerPoints(id: string, campaignId: string, newPoints: number): void {
-  console.warn(
-    '[customers] @deprecated setCustomerPoints is a no-op. Use ledger RPCs.',
-    { id, campaignId, newPoints },
-  );
-}
-
-/** @deprecated Phase 3.2 — use ledger RPCs. */
-export function updateCustomerPoints(id: string, newPoints: number): void {
-  console.warn('[customers] @deprecated updateCustomerPoints is a no-op.', { id, newPoints });
-}
-
 export function resetCustomerPassword(id: string, newPassword: string): void {
   // TODO(Supabase Auth): supabase.auth.updateUser({ password }).
   const customer = getCustomerById(id);
@@ -406,25 +389,6 @@ export function loginCustomerDetailed(phone: string, password: string): Customer
   db.writeValueSync(TABLES.sessionCustomer, c);
   logAudit({ action: 'customer_login', actorId: c.id, actorRole: 'customer', targetUserId: c.id });
   return { ok: true, customer: c };
-}
-
-/**
- * @deprecated Phase 2.7 — read auth state from `useAuth()` instead.
- * Kept as a transitional shim so legacy sync consumers (customer pages,
- * `useCustomerSession`) keep working until they are migrated.
- */
-/**
- * @deprecated Phase 2.8 — removed. Read identity via `useAuth()` and
- * resolve the Customer object via `useCustomerSession()` or
- * `getCustomerById(user.id)`. Always returns null + warns.
- */
-export function getCurrentCustomer(): Customer | null {
-  console.warn('[customers] getCurrentCustomer is a no-op (Phase 2.8). Use useAuth() / useCustomerSession().');
-  return null;
-}
-
-export function logoutCustomer(): void {
-  db.removeSync(TABLES.sessionCustomer);
 }
 
 export function resetAllCustomerPoints(): void {
