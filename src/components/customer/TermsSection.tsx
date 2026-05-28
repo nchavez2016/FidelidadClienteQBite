@@ -1,5 +1,4 @@
 import { ArrowRight, CheckCircle, Clock, ShieldAlert } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Campaign } from '@/lib/types';
 
@@ -14,7 +13,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
   if (!campaign.termsAndConditions) return null;
 
   return (
-    <motion.div
+    <div
       className="overflow-hidden"
       style={{
         borderRadius: 16,
@@ -22,16 +21,11 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
         boxShadow: hasAcceptedTerms ? cardShadow : '0 4px 24px -6px rgba(201,168,76,0.18)',
         background: hasAcceptedTerms ? '#fff' : 'linear-gradient(135deg, #fffdf5 0%, #fff 100%)',
       }}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.38 }}
     >
       {!hasAcceptedTerms && (
-        <motion.div
+        <div
           className="flex items-center gap-3 px-4 py-3"
           style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(201,168,76,0.04) 100%)', borderBottom: '1px solid rgba(201,168,76,0.2)' }}
-          animate={{ opacity: [0.85, 1, 0.85] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         >
           <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(201,168,76,0.15)' }}>
             <ShieldAlert className="w-4 h-4" style={{ color: '#b8860b' }} />
@@ -40,7 +34,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
             <p className="font-body font-semibold text-xs" style={{ color: '#8B6914' }}>📋 Lectura pendiente</p>
             <p className="font-body text-[10px] mt-0.5" style={{ color: '#a07d1c' }}>Revisa y acepta los términos para participar en la campaña.</p>
           </div>
-        </motion.div>
+        </div>
       )}
 
       <details className="group" open={!hasAcceptedTerms}>
@@ -71,6 +65,6 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
           )}
         </div>
       </details>
-    </motion.div>
+    </div>
   );
 }

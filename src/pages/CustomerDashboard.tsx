@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Star, Clock, ShieldAlert, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
@@ -457,7 +457,7 @@ export default function CustomerDashboard() {
 
       <div className="max-w-[720px] mx-auto flex flex-col px-3 pb-5 sm:px-4 sm:pb-6" style={{ marginTop: 12, gap: 10 }}>
         {needsPasswordChange && (
-          <motion.div
+          <div
             className="flex items-center gap-3 cursor-pointer"
             style={{
               background: "linear-gradient(135deg, #fef3cd 0%, #fff8e1 100%)",
@@ -465,8 +465,6 @@ export default function CustomerDashboard() {
               border: "1px solid #f0d060",
               padding: "12px 16px",
             }}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
             onClick={() => setShowPasswordModal(true)}
           >
             <ShieldAlert className="w-5 h-5 shrink-0" style={{ color: "#b8860b" }} />
@@ -479,26 +477,18 @@ export default function CustomerDashboard() {
               </p>
             </div>
             <KeyRound className="w-4 h-4 shrink-0" style={{ color: "#b8860b" }} />
-          </motion.div>
+          </div>
         )}
 
-        <AnimatePresence mode="wait">
-          <motion.div
+        <div
             key={selectedCampaignId || "none"}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
             className="flex flex-col"
             style={{ gap: 10 }}
           >
             {/* Ruta de Premios */}
-            <motion.div
+            <div
               className="bg-white relative"
               style={{ borderRadius: 16, border: "1px solid #e8edf3", padding: 16, boxShadow: cardShadow }}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
             >
               {selectedCampaign && (
                 <span
@@ -523,7 +513,7 @@ export default function CustomerDashboard() {
                 {currentPoints} / {maxPoints} puntos · {selectedCampaign?.branch || "Sin sucursal"}
               </p>
               <div className="w-full" style={{ padding: "0 16px", boxSizing: "border-box" }}>
-                <ProgressRoute currentPoints={currentPoints} milestones={milestones} />
+                <ProgressRoute currentPoints={currentPoints} milestones={milestones} animate={false} />
               </div>
               {showProgressFixture && (
                 <div className="mt-3 grid gap-3 border-t pt-3">
@@ -538,7 +528,7 @@ export default function CustomerDashboard() {
                   ))}
                 </div>
               )}
-            </motion.div>
+            </div>
 
             <StatsGrid
               currentPoints={currentPoints}
@@ -564,14 +554,10 @@ export default function CustomerDashboard() {
                 cardShadow={cardShadow}
               />
             )}
-          </motion.div>
-        </AnimatePresence>
+          </div>
 
-        <motion.div
+        <div
           className="grid gap-2"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
         >
           <button
             onClick={() => setShowHistory(!showHistory)}
@@ -588,7 +574,7 @@ export default function CustomerDashboard() {
             <Clock className="w-4 h-4" />
             {showHistory ? "Ocultar" : "Ver historial"}
           </button>
-        </motion.div>
+        </div>
 
         {showHistory && (
           <motion.div

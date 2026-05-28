@@ -1,5 +1,4 @@
 import { Gift, CheckCircle, Lock, ArrowRight, Hourglass, X } from 'lucide-react';
-import { motion } from 'framer-motion';
 import type { Milestone, RedemptionRequest } from '@/lib/types';
 
 interface RewardsCardProps {
@@ -28,12 +27,9 @@ export default function RewardsCard({
   if (milestones.length === 0) return null;
 
   return (
-    <motion.div
+    <div
       className="bg-white"
       style={{ borderRadius: 16, border: '0.5px solid #C5A059', padding: 16, boxShadow: '0 6px 24px -8px rgba(197,160,89,0.15)' }}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.35 }}
     >
       <div className="flex items-center gap-2 mb-3">
         <Gift className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#C9A84C' }} />
@@ -70,17 +66,14 @@ export default function RewardsCard({
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
-        {milestones.map((m, index) => {
+        {milestones.map((m) => {
           const unlocked = currentPoints >= m.requiredPoints;
           const missing = Math.max(0, m.requiredPoints - currentPoints);
           const isSelectedPending = pendingRequest?.rewardId === m.id;
           const blockedByOther = !!pendingRequest && !isSelectedPending;
           return (
-            <motion.div
+            <div
               key={m.id}
-              initial={{ opacity: 0, y: 12, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: 0.4 + index * 0.08, duration: 0.4, ease: 'easeOut' }}
               className="relative flex flex-col items-center gap-1.5 transition-all overflow-hidden"
               style={{
                 background: isSelectedPending ? '#eef5ff' : unlocked ? '#fffdf5' : '#fff',
@@ -177,10 +170,10 @@ export default function RewardsCard({
                   Faltan <span style={{ fontWeight: 600 }}>{missing}</span> pts
                 </span>
               )}
-            </motion.div>
+            </div>
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 }
