@@ -44,7 +44,7 @@ export default function CustomerRegister() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-navy">
-      <Card className="w-full max-w-md shadow-brand animate-scale-in">
+      <Card className="w-full max-w-md shadow-brand">
         <CardHeader className="text-center pb-2">
           <BrandHeader subtitle="Crea tu cuenta" />
           <CardTitle className="text-2xl">Registro</CardTitle>

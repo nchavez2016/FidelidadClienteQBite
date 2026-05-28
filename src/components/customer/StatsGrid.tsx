@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import type { Milestone } from '@/lib/types';
 
 interface StatsGridProps {
@@ -16,11 +15,8 @@ export default function StatsGrid({ currentPoints, pointsToNext, maxPoints, next
   ];
 
   return (
-    <motion.div
+    <div
       className="grid grid-cols-3 gap-2 sm:gap-3"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
     >
       {cards.map((c) => (
         <div
@@ -44,6 +40,6 @@ export default function StatsGrid({ currentPoints, pointsToNext, maxPoints, next
           </p>
         </div>
       ))}
-    </motion.div>
+    </div>
   );
 }
