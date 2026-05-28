@@ -66,7 +66,7 @@ export default function RewardsCard({
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
-        {milestones.map((m, index) => {
+        {milestones.map((m) => {
           const unlocked = currentPoints >= m.requiredPoints;
           const missing = Math.max(0, m.requiredPoints - currentPoints);
           const isSelectedPending = pendingRequest?.rewardId === m.id;
