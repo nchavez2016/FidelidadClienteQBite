@@ -1,8 +1,60 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import BrandHeader from '@/components/BrandHeader';
-import { Users, Shield } from 'lucide-react';
-import { SocialFooter } from '@/components/customer/SocialFooter';
+import { Instagram, MessageCircle, Music2, Shield, Users, type LucideIcon } from 'lucide-react';
+
+type SocialLink = {
+  name: string;
+  href: string;
+  handle: string;
+  icon: LucideIcon;
+};
+
+const socialLinks: SocialLink[] = [
+  {
+    name: 'Instagram',
+    href: 'https://instagram.com/cevicheriagaviotaazul',
+    handle: '@cevicheriagaviotaazul',
+    icon: Instagram,
+  },
+  {
+    name: 'TikTok',
+    href: 'https://tiktok.com/@cevicheriagaviotaazul',
+    handle: '@cevicheriagaviotaazul',
+    icon: Music2,
+  },
+  {
+    name: 'WhatsApp',
+    href: 'https://wa.me/593990000000',
+    handle: 'Escríbenos',
+    icon: MessageCircle,
+  },
+];
+
+function SocialFooter() {
+  return (
+    <footer className="w-full py-6 px-4">
+      <div className="max-w-md mx-auto flex items-center justify-center gap-6">
+        {socialLinks.map((link) => {
+          const Icon = link.icon;
+          return (
+            <a
+              key={link.name}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${link.name} ${link.handle}`}
+              className="flex flex-col items-center gap-1 text-xs opacity-80 hover:opacity-100 transition-opacity"
+            >
+              <Icon className="w-5 h-5" />
+              <span>{link.name}</span>
+            </a>
+          );
+        })}
+      </div>
+    </footer>
+  );
+}
 
 export default function Index() {
   const navigate = useNavigate();
