@@ -10,7 +10,10 @@
  */
 import { bootstrapStore } from './bootstrap';
 
-bootstrapStore();
+// Skip bootstrap in test runs to keep unit tests fast and side-effect-free.
+if (import.meta.env?.MODE !== 'test') {
+  bootstrapStore();
+}
 
 export * from './customers.service';
 export * from './transactions.service';
