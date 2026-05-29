@@ -203,7 +203,7 @@ export default function OperationsTab({
             title={selectedCustomer ? 'Premio directo Nivel Pro: otorga 2 puntos al cliente' : 'Selecciona un cliente para premiar'}
           >
             <Sparkles className="w-4 h-4" />
-            Premiar Nivel Pro · +2 pts
+            Premiar Cliente + 2 pts
           </Button>
 
         </CardContent>
@@ -327,10 +327,20 @@ export default function OperationsTab({
               <ProgressRoute currentPoints={currentPoints} milestones={campaign?.milestones} />
 
               {campaign?.termsAndConditions && (
-                <div className="bg-muted/50 border border-border rounded-lg p-3">
-                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5 mb-1">📋 Términos y Condiciones — {campaign.branch}</p>
-                  <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">{campaign.termsAndConditions}</p>
-                </div>
+                <details className="group bg-muted/50 border border-border rounded-lg">
+                  <summary className="cursor-pointer list-none select-none px-3 py-2 flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      📋 Términos y Condiciones — {campaign.branch}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground group-open:hidden">Ver</span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden group-open:inline">Ocultar</span>
+                  </summary>
+                  <div className="px-3 pb-3 pt-1 border-t border-border/60">
+                    <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto">
+                      {campaign.termsAndConditions}
+                    </p>
+                  </div>
+                </details>
               )}
 
               <CommentInput category={commentCat} text={commentText} onCategoryChange={setCommentCat} onTextChange={setCommentText} />
