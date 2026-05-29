@@ -203,7 +203,7 @@ export default function OperationsTab({
             title={selectedCustomer ? 'Premio directo Nivel Pro: otorga 2 puntos al cliente' : 'Selecciona un cliente para premiar'}
           >
             <Sparkles className="w-4 h-4" />
-            Premiar Nivel Pro · +2 pts
+            Premiar Cliente + 2 pts
           </Button>
 
         </CardContent>
