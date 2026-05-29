@@ -12,9 +12,12 @@ interface TransactionItemProps {
 export default function TransactionItem({ tx, customerName, showStaff, showComment, compact }: TransactionItemProps) {
   const baseLabel = getTransactionLabel(tx.type);
   const isBonus = tx.type === 'accumulation' && tx.bonusMultiplier && tx.bonusMultiplier > 1;
-  const label = isBonus
-    ? `🔥 Compra con Bonus x${tx.bonusMultiplier}${tx.bonusRuleLabel ? ` · ${tx.bonusRuleLabel}` : ''}`
-    : baseLabel;
+  const isProReward = isBonus && /Nivel Pro/i.test(tx.commentText ?? '');
+  const label = isProReward
+    ? `⭐ Premio Cliente · +${tx.points} pts (directo)`
+    : isBonus
+      ? `🔥 Compra con Bonus x${tx.bonusMultiplier}${tx.bonusRuleLabel ? ` · ${tx.bonusRuleLabel}` : ''}`
+      : baseLabel;
   const prefix = customerName ? `${customerName} — ` : '';
   const pointsClass = tx.points > 0 ? 'text-success' : tx.points < 0 ? 'text-destructive' : 'text-muted-foreground';
 
