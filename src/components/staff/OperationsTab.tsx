@@ -11,7 +11,7 @@ import RegisterCustomerDialog from '@/components/staff/RegisterCustomerDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check, Flame, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Undo2, Gift, Clock, UserPlus, KeyRound, Phone, ShieldCheck, ShieldAlert, MapPin, TimerReset, Hourglass, X, Check, Flame, AlertTriangle, Sparkles } from 'lucide-react';
 import { evaluateBonus } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -27,6 +27,7 @@ interface OperationsTabProps {
   selectedCustomer: Customer | null;
   setSelectedCustomer: (c: Customer | null) => void;
   handleAddPoint: () => void;
+  handleAddProPoints?: () => void;
   rewards: Milestone[];
   setShowRedeemDialog: (v: boolean) => void;
   setShowReverseDialog: (v: boolean) => void;
@@ -49,6 +50,7 @@ interface OperationsTabProps {
 export default function OperationsTab({
   phoneSearch, setPhoneSearch, searchCustomer, selectedCustomer, setSelectedCustomer,
   handleAddPoint, rewards, setShowRedeemDialog, setShowReverseDialog,
+  handleAddProPoints,
   commentCat, commentText, setCommentCat, setCommentText, campaign,
   currentPoints, activeCampaigns, currentCampaignId,
   pendingRequest, historicalRequests, customerTransactions, onApproveRequest, onRejectRequest, onRefresh,
@@ -189,9 +191,19 @@ export default function OperationsTab({
               </Button>
             )}
           </div>
-          <Button variant="outline" onClick={() => setShowRegisterDialog(true)} className="w-full gap-2 border-secondary/30 text-secondary hover:bg-secondary/5">
-            <UserPlus className="w-4 h-4" />
-            Registrar nuevo cliente
+          <Button
+            onClick={() => handleAddProPoints?.()}
+            disabled={!selectedCustomer || !handleAddProPoints || isCampaignPaused}
+            className="w-full gap-2 text-white font-semibold"
+            style={{
+              background: 'linear-gradient(135deg, #7C3AED 0%, #C5A059 100%)',
+              border: '1px solid rgba(124,58,237,0.5)',
+              boxShadow: '0 4px 14px -4px rgba(124,58,237,0.45)',
+            }}
+            title={selectedCustomer ? 'Premio directo Nivel Pro: otorga 2 puntos al cliente' : 'Selecciona un cliente para premiar'}
+          >
+            <Sparkles className="w-4 h-4" />
+            Premiar Nivel Pro · +2 pts
           </Button>
 
         </CardContent>
