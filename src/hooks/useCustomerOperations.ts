@@ -185,6 +185,53 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     }
   }, [selectedCustomer, staff, commentCat, commentText, refresh, currentCampaignId]);
 
+  // Premio directo "Nivel Pro": otorga 2 puntos en una sola operación,
+  // siempre disponible cuando hay cliente seleccionado. Registra trazabilidad
+  // completa en el ledger (kind=bonus, multiplier=2) con un comentario que
+  // identifica el incentivo manual del staff.
+  const handleAddProPoints = useCallback(async () => {
+    if (!selectedCustomer) return;
+    if (!currentCampaignId) { toast.error('Selecciona una sucursal'); return; }
+    if (!isUuid(selectedCustomer.id) || !isUuid(currentCampaignId)) {
+      toast.error('Cliente o campaña legacy: no se puede premiar en el ledger.');
+      return;
+    }
+    const campaign = getCampaignById(currentCampaignId);
+    const branchId = staff.role === 'admin'
+      ? (campaign?.branchId || staff.branchId || null)
+      : (staff.branchId || campaign?.branchId || null);
+    const baseComment = `Premio directo Nivel Pro · 2 puntos otorgados por ${staff.role === 'admin' ? 'admin' : 'cajero'}`;
+    const finalCommentText = [commentText, baseComment].filter(Boolean).join(' · ');
+    try {
+      const tx = await ledgerEarn({
+        customerId: selectedCustomer.id,
+        campaignId: currentCampaignId,
+        branchId,
+        idempotencyKey: crypto.randomUUID(),
+        commentCategory: commentCat || 'promotion',
+        commentText: finalCommentText,
+        bonusMultiplier: 2,
+      });
+      const earned = tx.points_delta;
+      setFloatingAmount(earned);
+      setFloatingMultiplier(2);
+      setShowFloating(true);
+      setCommentCat('');
+      setCommentText('');
+      toast.success(`⭐ Nivel Pro · sumamos ${earned} puntos directos`);
+      setSelectedCustomer(getCustomerById(selectedCustomer.id) || null);
+      refresh();
+    } catch (err) {
+      console.error('[useCustomerOperations] pro-earn failed', err);
+      const msg = (err as { message?: string })?.message ?? '';
+      if (msg.includes('cooldown_active')) {
+        toast.error('Espera 1 minuto entre acumulaciones (anti-abuso)');
+      } else {
+        toast.error('No se pudo otorgar el premio directo. Intenta de nuevo.');
+      }
+    }
+  }, [selectedCustomer, staff, commentCat, commentText, refresh, currentCampaignId]);
+
   const handleRedeem = useCallback(async () => {
     if (!selectedCustomer || !selectedReward) return;
     if (!currentCampaignId) { toast.error('Selecciona una sucursal'); return; }
@@ -362,6 +409,7 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
     commentCat, setCommentCat,
     commentText, setCommentText,
     searchCustomer, handleAddPoint, handleRedeem, handleReverse,
+    handleAddProPoints,
     refresh: async () => {
       refresh();
       await refetchPending();
