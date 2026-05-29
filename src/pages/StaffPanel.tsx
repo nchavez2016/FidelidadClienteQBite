@@ -277,6 +277,7 @@ export default function StaffPanel() {
               phoneSearch={ops.phoneSearch} setPhoneSearch={ops.setPhoneSearch}
               searchCustomer={ops.searchCustomer} selectedCustomer={ops.selectedCustomer} setSelectedCustomer={ops.setSelectedCustomer}
               handleAddPoint={ops.handleAddPoint} rewards={ops.rewards}
+              handleAddProPoints={ops.handleAddProPoints}
               setShowRedeemDialog={ops.setShowRedeemDialog} setShowReverseDialog={ops.setShowReverseDialog}
               commentCat={ops.commentCat} commentText={ops.commentText}
               setCommentCat={ops.setCommentCat} setCommentText={ops.setCommentText}
