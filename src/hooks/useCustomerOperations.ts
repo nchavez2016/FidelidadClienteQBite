@@ -80,6 +80,7 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
         commentCategory: r.comment_category as any || undefined,
         commentText: r.comment_text || undefined,
         reversedTransactionId: r.reverses_tx_id || undefined,
+        bonusMultiplier: r.bonus_multiplier ?? undefined,
         createdAt: r.created_at,
       } as Transaction));
     },
