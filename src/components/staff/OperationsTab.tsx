@@ -80,6 +80,23 @@ export default function OperationsTab({
 
   const custTx = customerTransactions || [];
 
+  // Acento de marca según la sucursal de la campaña activa
+  const opsAccent = getBranchAccent(campaign?.branch);
+  const opsCardStyle: React.CSSProperties = opsAccent
+    ? {
+        border: `1.5px solid ${opsAccent.borderStrong}`,
+        background: opsAccent.bg,
+        boxShadow: `0 6px 22px -10px ${opsAccent.borderStrong}55`,
+      }
+    : {};
+  const opsInnerCardStyle: React.CSSProperties = opsAccent
+    ? {
+        background: opsAccent.bgStrong,
+        border: `1px solid ${opsAccent.borderStrong}`,
+      }
+    : { background: 'rgba(197,160,89,0.06)', border: '1px solid rgba(197,160,89,0.2)' };
+  const opsInnerLabelColor = opsAccent?.color ?? '#8B6914';
+
   // Limpiar cliente y enfocar buscador (memoizable manualmente vía ref-stable callback)
   const clearAndFocus = () => {
     setSelectedCustomer(null);
@@ -170,7 +187,7 @@ export default function OperationsTab({
 
   return (
     <div className="space-y-4 mt-4">
-      <Card>
+      <Card style={opsCardStyle}>
         <CardContent className="pt-4 space-y-2">
           <div className="flex gap-2">
             <Input
@@ -235,7 +252,7 @@ export default function OperationsTab({
 
       {selectedCustomer && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="shadow-brand">
+          <Card className="shadow-brand" style={opsCardStyle}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -269,8 +286,8 @@ export default function OperationsTab({
                 const liveCampaigns = activeCampaigns.filter(c => c.status === 'active');
                 if (liveCampaigns.length <= 1) return null;
                 return (
-                <div className="mt-3 rounded-lg p-2.5" style={{ background: 'rgba(197,160,89,0.06)', border: '1px solid rgba(197,160,89,0.2)' }}>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1" style={{ color: '#8B6914' }}>
+                <div className="mt-3 rounded-lg p-2.5" style={opsInnerCardStyle}>
+                  <p className="text-[10px] uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1" style={{ color: opsInnerLabelColor }}>
                     <MapPin className="w-3 h-3" /> Puntos por sucursal
                   </p>
                   <div className="grid grid-cols-2 gap-1.5">
