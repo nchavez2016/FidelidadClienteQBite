@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Award,
   Coins,
-  Zap,
   Gift,
   ArrowLeftRight,
   ChevronDown,
@@ -11,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Campaign } from '@/lib/types';
-import { DAY_LABELS } from '@/services/bonusRules.service';
+import BonusRuleBadge from '@/components/BonusRuleBadge';
 
 interface TermsSectionProps {
   campaign: Campaign;
@@ -83,27 +82,9 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
           </p>
         </div>
 
-        {/* Card B */}
+        {/* Card B — Bonus de puntos (reemplaza la antigua tarjeta de Puntos dobles) */}
         {activeBonus && (
-          <div style={cardBase}>
-            <div className="flex items-center gap-2 mb-1.5">
-              <Zap className="w-4 h-4" style={{ color: '#C9A84C' }} />
-              <h3 className="font-heading font-bold text-xs" style={{ color: '#1B3A6B' }}>
-                Puntos dobles
-              </h3>
-              {activeBonus.multiplier !== 2 && (
-                <span
-                  className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(201,168,76,0.15)', color: '#b8860b' }}
-                >
-                  ×{activeBonus.multiplier} puntos
-                </span>
-              )}
-            </div>
-            <p className="font-body text-[11px] leading-relaxed" style={{ color: '#4b5a6e' }}>
-              {activeBonus.days.map((d) => DAY_LABELS[d]).join(', ')} · {activeBonus.startTime}–{activeBonus.endTime}
-            </p>
-          </div>
+          <BonusRuleBadge campaign={campaign} variant="card" />
         )}
 
         {/* Card C */}
