@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { getCampaigns, setCampaignStatus } from '@/services';
 import { Campaign } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -7,12 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProgressRoute from '@/components/ProgressRoute';
-import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy } from 'lucide-react';
+import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy, Eye, Award, Coins, Zap, ArrowLeftRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
-import CustomerTermsPreview from '@/components/staff/CustomerTermsPreview.tsx';
 
 const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
 
@@ -494,6 +494,81 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
+  const [legalOpen, setLegalOpen] = useState(false);
+  const amount = campaign?.minOrderAmount ?? 5;
+  const cardText = campaign?.pointsDescription?.trim()
+    ? campaign.pointsDescription
+    : `1 punto por orden de $${amount.toFixed(2)} USD o más. El monto no importa, cuenta la orden.`;
+
+  return (
+    <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-4">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Eye className="h-3.5 w-3.5" />
+        Vista del cliente
+      </div>
+
+      <div className="rounded-lg bg-background border border-border p-4 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="rounded-full p-2" style={{ background: 'rgba(27,58,107,0.1)' }}>
+            <Award className="h-5 w-5" style={{ color: '#1B3A6B' }} />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold" style={{ color: '#1B3A6B' }}>
+              {campaign?.name || 'Nombre de la campaña'}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Antes de continuar, conoce cómo funciona
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-md border border-border p-3 flex gap-3">
+          <Coins className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Cómo ganar puntos</p>
+            <p className="text-xs text-muted-foreground">{cardText}</p>
+          </div>
+        </div>
+
+        {(campaign?.bonusRules || []).filter(r => r.active).length > 0 && (
+          <div className="rounded-md border border-border p-3 flex gap-3">
+            <Zap className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Puntos dobles activos</p>
+              <p className="text-xs text-muted-foreground">Gana puntos extra en días y horarios seleccionados.</p>
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-md border border-border p-3 flex gap-3">
+          <ArrowLeftRight className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Canje parcial</p>
+            <p className="text-xs text-muted-foreground">Puedes canjear premios parcialmente según tus puntos disponibles.</p>
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-3">
+          <button
+            type="button"
+            onClick={() => setLegalOpen(o => !o)}
+            className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <span>Términos y condiciones legales</span>
+            {legalOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          {legalOpen && (
+            <div className="mt-2 max-h-48 overflow-y-auto text-xs text-muted-foreground whitespace-pre-wrap">
+              {campaign?.termsAndConditions || 'Sin términos definidos.'}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
