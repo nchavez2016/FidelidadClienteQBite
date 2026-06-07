@@ -87,6 +87,7 @@ export type Database = {
           id: string
           legacy_id: string | null
           milestones: Json
+          min_order_amount: number | null
           name: string
           start_date: string
           status: Database["public"]["Enums"]["campaign_status"]
@@ -102,6 +103,7 @@ export type Database = {
           id?: string
           legacy_id?: string | null
           milestones?: Json
+          min_order_amount?: number | null
           name: string
           start_date: string
           status?: Database["public"]["Enums"]["campaign_status"]
@@ -117,6 +119,7 @@ export type Database = {
           id?: string
           legacy_id?: string | null
           milestones?: Json
+          min_order_amount?: number | null
           name?: string
           start_date?: string
           status?: Database["public"]["Enums"]["campaign_status"]
