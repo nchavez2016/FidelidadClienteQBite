@@ -45,19 +45,19 @@ type SocialLink = {
 const socialLinks: SocialLink[] = [
   {
     name: "Instagram",
-    href: "https://instagram.com/cevicheriagaviotaazul",
-    handle: "@cevicheriagaviotaazul",
+    href: "https://instagram.com/lagaviotaazulexpress",
+    handle: "@lagaviotaazulexpress",
     icon: Instagram,
   },
   {
     name: "TikTok",
-    href: "https://tiktok.com/@cevicheriagaviotaazul",
-    handle: "@cevicheriagaviotaazul",
+    href: "https://tiktok.com/@lagaviotaazulexpr",
+    handle: "@lagaviotaazulexpr",
     icon: Music2,
   },
   {
     name: "WhatsApp",
-    href: "https://wa.me/593990000000",
+    href: "https://wa.me/593993763382",
     handle: "Escríbenos",
     icon: MessageCircle,
   },
@@ -92,12 +92,7 @@ const mapLedgerToTransaction = (row: Awaited<ReturnType<typeof listCustomerLedge
   id: row.id,
   customerId: row.customer_id,
   campaignId: row.campaign_id,
-  type:
-    row.kind === "redeem"
-      ? "redemption"
-      : row.kind === "reversal"
-        ? "reversal"
-        : "accumulation",
+  type: row.kind === "redeem" ? "redemption" : row.kind === "reversal" ? "reversal" : "accumulation",
   ledgerKind: row.kind,
   points: row.points_delta,
   balanceAfter: row.balance_after ?? 0,
@@ -456,87 +451,78 @@ export default function CustomerDashboard() {
           </div>
         )}
 
-        <div
-            key={selectedCampaignId || "none"}
-            className="flex flex-col"
-            style={{ gap: 10 }}
+        <div key={selectedCampaignId || "none"} className="flex flex-col" style={{ gap: 10 }}>
+          {/* Ruta de Premios */}
+          <div
+            className="bg-white relative"
+            style={{ borderRadius: 16, border: "1px solid #e8edf3", padding: 16, boxShadow: cardShadow }}
           >
-            {/* Ruta de Premios */}
-            <div
-              className="bg-white relative"
-              style={{ borderRadius: 16, border: "1px solid #e8edf3", padding: 16, boxShadow: cardShadow }}
-            >
-              {selectedCampaign && (
-                <span
-                  className="absolute top-3 right-3 inline-flex items-center gap-1 text-[9px] font-body font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                  style={{
-                    background: "rgba(34,197,94,0.12)",
-                    color: "#16a34a",
-                    border: "1px solid rgba(34,197,94,0.3)",
-                  }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#16a34a" }} />
-                  Activa
-                </span>
-              )}
-              <div className="flex items-center gap-2 mb-1">
-                <Star className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: "#C9A84C" }} />
-                <h2 className="font-heading font-bold text-sm sm:text-base" style={{ color: "#1B3A6B" }}>
-                  Tu Ruta de Premios
-                </h2>
-              </div>
-              <p className="text-[10px] mb-3" style={{ color: "#8a96a6" }}>
-                {currentPoints} / {maxPoints} puntos · {selectedCampaign?.branch || "Sin sucursal"}
-              </p>
-              <div className="w-full" style={{ padding: "0 16px", boxSizing: "border-box" }}>
-                <ProgressRoute currentPoints={currentPoints} milestones={milestones} animate={false} />
-              </div>
-              {showProgressFixture && (
-                <div className="mt-3 grid gap-3 border-t pt-3">
-                  {[0, 1, 2, 3].map((points) => (
-                    <div
-                      key={points}
-                      className="rounded-lg border border-dashed border-secondary/30 bg-secondary/5 p-2"
-                    >
-                      <p className="mb-1 text-[10px] font-bold text-secondary">Fixture: {points} pts</p>
-                      <ProgressRoute currentPoints={points} milestones={milestones} animate={false} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <StatsGrid
-              currentPoints={currentPoints}
-              pointsToNext={pointsToNext}
-              maxPoints={maxPoints}
-              nextMilestone={nextMilestone}
-            />
-            <RewardsCard
-              milestones={milestones}
-              currentPoints={currentPoints}
-              nextMilestoneId={nextMilestone?.id}
-              pendingRequest={pendingRequest}
-              onRequest={(m) => requestReward(m, currentPoints)}
-              onCancelRequest={cancelRequest}
-            />
-
             {selectedCampaign && (
-              <div className="mt-8">
-                <TermsSection
-                  key={selectedCampaign.id}
-                  campaign={selectedCampaign}
-                  hasAcceptedTerms={hasAcceptedTerms}
-                  onAcceptTerms={handleAcceptTerms}
-                  cardShadow={cardShadow}
-                />
+              <span
+                className="absolute top-3 right-3 inline-flex items-center gap-1 text-[9px] font-body font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                style={{
+                  background: "rgba(34,197,94,0.12)",
+                  color: "#16a34a",
+                  border: "1px solid rgba(34,197,94,0.3)",
+                }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#16a34a" }} />
+                Activa
+              </span>
+            )}
+            <div className="flex items-center gap-2 mb-1">
+              <Star className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: "#C9A84C" }} />
+              <h2 className="font-heading font-bold text-sm sm:text-base" style={{ color: "#1B3A6B" }}>
+                Tu Ruta de Premios
+              </h2>
+            </div>
+            <p className="text-[10px] mb-3" style={{ color: "#8a96a6" }}>
+              {currentPoints} / {maxPoints} puntos · {selectedCampaign?.branch || "Sin sucursal"}
+            </p>
+            <div className="w-full" style={{ padding: "0 16px", boxSizing: "border-box" }}>
+              <ProgressRoute currentPoints={currentPoints} milestones={milestones} animate={false} />
+            </div>
+            {showProgressFixture && (
+              <div className="mt-3 grid gap-3 border-t pt-3">
+                {[0, 1, 2, 3].map((points) => (
+                  <div key={points} className="rounded-lg border border-dashed border-secondary/30 bg-secondary/5 p-2">
+                    <p className="mb-1 text-[10px] font-bold text-secondary">Fixture: {points} pts</p>
+                    <ProgressRoute currentPoints={points} milestones={milestones} animate={false} />
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
-        <div
-          className="grid gap-2"
-        >
+          <StatsGrid
+            currentPoints={currentPoints}
+            pointsToNext={pointsToNext}
+            maxPoints={maxPoints}
+            nextMilestone={nextMilestone}
+          />
+          <RewardsCard
+            milestones={milestones}
+            currentPoints={currentPoints}
+            nextMilestoneId={nextMilestone?.id}
+            pendingRequest={pendingRequest}
+            onRequest={(m) => requestReward(m, currentPoints)}
+            onCancelRequest={cancelRequest}
+          />
+
+          {selectedCampaign && (
+            <div className="mt-8">
+              <TermsSection
+                key={selectedCampaign.id}
+                campaign={selectedCampaign}
+                hasAcceptedTerms={hasAcceptedTerms}
+                onAcceptTerms={handleAcceptTerms}
+                cardShadow={cardShadow}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="grid gap-2">
           <button
             onClick={() => setShowHistory(!showHistory)}
             className="flex items-center justify-center gap-2 font-body font-semibold text-white cursor-pointer w-full"
