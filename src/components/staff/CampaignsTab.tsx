@@ -238,48 +238,6 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               </div>
             </div>
 
-            {/* Monto mínimo por orden */}
-            <div>
-              <Label>Monto mínimo por orden para ganar 1 punto</Label>
-              <div className="relative mt-1">
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={editingCampaign.minOrderAmount ?? ''}
-                  onChange={e => {
-                    const v = e.target.value;
-                    setEditingCampaign({
-                      ...editingCampaign,
-                      minOrderAmount: v === '' ? undefined : Math.max(0, parseFloat(v) || 0),
-                    });
-                  }}
-                  placeholder="Ej: 5.00"
-                  className="pr-12"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground pointer-events-none">
-                  USD
-                </span>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-1">Si se deja vacío, se usa $5.00 USD por defecto.</p>
-            </div>
-
-            {/* Descripción de cómo ganar puntos */}
-            <div>
-              <Label>Descripción de cómo ganar puntos</Label>
-              <Input
-                type="text"
-                maxLength={120}
-                value={editingCampaign.pointsDescription ?? ''}
-                onChange={e => setEditingCampaign({ ...editingCampaign, pointsDescription: e.target.value })}
-                placeholder="Ej: 1 punto por orden de $5.00 o más. El monto no importa."
-                className="mt-1"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {(editingCampaign.pointsDescription?.length ?? 0)}/120
-              </p>
-            </div>
-
             {/* Milestones */}
             <div>
               <h3 className="font-heading font-bold mb-2">Hitos de la Ruta</h3>
@@ -336,6 +294,65 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                 <Button onClick={addMilestone} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1"><Plus className="w-4 h-4" />Agregar</Button>
               </div>
             </div>
+
+            {/* Configuración de puntos por orden */}
+            {(() => {
+              const amount = editingCampaign.minOrderAmount ?? 5;
+              const dynamicPlaceholder = `Ej: 1 punto por orden de $${amount.toFixed(2)} USD o más. El monto no importa, cuenta la orden.`;
+              return (
+                <div
+                  className="rounded-lg p-4 space-y-4"
+                  style={{ background: '#EEF2F8', border: '1.5px solid #C9A84C' }}
+                >
+                  <h3 className="font-heading font-bold" style={{ color: '#1B3A6B' }}>
+                    Cómo se gana 1 punto
+                  </h3>
+
+                  <div>
+                    <Label>Monto mínimo por orden para ganar 1 punto</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editingCampaign.minOrderAmount ?? ''}
+                        onChange={e => {
+                          const v = e.target.value;
+                          setEditingCampaign({
+                            ...editingCampaign,
+                            minOrderAmount: v === '' ? undefined : Math.max(0, parseFloat(v) || 0),
+                          });
+                        }}
+                        placeholder="Ej: 5.00"
+                        className="pr-12 bg-white"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground pointer-events-none">
+                        USD
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">Si se deja vacío, se usa $5.00 USD por defecto.</p>
+                  </div>
+
+                  <div>
+                    <Label>Descripción de cómo ganar puntos</Label>
+                    <Input
+                      type="text"
+                      maxLength={120}
+                      value={editingCampaign.pointsDescription ?? ''}
+                      onChange={e => setEditingCampaign({ ...editingCampaign, pointsDescription: e.target.value })}
+                      placeholder={dynamicPlaceholder}
+                      className="mt-1 bg-white"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Si lo dejas vacío, se usará: 1 punto por orden de ${amount.toFixed(2)} USD o más.
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {(editingCampaign.pointsDescription?.length ?? 0)}/120
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Bonus rules */}
             <div>
