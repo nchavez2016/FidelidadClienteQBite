@@ -66,7 +66,7 @@ export default function HeroSection({
         clipPath: 'polygon(100% 0, 0 0, 100% 100%)',
       }} />
 
-      <div className="relative z-10 max-w-[720px] mx-auto px-5 sm:px-10">
+      <div className="relative z-10 max-w-[720px] mx-auto px-3 sm:px-10">
         <div className="w-full flex items-center justify-between pt-4 pb-2">
           <img src={logo} alt="La Gaviota Azul Express" className="w-12 h-auto sm:w-14 opacity-90" />
           <button
@@ -85,7 +85,7 @@ export default function HeroSection({
         <div className="mt-4 mb-4 flex items-center gap-0">
           <div
               key={campaign?.id || 'no-campaign'}
-              className="flex-1 flex flex-col items-center px-6 sm:px-10 py-6 rounded-2xl relative z-10"
+              className="flex-1 min-w-0 flex flex-col items-center px-4 sm:px-10 py-5 sm:py-6 rounded-2xl relative z-10"
               style={{
                 background: 'rgba(255,255,255,0.08)',
                 backdropFilter: 'blur(18px)',
@@ -95,11 +95,11 @@ export default function HeroSection({
               }}
             >
               {campaign && (
-                <p className="font-body text-[10px] tracking-[0.15em] uppercase mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                <p className="font-body text-[10px] tracking-[0.15em] uppercase mb-2 text-center break-words max-w-full" style={{ color: 'rgba(255,255,255,0.5)' }}>
                   {campaign.branch} · {campaign.name}
                 </p>
               )}
-              <div className="font-heading font-bold leading-none" style={{ fontSize: '56px', color: '#C5A059' }}>
+              <div className="font-heading font-bold leading-none" style={{ fontSize: 'clamp(40px, 13vw, 56px)', color: '#C5A059' }}>
                 {points.toLocaleString()}
               </div>
               <p className="font-body text-[11px] sm:text-[12px] mt-2 tracking-[0.2em] uppercase" style={{ color: 'rgba(197,160,89,0.85)' }}>
@@ -108,9 +108,9 @@ export default function HeroSection({
 
               {/* Mini barra de progreso al siguiente hito */}
               {nextMilestone && (
-                <div className="w-full mt-4 flex items-center gap-3">
+                <div className="w-full mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                   <div
-                    className="flex-1 rounded-full overflow-hidden"
+                    className="w-full sm:flex-1 rounded-full overflow-hidden"
                     style={{ height: 4, background: 'rgba(255,255,255,0.1)' }}
                   >
                     <motion.div
@@ -121,7 +121,7 @@ export default function HeroSection({
                     />
                   </div>
                   <span
-                    className="text-[10px] font-body whitespace-nowrap"
+                    className="text-[10px] font-body text-center sm:text-right leading-tight"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     Faltan <span style={{ color: '#C5A059', fontWeight: 600 }}>{pointsToNext}</span> pts: {nextMilestone.rewardName}
