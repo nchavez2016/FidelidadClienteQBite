@@ -65,14 +65,6 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
             Antes de continuar, conoce cómo funciona
           </p>
         </div>
-        {hasAcceptedTerms && (
-          <span
-            className="shrink-0 inline-flex items-center gap-1 text-[10px] font-body font-semibold px-2.5 py-1 rounded-full"
-            style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}
-          >
-            <CheckCircle className="w-3 h-3" /> Aceptado
-          </span>
-        )}
       </div>
 
       {/* Highlights grid */}

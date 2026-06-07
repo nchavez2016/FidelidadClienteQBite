@@ -529,6 +529,7 @@ export default function CustomerDashboard() {
                 hasAcceptedTerms={hasAcceptedTerms}
                 onAcceptTerms={handleAcceptTerms}
                 cardShadow={cardShadow}
+                className="mt-8"
               />
             )}
           </div>
