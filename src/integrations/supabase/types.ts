@@ -89,6 +89,7 @@ export type Database = {
           milestones: Json
           min_order_amount: number | null
           name: string
+          points_description: string | null
           start_date: string
           status: Database["public"]["Enums"]["campaign_status"]
           terms_and_conditions: string
@@ -105,6 +106,7 @@ export type Database = {
           milestones?: Json
           min_order_amount?: number | null
           name: string
+          points_description?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["campaign_status"]
           terms_and_conditions?: string
@@ -121,6 +123,7 @@ export type Database = {
           milestones?: Json
           min_order_amount?: number | null
           name?: string
+          points_description?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["campaign_status"]
           terms_and_conditions?: string
