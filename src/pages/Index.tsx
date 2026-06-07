@@ -19,7 +19,7 @@ const socialLinks: SocialLink[] = [
   },
   {
     name: "TikTok",
-    href: "https://tiktok.com/@cevicheriagaviotaazul",
+    href: "https://www.tiktok.com/@lagaviotaazulexpr",
     handle: "@cevicheriagaviotaazul",
     icon: Music2,
   },
