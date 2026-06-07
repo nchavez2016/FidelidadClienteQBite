@@ -6,6 +6,7 @@ import dishImg2 from '@/assets/camaron_apanado.png';
 import dishImg3 from '@/assets/gaviota_especial.png';
 import type { Customer, Campaign, Milestone } from '@/lib/types';
 import { getCustomerPoints } from '@/services';
+import { getBranchAccent } from '@/lib/branchAccent';
 
 const heroCarouselImages = [dishImg1, dishImg2, dishImg3];
 
@@ -160,6 +161,8 @@ export default function HeroSection({
               {activeCampaigns.map((c) => {
                 const active = c.id === selectedCampaignId;
                 const cPoints = getCustomerPoints(customer, c.id);
+                const accent = getBranchAccent(c.branch);
+                const accentColor = accent?.borderStrong ?? '#C5A059';
                 return (
                   <button
                     key={c.id}
@@ -167,11 +170,11 @@ export default function HeroSection({
                     className="flex items-center gap-2 shrink-0 px-3 py-2 rounded-xl transition-all"
                     style={{
                       background: 'rgba(255,255,255,0.07)',
-                      border: active ? '1.5px solid #C5A059' : '1px solid rgba(197,160,89,0.25)',
-                      boxShadow: active ? '0 0 12px -2px rgba(197,160,89,0.4)' : 'none',
+                      border: active ? `1.5px solid ${accentColor}` : `1px solid ${accentColor}40`,
+                      boxShadow: active ? `0 0 12px -2px ${accentColor}66` : 'none',
                     }}
                   >
-                    <MapPin className="w-3 h-3" style={{ color: active ? '#C5A059' : 'rgba(255,255,255,0.5)' }} />
+                    <MapPin className="w-3 h-3" style={{ color: active ? accentColor : 'rgba(255,255,255,0.5)' }} />
                     <span
                       className="font-body text-[11px] font-semibold whitespace-nowrap"
                       style={{ color: active ? '#fff' : 'rgba(255,255,255,0.7)' }}
@@ -181,8 +184,8 @@ export default function HeroSection({
                     <span
                       className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                       style={{
-                        background: active ? 'rgba(197,160,89,0.2)' : 'rgba(255,255,255,0.08)',
-                        color: active ? '#C5A059' : 'rgba(255,255,255,0.6)',
+                        background: active ? `${accentColor}33` : 'rgba(255,255,255,0.08)',
+                        color: active ? accentColor : 'rgba(255,255,255,0.6)',
                       }}
                     >
                       {cPoints} pts
