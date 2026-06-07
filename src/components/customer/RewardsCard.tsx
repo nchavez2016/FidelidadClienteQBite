@@ -1,6 +1,6 @@
 import { Gift, CheckCircle, Lock, ArrowRight, Hourglass, X } from 'lucide-react';
 import type { Milestone, RedemptionRequest } from '@/lib/types';
-import { getBranchAccent } from '@/lib/branchAccent';
+import { getBranchAccent } from '@/lib/branchAccent.ts';
 
 interface RewardsCardProps {
   milestones: Milestone[];

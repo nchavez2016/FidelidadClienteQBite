@@ -16,7 +16,7 @@ import { evaluateBonus } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import ResetPointsDialog from './ResetPointsDialog';
-import { getBranchAccent } from '@/lib/branchAccent';
+import { getBranchAccent } from '@/lib/branchAccent.ts';
 
 const IDLE_TIMEOUT_MS = 60_000; // 60s para limpiar pantalla
 const IDLE_WARNING_MS = 50_000; // aviso visual a los 50s
