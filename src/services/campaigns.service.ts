@@ -235,6 +235,23 @@ export async function setCampaignStatusAsync(
   }
 }
 
+export async function deleteCampaignAsync(id: string): Promise<void> {
+  try {
+    await supabaseDriver.update<CampaignRow>(TABLE, id, {
+      deleted_at: new Date().toISOString(),
+    } as Partial<CampaignRow>);
+    await hydrateCampaigns();
+  } catch (err) {
+    console.error('[campaigns] delete failed', err);
+    throw err;
+  }
+}
+
+export function deleteCampaign(id: string): void {
+  cache = cache.filter(c => c.id !== id);
+  void deleteCampaignAsync(id).catch(() => {/* logged */});
+}
+
 // ===== Sync wrappers (transitional — fire-and-forget + optimistic cache) =====
 
 export function saveCampaign(campaign: Campaign): void {
