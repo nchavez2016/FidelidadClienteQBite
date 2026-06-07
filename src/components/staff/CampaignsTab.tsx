@@ -238,23 +238,31 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               </div>
             </div>
 
-            {/* Terms and Conditions */}
+            {/* Monto mínimo por orden */}
             <div>
-              <Label className="text-sm font-bold flex items-center gap-1.5">
-                📋 Términos y Condiciones <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                value={editingCampaign.termsAndConditions}
-                onChange={e => setEditingCampaign({ ...editingCampaign, termsAndConditions: e.target.value })}
-                placeholder="Escribe los términos y condiciones de esta campaña..."
-                rows={5}
-                className="mt-1"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">Este texto será visible para clientes y cajeros.</p>
+              <Label>Monto mínimo por orden para ganar 1 punto</Label>
+              <div className="relative mt-1">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editingCampaign.minOrderAmount ?? ''}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setEditingCampaign({
+                      ...editingCampaign,
+                      minOrderAmount: v === '' ? undefined : Math.max(0, parseFloat(v) || 0),
+                    });
+                  }}
+                  placeholder="Ej: 5.00"
+                  className="pr-12"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground pointer-events-none">
+                  USD
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Si se deja vacío, se usa $5.00 USD por defecto.</p>
             </div>
-
-            {/* Preview en vivo de lo que verá el cliente */}
-            <CustomerTermsPreview campaign={editingCampaign} />
 
             {/* Milestones */}
             <div>
