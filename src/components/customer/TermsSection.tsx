@@ -31,6 +31,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
     .slice()
     .sort((a, b) => a.requiredPoints - b.requiredPoints);
   const nextMilestone = sortedMilestones[0];
+  const minOrderAmount = campaign.minOrderAmount ?? 5;
 
   const cardBase: React.CSSProperties = {
     background: '#fff',
@@ -78,7 +79,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
             </h3>
           </div>
           <p className="font-body text-[11px] leading-relaxed" style={{ color: '#4b5a6e' }}>
-            1 punto por orden de $5 USD o más. El monto no importa, cuenta la orden.
+            1 punto por orden de ${minOrderAmount.toFixed(2)} USD o más. El monto no importa, cuenta la orden.
           </p>
         </div>
 
