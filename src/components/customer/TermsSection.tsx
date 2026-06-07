@@ -43,9 +43,9 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
       className="overflow-hidden"
       style={{
         borderRadius: 16,
-        border: hasAcceptedTerms ? '1px solid #e8edf3' : '2px solid #C9A84C',
+        border: '1.5px solid #C9A84C',
         boxShadow: hasAcceptedTerms ? cardShadow : '0 4px 24px -6px rgba(201,168,76,0.18)',
-        background: hasAcceptedTerms ? '#fff' : 'linear-gradient(135deg, #fffdf5 0%, #fff 100%)',
+        background: '#EEF2F8',
       }}
     >
       {/* Header */}
