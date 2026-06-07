@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
-import { getBranchAccent } from '@/lib/branchAccent';
+import { getBranchAccent } from '@/lib/branchAccent.ts';
 
 const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
 

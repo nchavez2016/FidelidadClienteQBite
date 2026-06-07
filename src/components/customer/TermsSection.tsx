@@ -10,7 +10,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Campaign } from '@/lib/types';
 import BonusRuleBadge from '@/components/BonusRuleBadge';
-import { getBranchAccent } from '@/lib/branchAccent';
+import { getBranchAccent } from '@/lib/branchAccent.ts';
 
 interface TermsSectionProps {
   campaign: Campaign;

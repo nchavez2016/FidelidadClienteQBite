@@ -1,5 +1,5 @@
 import type { Milestone } from '@/lib/types';
-import { getBranchAccent } from '@/lib/branchAccent';
+import { getBranchAccent } from '@/lib/branchAccent.ts';
 
 interface StatsGridProps {
   currentPoints: number;
