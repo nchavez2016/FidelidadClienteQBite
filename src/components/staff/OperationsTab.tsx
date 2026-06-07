@@ -276,13 +276,27 @@ export default function OperationsTab({
                     {liveCampaigns.map(c => {
                       const pts = getCustomerPoints(selectedCustomer, c.id);
                       const isCurrent = c.id === currentCampaignId;
+                      const accent = getBranchAccent(c.branch);
+                      const bg = accent
+                        ? (isCurrent ? accent.bgStrong : accent.bg)
+                        : (isCurrent ? 'rgba(197,160,89,0.15)' : '#fff');
+                      const border = accent
+                        ? `1px solid ${isCurrent ? accent.borderStrong : accent.border}`
+                        : (isCurrent ? '1px solid #C5A059' : '1px solid #eee');
+                      const textColor = accent?.color ?? '#1B3A6B';
                       return (
-                        <div key={c.id} className="flex items-center justify-between text-xs px-2 py-1 rounded" style={{
-                          background: isCurrent ? 'rgba(197,160,89,0.15)' : '#fff',
-                          border: isCurrent ? '1px solid #C5A059' : '1px solid #eee',
-                        }}>
-                          <span className="truncate" style={{ color: '#1B3A6B' }}>{c.branch}</span>
-                          <strong style={{ color: isCurrent ? '#C9A84C' : '#666' }}>{pts}</strong>
+                        <div key={c.id} className="flex items-center justify-between text-xs px-2 py-1 rounded" style={{ background: bg, border }}>
+                          <span className="truncate flex items-center gap-1.5" style={{ color: textColor }}>
+                            {accent && (
+                              <span
+                                aria-hidden
+                                className="inline-block w-1.5 h-1.5 rounded-full"
+                                style={{ background: accent.borderStrong }}
+                              />
+                            )}
+                            {c.branch}
+                          </span>
+                          <strong style={{ color: isCurrent ? (accent?.borderStrong ?? '#C9A84C') : '#666' }}>{pts}</strong>
                         </div>
                       );
                     })}

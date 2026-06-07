@@ -14,20 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
+import { getBranchAccent } from '@/lib/branchAccent';
 
 const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
-
-/** Devuelve estilos de marca según la sucursal (dorado Express / azul suave Matriz). */
-function getBranchAccent(branch: string | undefined): { bg: string; color: string; border: string } | null {
-  const b = (branch || '').toLowerCase();
-  if (b.includes('express')) {
-    return { bg: 'rgba(201,168,76,0.18)', color: '#8a6d1f', border: 'rgba(201,168,76,0.45)' };
-  }
-  if (b.includes('matriz')) {
-    return { bg: 'rgba(27,58,107,0.10)', color: '#1B3A6B', border: 'rgba(27,58,107,0.30)' };
-  }
-  return null;
-}
 
 interface CampaignsTabProps {
   onRefresh: () => void;
