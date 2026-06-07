@@ -34,7 +34,7 @@ import TermsSection from "@/components/customer/TermsSection";
 import PasswordChangeModal from "@/components/customer/PasswordChangeModal";
 import StatsGrid from "@/components/customer/StatsGrid";
 import BonusRuleBadge from "@/components/BonusRuleBadge";
-import { getBranchAccent } from "@/lib/branchAccent.ts";
+import { getBranchAccent } from "@/lib/utils";
 
 type SocialLink = {
   name: string;
