@@ -29,7 +29,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
   const description = campaign.pointsDescription?.trim();
   const cardText = description
     ? description
-    : `1 punto por orden de $${amount.toFixed(2)} USD o más.`;
+    : `1 punto por orden de $${amount.toFixed(2)} USD o más. El monto no importa, cuenta la orden.`;
 
   const cardBase: React.CSSProperties = {
     background: '#fff',
