@@ -436,15 +436,23 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               )}
             </div>
 
-            {/* Preview */}
-            {editingCampaign.milestones.length > 0 && (
-              <div>
-                <h3 className="font-heading font-bold mb-2 text-sm text-muted-foreground">Vista previa del cliente:</h3>
-                <div className="bg-muted p-4 rounded-lg">
-                  <ProgressRoute currentPoints={0} animate={false} milestones={editingCampaign.milestones} />
-                </div>
-              </div>
-            )}
+            {/* Terms and Conditions */}
+            <div>
+              <Label className="text-sm font-bold flex items-center gap-1.5">
+                📋 Términos y Condiciones <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                value={editingCampaign.termsAndConditions}
+                onChange={e => setEditingCampaign({ ...editingCampaign, termsAndConditions: e.target.value })}
+                placeholder="Escribe los términos y condiciones de esta campaña..."
+                rows={5}
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Este texto será visible para clientes y cajeros.</p>
+            </div>
+
+            {/* Preview en vivo de lo que verá el cliente */}
+            <CustomerTermsPreview campaign={editingCampaign} />
 
             <div className="flex gap-2">
               <Button onClick={saveCampaignChanges} className="bg-success hover:bg-success/90 text-success-foreground">Guardar Campaña</Button>
