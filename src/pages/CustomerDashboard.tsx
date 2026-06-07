@@ -523,14 +523,15 @@ export default function CustomerDashboard() {
             />
 
             {selectedCampaign && (
-              <TermsSection
-                key={selectedCampaign.id}
-                campaign={selectedCampaign}
-                hasAcceptedTerms={hasAcceptedTerms}
-                onAcceptTerms={handleAcceptTerms}
-                cardShadow={cardShadow}
-                className="mt-8"
-              />
+              <div className="mt-8">
+                <TermsSection
+                  key={selectedCampaign.id}
+                  campaign={selectedCampaign}
+                  hasAcceptedTerms={hasAcceptedTerms}
+                  onAcceptTerms={handleAcceptTerms}
+                  cardShadow={cardShadow}
+                />
+              </div>
             )}
           </div>
 
