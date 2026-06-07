@@ -138,6 +138,8 @@ export interface Campaign {
   /** Reglas de bonificación opcionales (días/horas con multiplicador). */
   bonusRules?: BonusRule[];
   termsAndConditions: string;
+  /** Monto mínimo por orden (USD) requerido para acumular 1 punto. Default visual: 5. */
+  minOrderAmount?: number;
   createdAt: string;
 }
 
