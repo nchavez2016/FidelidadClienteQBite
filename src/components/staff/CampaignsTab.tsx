@@ -264,6 +264,22 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               <p className="text-[10px] text-muted-foreground mt-1">Si se deja vacío, se usa $5.00 USD por defecto.</p>
             </div>
 
+            {/* Descripción de cómo ganar puntos */}
+            <div>
+              <Label>Descripción de cómo ganar puntos</Label>
+              <Input
+                type="text"
+                maxLength={120}
+                value={editingCampaign.pointsDescription ?? ''}
+                onChange={e => setEditingCampaign({ ...editingCampaign, pointsDescription: e.target.value })}
+                placeholder="Ej: 1 punto por orden de $5.00 o más. El monto no importa."
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {(editingCampaign.pointsDescription?.length ?? 0)}/120
+              </p>
+            </div>
+
             {/* Milestones */}
             <div>
               <h3 className="font-heading font-bold mb-2">Hitos de la Ruta</h3>

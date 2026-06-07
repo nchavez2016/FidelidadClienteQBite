@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Award,
   Coins,
-  Gift,
   ArrowLeftRight,
   ChevronDown,
   ChevronUp,
@@ -26,11 +25,11 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
   const [legalOpen, setLegalOpen] = useState(false);
 
   const activeBonus = campaign.bonusRules?.find((r) => r.active);
-  const sortedMilestones = (campaign.milestones ?? [])
-    .slice()
-    .sort((a, b) => a.requiredPoints - b.requiredPoints);
-  const nextMilestone = sortedMilestones[0];
-  const minOrderAmount = campaign.minOrderAmount ?? 5;
+  const amount = campaign.minOrderAmount ?? 5;
+  const description = campaign.pointsDescription?.trim();
+  const cardText = description
+    ? description
+    : `1 punto por orden de $${amount.toFixed(2)} USD o más.`;
 
   const cardBase: React.CSSProperties = {
     background: '#fff',
@@ -78,39 +77,13 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
             </h3>
           </div>
           <p className="font-body text-[11px] leading-relaxed" style={{ color: '#4b5a6e' }}>
-            1 punto por orden de ${minOrderAmount.toFixed(2)} USD o más. El monto no importa, cuenta la orden.
+            {cardText}
           </p>
         </div>
 
         {/* Card B — Bonus de puntos (reemplaza la antigua tarjeta de Puntos dobles) */}
         {activeBonus && (
           <BonusRuleBadge campaign={campaign} variant="card" />
-        )}
-
-        {/* Card C */}
-        {nextMilestone && (
-          <div style={cardBase}>
-            <div className="flex items-center gap-2 mb-1.5">
-              <Gift className="w-4 h-4" style={{ color: '#C9A84C' }} />
-              <h3 className="font-heading font-bold text-xs" style={{ color: '#1B3A6B' }}>
-                Tu próximo premio
-              </h3>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-body text-[11px]" style={{ color: '#1B3A6B' }}>
-                {nextMilestone.rewardName}
-              </span>
-              <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(201,168,76,0.12)', color: '#C9A84C' }}
-              >
-                {nextMilestone.requiredPoints} pts
-              </span>
-            </div>
-            <p className="font-body text-[10px] mt-1.5" style={{ color: '#8a97a8' }}>
-              Ver todos los premios disponibles más abajo ↓
-            </p>
-          </div>
         )}
 
         {/* Card D */}

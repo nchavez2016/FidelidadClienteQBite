@@ -140,6 +140,8 @@ export interface Campaign {
   termsAndConditions: string;
   /** Monto mínimo por orden (USD) requerido para acumular 1 punto. Default visual: 5. */
   minOrderAmount?: number;
+  /** Descripción libre de cómo ganar puntos (override del texto por defecto). */
+  pointsDescription?: string;
   createdAt: string;
 }
 
