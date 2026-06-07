@@ -1,5 +1,6 @@
 import { Gift, CheckCircle, Lock, ArrowRight, Hourglass, X } from 'lucide-react';
 import type { Milestone, RedemptionRequest } from '@/lib/types';
+import { getBranchAccent } from '@/lib/branchAccent';
 
 interface RewardsCardProps {
   milestones: Milestone[];
@@ -14,6 +15,8 @@ interface RewardsCardProps {
   onCancelRequest?: (request: RedemptionRequest) => void;
   /** Modo staff: canje directo (mantiene compat). */
   onRedeem?: (milestone: Milestone) => void;
+  /** Sucursal de la campaña activa (para acento visual de marca). */
+  branch?: string;
 }
 
 export default function RewardsCard({
@@ -23,13 +26,20 @@ export default function RewardsCard({
   onRequest,
   onCancelRequest,
   onRedeem,
+  branch,
 }: RewardsCardProps) {
   if (milestones.length === 0) return null;
+
+  const accent = getBranchAccent(branch);
+  const borderColor = accent?.borderStrong ?? '#C5A059';
+  const shadow = accent
+    ? `0 6px 24px -8px ${accent.borderStrong}55`
+    : '0 6px 24px -8px rgba(197,160,89,0.15)';
 
   return (
     <div
       className="bg-white"
-      style={{ borderRadius: 16, border: '0.5px solid #C5A059', padding: 16, boxShadow: '0 6px 24px -8px rgba(197,160,89,0.15)' }}
+      style={{ borderRadius: 16, border: `1.5px solid ${borderColor}`, padding: 16, boxShadow: shadow }}
     >
       <div className="flex items-center gap-2 mb-3">
         <Gift className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#C9A84C' }} />
