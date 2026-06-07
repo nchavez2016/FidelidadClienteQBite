@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
-import CustomerTermsPreview from './CustomerTermsPreview';
+import CustomerTermsPreview from '@/components/staff/CustomerTermsPreview';
 
 const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
 
