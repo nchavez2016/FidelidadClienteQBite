@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getCampaigns, setCampaignStatus } from '@/services';
+import { getCampaigns, setCampaignStatus, deleteCampaign } from '@/services';
 import { Campaign } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +10,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import ProgressRoute from '@/components/ProgressRoute';
 import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy, Eye, Award, Coins, Zap, ArrowLeftRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
 
 const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
+
+/** Devuelve estilos de marca según la sucursal (dorado Express / azul suave Matriz). */
+function getBranchAccent(branch: string | undefined): { bg: string; color: string; border: string } | null {
+  const b = (branch || '').toLowerCase();
+  if (b.includes('express')) {
+    return { bg: 'rgba(201,168,76,0.18)', color: '#8a6d1f', border: 'rgba(201,168,76,0.45)' };
+  }
+  if (b.includes('matriz')) {
+    return { bg: 'rgba(27,58,107,0.10)', color: '#1B3A6B', border: 'rgba(27,58,107,0.30)' };
+  }
+  return null;
+}
 
 interface CampaignsTabProps {
   onRefresh: () => void;
@@ -33,8 +46,57 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
     addBonusRule, updateBonusRule, removeBonusRule,
   } = useCampaignEditor(onRefresh);
 
+  const [deleteTarget, setDeleteTarget] = useState<Campaign | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const canConfirmDelete = deleteConfirmText.trim().toUpperCase() === 'ELIMINAR';
+
   return (
     <div className="space-y-4 mt-4">
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={open => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(''); } }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Eliminar campaña</DialogTitle>
+            <DialogDescription>
+              Esta acción no se puede deshacer. Se eliminará la campaña{' '}
+              <strong>{deleteTarget?.name}</strong>. Para continuar, escribe <strong>ELIMINAR</strong> en el campo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Label className="text-xs">Confirmación</Label>
+            <Input
+              autoFocus
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="Escribe ELIMINAR"
+              className="mt-1"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(''); }}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!canConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              onClick={() => {
+                if (!deleteTarget || !canConfirmDelete) return;
+                const name = deleteTarget.name;
+                deleteCampaign(deleteTarget.id);
+                setDeleteTarget(null);
+                setDeleteConfirmText('');
+                onRefresh();
+                toast.success(`Campaña "${name}" eliminada`);
+              }}
+            >
+              Eliminar definitivamente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {!editingCampaign ? (
         <>
           <div className="flex justify-between items-center">
@@ -52,6 +114,7 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               return (a.name || '').localeCompare(b.name || '');
             });
           })().map(c => {
+            const branchAccent = getBranchAccent(c.branch);
             const statusStyles =
               c.status === 'active'
                 ? { borderColor: 'hsl(var(--success))', borderLeftWidth: '4px', background: 'hsl(var(--card))' }
@@ -64,9 +127,25 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
             <Card key={c.id} style={statusStyles}>
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-heading font-bold text-lg">{c.name}</h3>
-                    <p className="text-xs text-muted-foreground">📍 {c.branch || '—'} · {c.startDate} → {c.endDate}</p>
+                  <div
+                    className="rounded-md px-3 py-1.5"
+                    style={branchAccent ? {
+                      background: branchAccent.bg,
+                      border: `1px solid ${branchAccent.border}`,
+                    } : undefined}
+                  >
+                    <h3
+                      className="font-heading font-bold text-lg"
+                      style={branchAccent ? { color: branchAccent.color } : undefined}
+                    >
+                      {c.name}
+                    </h3>
+                    <p
+                      className="text-xs"
+                      style={branchAccent ? { color: branchAccent.color, opacity: 0.85 } : undefined}
+                    >
+                      📍 {c.branch || '—'} · {c.startDate} → {c.endDate}
+                    </p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     c.status === 'active' ? 'bg-success/10 text-success' :
@@ -195,6 +274,15 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                   {c.status === 'finished' && (
                     <Button size="sm" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => onReactivateCampaign(c.id)}>Reactivar</Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto border-destructive/40 text-destructive hover:bg-destructive/10 gap-1"
+                    onClick={() => { setDeleteTarget(c); setDeleteConfirmText(''); }}
+                    aria-label="Eliminar campaña"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />Eliminar
+                  </Button>
                 </div>
               </CardContent>
             </Card>
