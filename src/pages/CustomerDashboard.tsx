@@ -505,6 +505,7 @@ export default function CustomerDashboard() {
             pointsToNext={pointsToNext}
             maxPoints={maxPoints}
             nextMilestone={nextMilestone}
+            branch={selectedCampaign?.branch}
           />
           <RewardsCard
             milestones={milestones}
