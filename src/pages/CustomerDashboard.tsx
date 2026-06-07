@@ -512,7 +512,6 @@ export default function CustomerDashboard() {
               maxPoints={maxPoints}
               nextMilestone={nextMilestone}
             />
-            {selectedCampaign && <BonusRuleBadge campaign={selectedCampaign} variant="card" />}
             <RewardsCard
               milestones={milestones}
               currentPoints={currentPoints}
