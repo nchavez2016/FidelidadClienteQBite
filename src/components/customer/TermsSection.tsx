@@ -10,6 +10,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Campaign } from '@/lib/types';
 import BonusRuleBadge from '@/components/BonusRuleBadge';
+import { getBranchAccent } from '@/lib/branchAccent';
 
 interface TermsSectionProps {
   campaign: Campaign;
@@ -23,6 +24,9 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
 
   const [accepted, setAccepted] = useState(false);
   const [legalOpen, setLegalOpen] = useState(false);
+
+  const accent = getBranchAccent(campaign.branch);
+  const borderColor = accent?.borderStrong ?? '#C9A84C';
 
   const activeBonus = campaign.bonusRules?.find((r) => r.active);
   const amount = campaign.minOrderAmount ?? 5;
@@ -43,8 +47,8 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
       className="overflow-hidden"
       style={{
         borderRadius: 16,
-        border: '1.5px solid #C9A84C',
-        boxShadow: hasAcceptedTerms ? cardShadow : '0 4px 24px -6px rgba(201,168,76,0.18)',
+        border: `1.5px solid ${borderColor}`,
+        boxShadow: hasAcceptedTerms ? cardShadow : `0 4px 24px -6px ${borderColor}40`,
         background: '#EEF2F8',
       }}
     >
