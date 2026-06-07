@@ -30,21 +30,22 @@ export default function StatsGrid({ currentPoints, pointsToNext, maxPoints, next
       {cards.map((c) => (
         <div
           key={c.label}
+          className="min-w-0"
           style={{
             background: bg,
             borderRadius: 12,
             border: borderStyle,
-            padding: 12,
+            padding: 10,
             boxShadow: shadow,
           }}
         >
           <div
-            className="font-heading font-bold text-[22px] sm:text-[26px] leading-none"
+            className="font-heading font-bold text-[18px] sm:text-[26px] leading-none"
             style={{ color: c.color }}
           >
             {c.value}
           </div>
-          <p className="font-body text-[9px] sm:text-[10px] mt-1.5" style={{ color: '#8a96a6' }}>
+          <p className="font-body text-[9px] sm:text-[10px] mt-1.5 leading-tight break-words" style={{ color: '#8a96a6' }}>
             {c.label}
           </p>
         </div>

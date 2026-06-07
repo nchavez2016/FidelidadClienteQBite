@@ -460,8 +460,8 @@ export default function CustomerDashboard() {
         <div key={selectedCampaignId || "none"} className="flex flex-col" style={{ gap: 10 }}>
           {/* Ruta de Premios */}
           <div
-            className="bg-white relative"
-            style={{ borderRadius: 16, border: accentBorder, padding: 16, boxShadow: accentShadow }}
+            className="bg-white relative p-3 sm:p-4"
+            style={{ borderRadius: 16, border: accentBorder, boxShadow: accentShadow }}
           >
             {selectedCampaign && (
               <span
@@ -485,7 +485,7 @@ export default function CustomerDashboard() {
             <p className="text-[10px] mb-3" style={{ color: "#8a96a6" }}>
               {currentPoints} / {maxPoints} puntos · {selectedCampaign?.branch || "Sin sucursal"}
             </p>
-            <div className="w-full" style={{ padding: "0 16px", boxSizing: "border-box" }}>
+            <div className="w-full px-2 sm:px-4" style={{ boxSizing: "border-box" }}>
               <ProgressRoute currentPoints={currentPoints} milestones={milestones} animate={false} />
             </div>
             {showProgressFixture && (

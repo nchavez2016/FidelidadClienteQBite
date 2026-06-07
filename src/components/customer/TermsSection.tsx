@@ -71,7 +71,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
       </div>
 
       {/* Highlights grid */}
-      <div className="px-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="px-3 sm:px-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
         {/* Card A */}
         <div style={cardBase}>
           <div className="flex items-center gap-2 mb-1.5">
@@ -105,7 +105,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
       </div>
 
       {/* Accordion T&C */}
-      <div className="px-4 pt-4">
+      <div className="px-3 sm:px-4 pt-4">
         <button
           type="button"
           onClick={() => setLegalOpen((v) => !v)}
@@ -134,7 +134,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
       </div>
 
       {/* Acceptance */}
-      <div className="px-4 pt-4 pb-4">
+      <div className="px-3 sm:px-4 pt-4 pb-4">
         {!hasAcceptedTerms ? (
           <div
             className="p-3.5 rounded-lg space-y-3"

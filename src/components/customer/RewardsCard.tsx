@@ -38,8 +38,8 @@ export default function RewardsCard({
 
   return (
     <div
-      className="bg-white"
-      style={{ borderRadius: 16, border: `1.5px solid ${borderColor}`, padding: 16, boxShadow: shadow }}
+      className="bg-white p-3 sm:p-4"
+      style={{ borderRadius: 16, border: `1.5px solid ${borderColor}`, boxShadow: shadow }}
     >
       <div className="flex items-center gap-2 mb-3">
         <Gift className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#C9A84C' }} />
