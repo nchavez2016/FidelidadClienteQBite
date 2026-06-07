@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
+import CustomerTermsPreview from './CustomerTermsPreview';
 
 const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
 
@@ -251,6 +252,9 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               />
               <p className="text-[10px] text-muted-foreground mt-1">Este texto será visible para clientes y cajeros.</p>
             </div>
+
+            {/* Preview en vivo de lo que verá el cliente */}
+            <CustomerTermsPreview campaign={editingCampaign} />
 
             {/* Milestones */}
             <div>

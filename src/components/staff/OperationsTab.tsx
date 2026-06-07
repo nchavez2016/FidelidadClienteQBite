@@ -196,9 +196,9 @@ export default function OperationsTab({
             disabled={!selectedCustomer || !handleAddProPoints || isCampaignPaused}
             className="w-full gap-2 text-white font-semibold"
             style={{
-              background: 'linear-gradient(135deg, #7C3AED 0%, #C5A059 100%)',
-              border: '1px solid rgba(124,58,237,0.5)',
-              boxShadow: '0 4px 14px -4px rgba(124,58,237,0.45)',
+              background: 'linear-gradient(135deg, #1B3A6B 0%, #C5A059 100%)',
+              border: '1px solid rgba(197,160,89,0.5)',
+              boxShadow: '0 4px 14px -4px rgba(27,58,107,0.45)',
             }}
             title={selectedCustomer ? 'Premio directo Nivel Pro: otorga 2 puntos al cliente' : 'Selecciona un cliente para premiar'}
           >
