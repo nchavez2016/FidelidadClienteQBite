@@ -351,6 +351,11 @@ export default function CustomerDashboard() {
   };
 
   const cardShadow = "0 4px 20px -6px rgba(27,58,107,0.10)";
+  const branchAccent = getBranchAccent(selectedCampaign?.branch);
+  const accentBorder = branchAccent ? `1.5px solid ${branchAccent.borderStrong}` : "1px solid #e8edf3";
+  const accentShadow = branchAccent
+    ? `0 6px 22px -8px ${branchAccent.borderStrong}55`
+    : cardShadow;
 
   // Estado vacío: no hay ninguna sucursal con campaña configurada.
   if (!campaignsReady) {
