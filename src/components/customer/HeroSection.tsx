@@ -6,7 +6,7 @@ import dishImg2 from '@/assets/camaron_apanado.png';
 import dishImg3 from '@/assets/gaviota_especial.png';
 import type { Customer, Campaign, Milestone } from '@/lib/types';
 import { getCustomerPoints } from '@/services';
-import { getBranchAccent } from '@/lib/branchAccent.ts';
+import { getBranchAccent } from '@/lib/utils';
 
 const heroCarouselImages = [dishImg1, dishImg2, dishImg3];
 

@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { MapPin } from 'lucide-react';
 import type { Campaign, Customer } from '@/lib/types';
 import { getCustomerPoints } from '@/services';
-import { getBranchAccent } from '@/lib/branchAccent.ts';
+import { getBranchAccent } from '@/lib/utils';
 
 interface CampaignSwitcherProps {
   campaigns: Campaign[];
