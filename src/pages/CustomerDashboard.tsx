@@ -524,6 +524,7 @@ export default function CustomerDashboard() {
 
             {selectedCampaign && (
               <TermsSection
+                key={selectedCampaign.id}
                 campaign={selectedCampaign}
                 hasAcceptedTerms={hasAcceptedTerms}
                 onAcceptTerms={handleAcceptTerms}
