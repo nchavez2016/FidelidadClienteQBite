@@ -13,14 +13,14 @@ type SocialLink = {
 const socialLinks: SocialLink[] = [
   {
     name: "Instagram",
-    href: "https://www.instagram.com/lagaviotaazulexpress",
+    href: "https://instagram.com/lagaviotaazulexpress",
     handle: "@lagaviotaazulexpress",
     icon: Instagram,
   },
   {
     name: "TikTok",
     href: "https://www.tiktok.com/@lagaviotaazulexpr",
-    handle: "@lagaviotaazulexpr",
+    handle: "@cevicheriagaviotaazul",
     icon: Music2,
   },
   {
