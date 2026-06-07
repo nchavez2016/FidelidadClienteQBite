@@ -461,7 +461,7 @@ export default function CustomerDashboard() {
           {/* Ruta de Premios */}
           <div
             className="bg-white relative"
-            style={{ borderRadius: 16, border: "1px solid #e8edf3", padding: 16, boxShadow: cardShadow }}
+            style={{ borderRadius: 16, border: accentBorder, padding: 16, boxShadow: accentShadow }}
           >
             {selectedCampaign && (
               <span
@@ -513,6 +513,7 @@ export default function CustomerDashboard() {
             pendingRequest={pendingRequest}
             onRequest={(m) => requestReward(m, currentPoints)}
             onCancelRequest={cancelRequest}
+            branch={selectedCampaign?.branch}
           />
 
           {selectedCampaign && (
@@ -522,7 +523,7 @@ export default function CustomerDashboard() {
                 campaign={selectedCampaign}
                 hasAcceptedTerms={hasAcceptedTerms}
                 onAcceptTerms={handleAcceptTerms}
-                cardShadow={cardShadow}
+                cardShadow={accentShadow}
               />
             </div>
           )}
