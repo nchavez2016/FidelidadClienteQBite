@@ -1,15 +1,24 @@
 import type { Milestone } from '@/lib/types';
+import { getBranchAccent } from '@/lib/branchAccent';
 
 interface StatsGridProps {
   currentPoints: number;
   pointsToNext: number;
   maxPoints: number;
   nextMilestone: Milestone | undefined;
+  branch?: string;
 }
 
-export default function StatsGrid({ currentPoints, pointsToNext, maxPoints, nextMilestone }: StatsGridProps) {
+export default function StatsGrid({ currentPoints, pointsToNext, maxPoints, nextMilestone, branch }: StatsGridProps) {
+  const accent = getBranchAccent(branch);
+  const borderColor = accent?.borderStrong ?? '#e8edf3';
+  const borderStyle = accent ? `1.5px solid ${borderColor}` : '1px solid #e8edf3';
+  const shadow = accent
+    ? `0 4px 14px -6px ${borderColor}55`
+    : '0 2px 8px -4px rgba(27,58,107,0.06)';
+  const bg = accent ? accent.bg : '#fff';
   const cards = [
-    { value: currentPoints, label: 'Puntos actuales', color: '#C5A059' },
+    { value: currentPoints, label: 'Puntos actuales', color: accent?.borderStrong ?? '#C5A059' },
     { value: nextMilestone ? pointsToNext : '—', label: 'Faltan para siguiente', color: '#001F3F' },
     { value: maxPoints, label: 'Meta de campaña', color: '#001F3F' },
   ];
@@ -22,11 +31,11 @@ export default function StatsGrid({ currentPoints, pointsToNext, maxPoints, next
         <div
           key={c.label}
           style={{
-            background: '#fff',
+            background: bg,
             borderRadius: 12,
-            border: '1px solid #e8edf3',
+            border: borderStyle,
             padding: 12,
-            boxShadow: '0 2px 8px -4px rgba(27,58,107,0.06)',
+            boxShadow: shadow,
           }}
         >
           <div
