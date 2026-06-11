@@ -135,6 +135,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // false→true twice in a row and ProtectedRoute remounts the page
   // (visible as a "double reload / flash" right after login).
   const rolesLoadedForUserRef = useRef<string | null>(null);
+  // True while signIn()/signUp() is mid-flight. Supabase fires
+  // onAuthStateChange BEFORE signInWithPassword resolves, so the
+  // listener sees lastUserIdRef=null and treats it as a brand-new
+  // user → setRolesLoaded(false). Combined with the navigate() that
+  // immediately follows signIn, ProtectedRoute briefly renders the
+  // "Cargando…" screen between login page and dashboard. Suppress
+  // the listener's reset while we're driving the sign-in ourselves.
+  const signInInFlightRef = useRef(false);
 
   useEffect(() => {
     // 1. Subscribe FIRST so we never miss an event.
@@ -154,6 +162,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Supabase también puede emitir SIGNED_IN al reenfocar una pestaña con
         // la misma sesión; debe tratarse como continuidad, no como nuevo login.
         if (sameUser) {
+          return;
+        }
+
+        // Si signIn()/signUp() está en curso, esa llamada se encargará de
+        // hidratar roles y avisar a la UI. No reseteamos rolesLoaded aquí
+        // para evitar un destello "Cargando…" entre login y dashboard.
+        if (signInInFlightRef.current) {
           return;
         }
 
@@ -243,6 +258,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback<AuthContextValue['signIn']>(async (identifier, password, audience) => {
     const email = toEmail(identifier, audience);
     console.info('🚨 [Auth] login request', { audience, identifier, email });
+    signInInFlightRef.current = true;
+    try {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     console.info('🚨 [Auth] login response', { hasSession: !!data.session, uid: data.user?.id, error });
     if (data?.session && data.user) {
@@ -262,10 +279,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       postAuthHydrate();
     }
     return { error: error?.message ?? null };
+    } finally {
+      signInInFlightRef.current = false;
+    }
   }, []);
 
   const signUp = useCallback<AuthContextValue['signUp']>(async (identifier, password, audience, metadata) => {
     const email = toEmail(identifier, audience);
+    signInInFlightRef.current = true;
+    try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -286,6 +308,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       postAuthHydrate();
     }
     return { error: error?.message ?? null };
+    } finally {
+      signInInFlightRef.current = false;
+    }
   }, []);
 
   const signOut = useCallback(async () => {
