@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
+import { appRoute } from '@/lib/navigation';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -49,7 +50,7 @@ export function ProtectedRoute({ children, allowedRoles, redirectTo = '/cliente/
   // Phase 2 — no session → redirect to login synchronously.
   if (!user) {
     console.warn('[AUTHZ_DENY]', { route: location.pathname, roles: null, required: requiredRoles, reason: 'no_user' });
-    return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
+    return <Navigate to={appRoute(redirectTo)} replace state={{ from: location.pathname }} />;
   }
 
   // Phase 3 — role check. roles is guaranteed loaded here.
@@ -69,7 +70,7 @@ export function ProtectedRoute({ children, allowedRoles, redirectTo = '/cliente/
       reason: 'role_mismatch',
       fallback,
     });
-    return <Navigate to={fallback} replace />;
+    return <Navigate to={appRoute(fallback)} replace />;
   }
 
   console.debug('[AUTHZ_ROUTE]', {

@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
 import { useAuth } from '@/hooks/useAuth';
 import type { AppRole } from '@/contexts/AuthContext';
+import { appRoute } from '@/lib/navigation';
 import { clearLegacySessions } from '@/services/auth/legacyBridge';
 import { supabase } from '@/integrations/supabase/client';
 import type { StaffUser } from '@/lib/types';
@@ -56,7 +57,7 @@ export function useStaffAuth() {
         if (!user) {
           setStaff(null);
           clearLegacySessions();
-          navigate('/staff/login', { replace: true });
+          navigate(appRoute('/staff/login'), { replace: true });
           return;
         }
         if (!isStaffRole) {
@@ -64,7 +65,7 @@ export function useStaffAuth() {
           clearLegacySessions();
           setStaff(null);
           setRuntimeError(`Acceso denegado: rol no autorizado (${roles.join(',') || 'none'})`);
-          navigate('/cliente/dashboard', { replace: true });
+          navigate(appRoute('/cliente/dashboard'), { replace: true });
           return;
         }
 
@@ -98,7 +99,7 @@ export function useStaffAuth() {
     try {
       await signOut();
       setStaff(null);
-      navigate('/staff/login', { replace: true });
+      navigate(appRoute('/staff/login'), { replace: true });
     } catch (error) {
       console.error('🚨 [useStaffAuth] logout failed', error);
       setRuntimeError(error instanceof Error ? error.message : String(error));

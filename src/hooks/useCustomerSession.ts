@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoute } from '@/lib/navigation';
 import { getCustomerById, hydrateCustomers } from '@/services';
 import { supabase } from '@/integrations/supabase/client';
 import type { Customer, Gender } from '@/lib/types';
@@ -60,7 +61,7 @@ export function useCustomerSession(redirectTo: string = '/cliente/login') {
     if (loading || !rolesLoaded) return;
     if (!user) {
       setCustomer(null);
-      navigate(redirectTo, { replace: true });
+      navigate(appRoute(redirectTo), { replace: true });
       return;
     }
     let cancelled = false;
@@ -76,7 +77,7 @@ export function useCustomerSession(redirectTo: string = '/cliente/login') {
   const logout = useCallback(async () => {
     await signOut();
     setCustomer(null);
-    navigate(redirectTo, { replace: true });
+    navigate(appRoute(redirectTo), { replace: true });
   }, [signOut, navigate, redirectTo]);
 
   return { customer: currentCustomer, setCustomer, refresh, logout };
