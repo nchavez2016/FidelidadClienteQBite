@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoute } from '@/lib/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,7 +27,7 @@ export default function StaffLogin() {
       return;
     }
     toast.success('Bienvenido');
-    navigate('/staff/panel');
+    navigate(appRoute('/staff/panel'));
   };
 
   return (
