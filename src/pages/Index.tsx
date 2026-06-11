@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import BrandHeader from "@/components/BrandHeader";
-import { appRoute } from "@/lib/navigation";
+import { appRoute } from "@/lib/navigation.ts";
 import { Instagram, MessageCircle, Music2, Shield, Users, type LucideIcon } from "lucide-react";
 
 type SocialLink = {
