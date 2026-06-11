@@ -6,6 +6,7 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoute } from '@/lib/navigation';
 import type { Session, Role } from '@/services/auth/types';
 
 export function useSession(redirectTo?: string) {
@@ -35,7 +36,7 @@ export function useSession(redirectTo?: string) {
 
   const logout = useCallback(async () => {
     await signOut();
-    if (redirectTo) navigate(redirectTo, { replace: true });
+    if (redirectTo) navigate(appRoute(redirectTo), { replace: true });
   }, [signOut, navigate, redirectTo]);
 
   const hasRole = useCallback(
