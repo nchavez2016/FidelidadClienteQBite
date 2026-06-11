@@ -49,7 +49,12 @@ async function resolveCustomer(userId: string): Promise<Customer | null> {
 export function useCustomerSession(redirectTo: string = '/cliente/login') {
   const navigate = useNavigate();
   const { user, loading, rolesLoaded, signOut } = useAuth();
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(() => {
+    if (loading || !rolesLoaded || !user) return null;
+    return getCustomerById(user.id) ?? null;
+  });
+  const cachedCustomer = !loading && rolesLoaded && user ? getCustomerById(user.id) ?? null : null;
+  const currentCustomer = user && customer?.id === user.id ? customer : cachedCustomer;
 
   useEffect(() => {
     if (loading || !rolesLoaded) return;
@@ -74,5 +79,5 @@ export function useCustomerSession(redirectTo: string = '/cliente/login') {
     navigate(redirectTo, { replace: true });
   }, [signOut, navigate, redirectTo]);
 
-  return { customer, setCustomer, refresh, logout };
+  return { customer: currentCustomer, setCustomer, refresh, logout };
 }
