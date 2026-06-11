@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import BrandHeader from "@/components/BrandHeader";
+import { appRoute } from "@/lib/navigation";
 import { Instagram, MessageCircle, Music2, Shield, Users, type LucideIcon } from "lucide-react";
 
 type SocialLink = {
@@ -71,14 +72,14 @@ export default function Index() {
 
           <div className="space-y-3">
             <Button
-              onClick={() => navigate("/cliente/login")}
+              onClick={() => navigate(appRoute("/cliente/login"))}
               className="w-full h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground gap-3 shadow-gold"
             >
               <Users className="w-5 h-5" />
               Soy Cliente
             </Button>
             <Button
-              onClick={() => navigate("/staff/login")}
+              onClick={() => navigate(appRoute("/staff/login"))}
               variant="outline"
               className="w-full h-12 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
             >

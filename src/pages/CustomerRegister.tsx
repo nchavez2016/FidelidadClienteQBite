@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoute } from '@/lib/navigation';
 import { Gender } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,7 +40,7 @@ export default function CustomerRegister() {
       return;
     }
     toast.success('¡Cuenta creada! Ahora puedes iniciar sesión.');
-    navigate('/cliente/login');
+    navigate(appRoute('/cliente/login'));
   };
 
   return (
@@ -89,7 +90,7 @@ export default function CustomerRegister() {
             <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">{submitting ? 'Creando…' : 'Crear Cuenta'}</Button>
             <p className="text-center text-sm text-muted-foreground">
               ¿Ya tienes cuenta?{' '}
-              <button type="button" onClick={() => navigate('/cliente/login')} className="text-secondary underline font-medium">Inicia sesión</button>
+              <button type="button" onClick={() => navigate(appRoute('/cliente/login'))} className="text-secondary underline font-medium">Inicia sesión</button>
             </p>
           </form>
         </CardContent>

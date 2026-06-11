@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoute } from '@/lib/navigation';
 import { getCustomerById, hydrateCustomers } from '@/services';
 import { supabase } from '@/integrations/supabase/client';
 import type { Customer, Gender } from '@/lib/types';
@@ -49,13 +50,18 @@ async function resolveCustomer(userId: string): Promise<Customer | null> {
 export function useCustomerSession(redirectTo: string = '/cliente/login') {
   const navigate = useNavigate();
   const { user, loading, rolesLoaded, signOut } = useAuth();
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(() => {
+    if (loading || !rolesLoaded || !user) return null;
+    return getCustomerById(user.id) ?? null;
+  });
+  const cachedCustomer = !loading && rolesLoaded && user ? getCustomerById(user.id) ?? null : null;
+  const currentCustomer = user && customer?.id === user.id ? customer : cachedCustomer;
 
   useEffect(() => {
     if (loading || !rolesLoaded) return;
     if (!user) {
       setCustomer(null);
-      navigate(redirectTo, { replace: true });
+      navigate(appRoute(redirectTo), { replace: true });
       return;
     }
     let cancelled = false;
@@ -71,8 +77,8 @@ export function useCustomerSession(redirectTo: string = '/cliente/login') {
   const logout = useCallback(async () => {
     await signOut();
     setCustomer(null);
-    navigate(redirectTo, { replace: true });
+    navigate(appRoute(redirectTo), { replace: true });
   }, [signOut, navigate, redirectTo]);
 
-  return { customer, setCustomer, refresh, logout };
+  return { customer: currentCustomer, setCustomer, refresh, logout };
 }

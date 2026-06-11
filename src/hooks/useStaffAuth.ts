@@ -6,10 +6,31 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { User } from '@supabase/supabase-js';
 import { useAuth } from '@/hooks/useAuth';
+import type { AppRole } from '@/contexts/AuthContext';
+import { appRoute } from '@/lib/navigation';
 import { clearLegacySessions } from '@/services/auth/legacyBridge';
 import { supabase } from '@/integrations/supabase/client';
 import type { StaffUser } from '@/lib/types';
+
+function staffFromAuth(user: User, roles: AppRole[], branchId?: string): StaffUser {
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const username =
+    (meta.staff_username as string | undefined) ??
+    (meta.identifier as string | undefined) ??
+    (user.email?.split('@')[0] ?? user.id);
+  const role: 'admin' | 'cashier' = roles.includes('admin') ? 'admin' : 'cashier';
+
+  return {
+    id: user.id,
+    username,
+    name: (meta.display_name as string | undefined) ?? username,
+    role,
+    active: true,
+    branchId,
+  };
+}
 
 export function useStaffAuth() {
   const navigate = useNavigate();
@@ -20,8 +41,13 @@ export function useStaffAuth() {
     () => roles.includes('admin') || roles.includes('cashier'),
     [roles],
   );
-  const [staff, setStaff] = useState<StaffUser | null>(null);
+  const [staff, setStaff] = useState<StaffUser | null>(() => (
+    user && isStaffRole ? staffFromAuth(user, roles) : null
+  ));
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const currentStaff = user && isStaffRole
+    ? staff?.id === user.id ? staff : staffFromAuth(user, roles)
+    : null;
 
   useEffect(() => {
     const syncStaff = async () => {
@@ -31,7 +57,7 @@ export function useStaffAuth() {
         if (!user) {
           setStaff(null);
           clearLegacySessions();
-          navigate('/staff/login', { replace: true });
+          navigate(appRoute('/staff/login'), { replace: true });
           return;
         }
         if (!isStaffRole) {
@@ -39,7 +65,7 @@ export function useStaffAuth() {
           clearLegacySessions();
           setStaff(null);
           setRuntimeError(`Acceso denegado: rol no autorizado (${roles.join(',') || 'none'})`);
-          navigate('/cliente/dashboard', { replace: true });
+          navigate(appRoute('/cliente/dashboard'), { replace: true });
           return;
         }
 
@@ -56,21 +82,7 @@ export function useStaffAuth() {
 
         // Construir el objeto staff puramente desde AuthContext + user_metadata + profiles.
         // Sin localStorage. Multirol-friendly: no asumimos que sea solo staff.
-        const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
-        const username =
-          (meta.staff_username as string | undefined) ??
-          (meta.identifier as string | undefined) ??
-          (user.email?.split('@')[0] ?? user.id);
-        const role: 'admin' | 'cashier' = roles.includes('admin') ? 'admin' : 'cashier';
-        
-        setStaff({
-          id: user.id,
-          username,
-          name: (meta.display_name as string | undefined) ?? username,
-          role,
-          active: true,
-          branchId: profile?.branch_id ?? undefined,
-        });
+        setStaff(staffFromAuth(user, roles, profile?.branch_id ?? undefined));
         setRuntimeError(null);
       } catch (error) {
         console.error('🚨 [useStaffAuth] crashed', error);
@@ -87,12 +99,12 @@ export function useStaffAuth() {
     try {
       await signOut();
       setStaff(null);
-      navigate('/staff/login', { replace: true });
+      navigate(appRoute('/staff/login'), { replace: true });
     } catch (error) {
       console.error('🚨 [useStaffAuth] logout failed', error);
       setRuntimeError(error instanceof Error ? error.message : String(error));
     }
   };
 
-  return { staff, isAdmin, logout, runtimeError };
+  return { staff: currentStaff, isAdmin, logout, runtimeError };
 }
