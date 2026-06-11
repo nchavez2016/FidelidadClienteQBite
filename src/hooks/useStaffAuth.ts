@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
 import { useAuth } from '@/hooks/useAuth';
 import type { AppRole } from '@/contexts/AuthContext';
-import { appRoute } from '@/lib/navigation';
+import { appRoute } from '@/lib/navigation.ts';
 import { clearLegacySessions } from '@/services/auth/legacyBridge';
 import { supabase } from '@/integrations/supabase/client';
 import type { StaffUser } from '@/lib/types';

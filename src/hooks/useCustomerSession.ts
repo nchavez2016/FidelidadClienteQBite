@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { appRoute } from '@/lib/navigation';
+import { appRoute } from '@/lib/navigation.ts';
 import { getCustomerById, hydrateCustomers } from '@/services';
 import { supabase } from '@/integrations/supabase/client';
 import type { Customer, Gender } from '@/lib/types';
