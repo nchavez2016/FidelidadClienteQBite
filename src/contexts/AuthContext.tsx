@@ -18,6 +18,7 @@ import {
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { clearLegacySessions } from '@/services/auth/legacyBridge';
+import { hydrateCampaigns } from '@/services/campaigns.service';
 import { hydrateCustomerPoints, subscribeCustomerPointsRealtime } from '@/services/customerPoints.service';
 import { hydrateLedgerHistory, rehydrateLedgerHistory } from '@/services/ledgerHistory.service';
 import { subscribePointTransactionsRealtime } from '@/services/pointsLedger.service';
@@ -105,11 +106,25 @@ function bridgeLegacy(_user: User, _roles: AppRole[]): void {
 }
 
 /** Post-auth hydrations that require an authenticated session (RLS). */
-function postAuthHydrate(): void {
-  void hydrateCustomerPoints().catch((err) => console.error('[Auth] hydrateCustomerPoints failed', err));
-  void hydrateLedgerHistory().catch((err) => console.error('[Auth] hydrateLedgerHistory failed', err));
+async function hydratePostAuth(audience?: 'customer' | 'staff'): Promise<void> {
+  const jobs: Promise<unknown>[] = [
+    hydrateCampaigns(),
+    hydrateCustomerPoints(),
+    hydrateLedgerHistory(),
+  ];
+
   // Profiles are RLS-gated; only hydrate after the user has authenticated.
-  void hydrateCustomers().catch((err) => console.error('[Auth] hydrateCustomers failed', err));
+  // It is critical for customer/staff panels because their first render reads
+  // from the synchronous cache; without this, the route opens blank for a frame.
+  jobs.push(hydrateCustomers());
+
+  const results = await Promise.allSettled(jobs);
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error('[Auth] post-auth hydrate failed', { audience, index, reason: result.reason });
+    }
+  });
+
   // Phase 3.4 — start realtime listeners (idempotent, shared channels).
   try {
     subscribePointTransactionsRealtime();
@@ -186,13 +201,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fetchRoles(nextSession.user.id).then((r) => {
             console.info('🚨 [Auth] roles fetched (listener)', r);
             setRoles(r);
-            // CRITICAL: bridgeLegacy must run BEFORE setRolesLoaded(true)
-            // so that ProtectedRoute / CustomerDashboard see a hydrated
-            // sessionCustomer slot on the very same render that unblocks them.
+            // CRITICAL: bridgeLegacy + post-auth hydration must run BEFORE
+            // setRolesLoaded(true), otherwise ProtectedRoute opens the panel
+            // while its sync caches are still empty and the user sees a flash.
             bridgeLegacy(nextSession.user, r);
-            rolesLoadedForUserRef.current = nextSession.user.id;
-            setRolesLoaded(true);
-            postAuthHydrate();
+            hydratePostAuth().finally(() => {
+              rolesLoadedForUserRef.current = nextSession.user.id;
+              setRolesLoaded(true);
+            });
           }).catch((error) => {
             console.error('🚨 [Auth] listener roles rejected', error);
             setRoles([]);
@@ -219,13 +235,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchRoles(data.session.user.id).then((r) => {
           console.info('🚨 [Auth] roles fetched (init)', r);
           setRoles(r);
-          // Hydrate legacy customer slot BEFORE flipping rolesLoaded so
-          // sync consumers (getCurrentCustomer) find the row immediately.
+          // Hydrate sync caches BEFORE flipping rolesLoaded so protected
+          // panels do not mount as blank shells for a frame.
           bridgeLegacy(data.session!.user, r);
-          rolesLoadedForUserRef.current = data.session!.user.id;
-          setRolesLoaded(true);
-          postAuthHydrate();
-          setLoading(false);
+          hydratePostAuth().finally(() => {
+            rolesLoadedForUserRef.current = data.session!.user.id;
+            setRolesLoaded(true);
+            setLoading(false);
+          });
         }).catch((error) => {
           console.error('🚨 [Auth] init roles rejected', error);
           setRoles([]);
@@ -274,9 +291,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.info('🚨 [Auth] signIn roles', { audience, r });
       setRoles(r);
       bridgeLegacy(data.user, r);
+      await hydratePostAuth(audience);
       rolesLoadedForUserRef.current = data.user.id;
       setRolesLoaded(true);
-      postAuthHydrate();
     }
     return { error: error?.message ?? null };
     } finally {
@@ -303,9 +320,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const r = await fetchRoles(data.user.id);
       setRoles(r);
       bridgeLegacy(data.user, r);
+      await hydratePostAuth(audience);
       rolesLoadedForUserRef.current = data.user.id;
       setRolesLoaded(true);
-      postAuthHydrate();
     }
     return { error: error?.message ?? null };
     } finally {
