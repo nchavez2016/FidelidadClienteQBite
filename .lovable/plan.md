@@ -1,107 +1,39 @@
-## Resumen
+## Goal
+Add two new fields to the customer registration form (`/cliente/registro`):
+- **Correo electrónico** (email)
+- **Fecha de nacimiento** (birthdate)
 
-Dos correcciones mínimas, independientes, sin refactors estructurales:
+Both must be persisted in the database alongside the existing profile data.
 
-1. **Control transaccional al cancelar premio (cliente).** El cliente puede pulsar "Cancelar" después de que el cajero ya aprobó, porque la UI no revalida estado contra DB antes de cancelar y deja el botón visible hasta el siguiente polling.
-2. **Pérdida de estado del panel staff al cambiar de pestaña del navegador.** Cuando el tab del staff pierde foco y vuelve, Supabase emite `TOKEN_REFRESHED` y el `onAuthStateChange` actual fuerza `setRolesLoaded(false)`, lo que desmonta `StaffPanel` y borra cliente seleccionado, búsqueda, pestaña activa y demás `useState` locales.
+## Database changes (migration)
+Extend `public.profiles`:
+- `email text` (nullable, unique when not null via partial index — to allow recovery later).
+- `birthdate date` (nullable).
+- Update `profiles_guard_privileged_fields` trigger? Not needed — these are user-editable fields, no guard required.
+- Update `handle_new_user()` trigger to read `email` and `birthdate` from `raw_user_meta_data` and insert them into the new columns.
 
----
+## Form changes (`src/pages/CustomerRegister.tsx`)
+- Add `email` input (type=email, required, validated).
+- Add `birthdate` input (type=date, required, must be a past date, age ≥ 13).
+- Pass both in the `signUp` metadata payload: `{ display_name, gender, email, birthdate, consent_accepted: true }`.
+- Validation via existing zod approach (extend `customerRegistrationSchema` in `src/services/validation/schemas.ts`).
 
-## Fix 1 — Cancelación de premio: verificar entrega antes de cancelar
+## Auth layer (`src/contexts/AuthContext.tsx` / `signUp`)
+- Forward new metadata keys (`email`, `birthdate`) when calling `supabase.auth.signUp`. The handle_new_user trigger picks them up from `raw_user_meta_data`.
+- No change to the auth identity itself — login still uses phone+password (email is profile data, not the auth handle), to avoid breaking existing customer login.
 
-### `src/pages/CustomerDashboard.tsx` — `handleCancelRequest`
+## Type updates
+- Extend `Customer` interface (`src/lib/types.ts`) with optional `email?: string` and `birthdate?: string`.
+- Update `customers.service.ts` mapper to read these from the `profiles` row.
 
-Antes de llamar `cancelRedemptionRequestByCustomer`, re-consultar el estado real:
+## Out of scope
+- No change to staff registration.
+- No change to login (phone remains the auth handle).
+- No backfill of existing rows — new columns are nullable.
 
-```ts
-const fresh = await getPendingRequest(customer.id, selectedCampaignId);
-if (!fresh || fresh.id !== req.id || fresh.status !== 'pending') {
-  toast.error('Tu premio ya fue entregado o la solicitud ya no está pendiente');
-  await Promise.all([
-    queryClient.invalidateQueries({ queryKey: ['pendingRequest', customer.id] }),
-    queryClient.invalidateQueries({ queryKey: ['historicalRequests', customer.id] }),
-    queryClient.invalidateQueries({ queryKey: ['ledgerTx', customer.id] }),
-  ]);
-  return;
-}
-```
-
-En el `catch`, si el error proviene del guard server-side (`status='pending'` no matcheó), aplicar el mismo invalidate y mostrar el mismo mensaje. No se toca el RPC.
-
-### `src/components/customer/RewardsCard.tsx`
-
-Endurecer la condición del botón Cancelar:
-
-```tsx
-{onCancelRequest && pendingRequest.status === 'pending' && (
-  <button onClick={() => onCancelRequest(pendingRequest)}>…</button>
-)}
-```
-
-### Lo que NO se cambia
-
-- `approve_redemption_request`, `redeem_reward`, RLS, ni triggers.
-- Polling sigue en 3 s.
-- No se agrega cooldown de re-solicitud.
-
----
-
-## Fix 2 — Persistir estado del panel staff al cambiar de pestaña
-
-### Causa
-
-`src/contexts/AuthContext.tsx` (líneas ~130-153) — el listener corre `setRolesLoaded(false)` ante **cualquier** evento de auth con sesión presente, incluido `TOKEN_REFRESHED` que dispara el navegador al recuperar foco. `StaffPanel.tsx` tiene:
-
-```ts
-if (!user || !rolesLoaded || !hasStaffRole) return null;
-```
-
-Al renderizar `null`, React desmonta el árbol → todos los `useState` (`activeTab` en sessionStorage sobrevive, pero `selectedCustomer`, `phoneSearch`, `commentText`, `pendingRequest` cacheado, etc.) se pierden.
-
-### Cambio en `src/contexts/AuthContext.tsx`
-
-En `onAuthStateChange`:
-
-- Si `event === 'TOKEN_REFRESHED'` o `event === 'USER_UPDATED'` **y** `nextSession?.user?.id === user?.id` (mismo usuario), actualizar sólo `session`/`user` sin tocar `rolesLoaded`, sin re-fetchear roles, sin re-correr `postAuthHydrate`.
-- Re-hidratar roles y bridge sólo en `SIGNED_IN` con usuario distinto o en `SIGNED_OUT`.
-
-Esquema:
-
-```ts
-const prevUserId = userRef.current?.id; // ref sincronizada con user
-setSession(nextSession);
-setUser(nextSession?.user ?? null);
-
-if (!nextSession?.user) {
-  setRoles([]); setRolesLoaded(true); clearLegacySessions(); return;
-}
-
-const sameUser = nextSession.user.id === prevUserId;
-if (sameUser && (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
-  return; // no tocar rolesLoaded, no remount
-}
-
-setRolesLoaded(false);
-setTimeout(() => { /* fetchProfile + fetchRoles + bridgeLegacy + postAuthHydrate (igual que hoy) */ }, 0);
-```
-
-### Lo que NO se cambia
-
-- No se quita el handler `visibilitychange` que hace `rehydrateLedgerHistory` (es throttled a 5 s y es legítimo refrescar ledger al volver al tab).
-- No se cambia `StaffPanel` (`activeTab` ya persiste en `sessionStorage`).
-- No se introduce ningún nuevo contexto ni se cambia React Query.
-
----
-
-## Validación
-
-**Fix 1:**
-1. Cliente pide premio → cajero aprueba → cliente pulsa Cancelar dentro de 3 s → toast "Tu premio ya fue entregado…", botón desaparece, puntos actualizados sin recargar.
-2. Cliente pide y cancela antes de que cajero apruebe → flujo normal sigue funcionando.
-3. Consola: ninguna llamada a `cancelRedemptionRequestByCustomer` cuando la solicitud ya no está pendiente.
-
-**Fix 2:**
-1. Staff loguea → selecciona cliente en Operaciones → cambia a otra pestaña del navegador → vuelve → cliente seleccionado, búsqueda y pestaña activa permanecen intactos.
-2. Misma prueba en pestañas Dashboard, Campañas, Reportes, Usuarios.
-3. Log esperado: al volver al tab debe verse `[Auth] onAuthStateChange { event: 'TOKEN_REFRESHED' }` **sin** que aparezca un nuevo `[STAFF_PANEL_RENDER]` con `rolesLoaded: false`.
-4. Logout/login real sigue rehidratando roles y bridge legacy correctamente.
+## Technical summary
+1. Migration: `ALTER TABLE profiles ADD COLUMN email text, ADD COLUMN birthdate date;` + update `handle_new_user()`.
+2. Update zod schema with email + birthdate validation.
+3. Update `CustomerRegister.tsx` with two new fields and validation.
+4. Update `signUp` metadata pass-through.
+5. Update `Customer` type + customers mapper.
