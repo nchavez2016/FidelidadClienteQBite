@@ -15,6 +15,8 @@ import { toast } from 'sonner';
 export default function CustomerRegister() {
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [birthdate, setBirthdate] = useState('');
   const [password, setPassword] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
   const [consent, setConsent] = useState(false);
@@ -27,11 +29,21 @@ export default function CustomerRegister() {
     if (phone.length < 7) { toast.error('Número de teléfono inválido'); return; }
     if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
     if (!gender) { toast.error('Por favor selecciona tu género'); return; }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(email)) { toast.error('Correo electrónico inválido'); return; }
+    if (!birthdate) { toast.error('Ingresa tu fecha de nacimiento'); return; }
+    const bd = new Date(birthdate);
+    const today = new Date();
+    if (isNaN(bd.getTime()) || bd >= today) { toast.error('Fecha de nacimiento inválida'); return; }
+    const age = (today.getTime() - bd.getTime()) / (365.25 * 24 * 3600 * 1000);
+    if (age < 13) { toast.error('Debes tener al menos 13 años para registrarte'); return; }
     if (!consent) { toast.error('Debes aceptar el uso de tu número celular para continuar'); return; }
     setSubmitting(true);
     const { error } = await signUp(phone, password, 'customer', {
       display_name: name,
       gender,
+      contact_email: email.trim().toLowerCase(),
+      birthdate,
       consent_accepted: true,
     });
     setSubmitting(false);
@@ -59,6 +71,14 @@ export default function CustomerRegister() {
             <div>
               <Label htmlFor="phone">Número de teléfono</Label>
               <Input id="phone" type="tel" placeholder="0991234567" value={phone} onChange={e => setPhone(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="email">Correo electrónico</Label>
+              <Input id="email" type="email" placeholder="tu@correo.com" value={email} onChange={e => setEmail(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="birthdate">Fecha de nacimiento</Label>
+              <Input id="birthdate" type="date" value={birthdate} onChange={e => setBirthdate(e.target.value)} max={new Date().toISOString().slice(0, 10)} required />
             </div>
             <div>
               <Label htmlFor="gender">Género</Label>

@@ -258,10 +258,12 @@ export type Database = {
       profiles: {
         Row: {
           accepted_campaigns: string[]
+          birthdate: string | null
           branch_id: string | null
           created_at: string
           deleted_at: string | null
           display_name: string
+          email: string | null
           gender: Database["public"]["Enums"]["gender_type"] | null
           id: string
           is_active: boolean
@@ -272,10 +274,12 @@ export type Database = {
         }
         Insert: {
           accepted_campaigns?: string[]
+          birthdate?: string | null
           branch_id?: string | null
           created_at?: string
           deleted_at?: string | null
           display_name?: string
+          email?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id: string
           is_active?: boolean
@@ -286,10 +290,12 @@ export type Database = {
         }
         Update: {
           accepted_campaigns?: string[]
+          birthdate?: string | null
           branch_id?: string | null
           created_at?: string
           deleted_at?: string | null
           display_name?: string
+          email?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
           is_active?: boolean

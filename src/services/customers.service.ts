@@ -64,6 +64,8 @@ interface ProfileRow {
   accepted_campaigns: string[] | null;
   revoked_from_phone: string | null;
   legacy_id: string | null;
+  email: string | null;
+  birthdate: string | null;
 }
 
 function profileToCustomer(r: ProfileRow): Customer {
@@ -72,6 +74,8 @@ function profileToCustomer(r: ProfileRow): Customer {
     phone: r.phone ?? '',
     name: r.display_name || (r.phone ?? ''),
     gender: (r.gender ?? null) as Gender | null,
+    email: r.email ?? undefined,
+    birthdate: r.birthdate ?? undefined,
     pointsByCampaign: {},
     acceptedCampaigns: r.accepted_campaigns ?? [],
     isActive: r.is_active,
