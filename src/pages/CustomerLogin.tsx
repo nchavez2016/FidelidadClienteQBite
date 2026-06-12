@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { appRoute } from '@/lib/navigation';
+import { loadCustomerDashboardPage, loadCustomerRegisterPage } from '@/lib/routePreload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +27,7 @@ export default function CustomerLogin() {
       return;
     }
     toast.success('¡Bienvenido!');
+    void loadCustomerDashboardPage();
     navigate(appRoute('/cliente/dashboard'));
   };
 
@@ -49,7 +51,7 @@ export default function CustomerLogin() {
             <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">{submitting ? 'Ingresando…' : 'Ingresar'}</Button>
             <p className="text-center text-sm text-muted-foreground">
               ¿No tienes cuenta?{' '}
-              <button type="button" onClick={() => navigate(appRoute('/cliente/registro'))} className="text-secondary underline font-medium">Regístrate aquí</button>
+              <button type="button" onMouseEnter={loadCustomerRegisterPage} onFocus={loadCustomerRegisterPage} onClick={() => navigate(appRoute('/cliente/registro'))} className="text-secondary underline font-medium">Regístrate aquí</button>
             </p>
           </form>
         </CardContent>
