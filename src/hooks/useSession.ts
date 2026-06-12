@@ -6,7 +6,7 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { appRoute } from '@/lib/navigation.ts';
+import { appRoute } from '@/lib/navigation';
 import type { Session, Role } from '@/services/auth/types';
 
 export function useSession(redirectTo?: string) {
