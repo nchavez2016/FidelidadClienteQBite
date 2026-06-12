@@ -7,6 +7,10 @@ export interface Customer {
   phone: string;
   name: string;
   gender: Gender | null;
+  /** Correo electrónico de contacto (opcional, recolectado en registro). */
+  email?: string;
+  /** Fecha de nacimiento (ISO YYYY-MM-DD). */
+  birthdate?: string;
   /** Puntos por campaña (clave = campaignId). Reemplaza al antiguo `points`. */
   /**
    * @deprecated Los puntos viven ahora en la tabla `customer_campaign_points`.

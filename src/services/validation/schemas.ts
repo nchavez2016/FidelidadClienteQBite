@@ -25,6 +25,14 @@ export const customerRegistrationSchema = z.object({
   name,
   password,
   gender: z.enum(['masculino', 'femenino', 'otro']),
+  email: z.string().trim().toLowerCase().email('Correo electrónico inválido').max(255),
+  birthdate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha de nacimiento inválida')
+    .refine((s) => {
+      const d = new Date(s);
+      return !isNaN(d.getTime()) && d < new Date();
+    }, 'Fecha de nacimiento inválida'),
 });
 
 export const customerLoginSchema = z.object({
