@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { appRoute } from '@/lib/navigation';
+import { loadCustomerLoginPage } from '@/lib/routePreload';
 import { Gender } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,7 +111,7 @@ export default function CustomerRegister() {
             <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">{submitting ? 'Creando…' : 'Crear Cuenta'}</Button>
             <p className="text-center text-sm text-muted-foreground">
               ¿Ya tienes cuenta?{' '}
-              <button type="button" onClick={() => navigate(appRoute('/cliente/login'))} className="text-secondary underline font-medium">Inicia sesión</button>
+              <button type="button" onMouseEnter={loadCustomerLoginPage} onFocus={loadCustomerLoginPage} onPointerDown={loadCustomerLoginPage} onClick={() => void loadCustomerLoginPage().then(() => navigate(appRoute('/cliente/login')))} className="text-secondary underline font-medium">Inicia sesión</button>
             </p>
           </form>
         </CardContent>
