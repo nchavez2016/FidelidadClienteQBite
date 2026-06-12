@@ -1,39 +1,79 @@
-## Goal
-Add two new fields to the customer registration form (`/cliente/registro`):
-- **Correo electrónico** (email)
-- **Fecha de nacimiento** (birthdate)
+# Optimización de carga inicial
 
-Both must be persisted in the database alongside the existing profile data.
+Cambios mínimos. No se tocan rutas, ProtectedRoute, servicios, signIn/signUp/signOut ni idle timeout.
 
-## Database changes (migration)
-Extend `public.profiles`:
-- `email text` (nullable, unique when not null via partial index — to allow recovery later).
-- `birthdate date` (nullable).
-- Update `profiles_guard_privileged_fields` trigger? Not needed — these are user-editable fields, no guard required.
-- Update `handle_new_user()` trigger to read `email` and `birthdate` from `raw_user_meta_data` and insert them into the new columns.
+## 1) `src/App.tsx` — lazy loading
 
-## Form changes (`src/pages/CustomerRegister.tsx`)
-- Add `email` input (type=email, required, validated).
-- Add `birthdate` input (type=date, required, must be a past date, age ≥ 13).
-- Pass both in the `signUp` metadata payload: `{ display_name, gender, email, birthdate, consent_accepted: true }`.
-- Validation via existing zod approach (extend `customerRegistrationSchema` in `src/services/validation/schemas.ts`).
+- Mantener `Index` como import estático (primera pantalla).
+- Convertir a `React.lazy()`: `CustomerLogin`, `CustomerRegister`, `CustomerDashboard`, `StaffLogin`, `StaffPanel`, `NotFound`.
+- Envolver `<Routes>` con un único `<Suspense>` cuyo fallback use `bg-gradient-navy` (mismo fondo que los logins / Index) para no provocar parpadeo de color:
 
-## Auth layer (`src/contexts/AuthContext.tsx` / `signUp`)
-- Forward new metadata keys (`email`, `birthdate`) when calling `supabase.auth.signUp`. The handle_new_user trigger picks them up from `raw_user_meta_data`.
-- No change to the auth identity itself — login still uses phone+password (email is profile data, not the auth handle), to avoid breaking existing customer login.
+```tsx
+<Suspense fallback={
+  <div className="min-h-screen bg-gradient-navy flex items-center justify-center">
+    <div className="animate-pulse text-white">Cargando...</div>
+  </div>
+}>
+  <Routes>…</Routes>
+</Suspense>
+```
 
-## Type updates
-- Extend `Customer` interface (`src/lib/types.ts`) with optional `email?: string` and `birthdate?: string`.
-- Update `customers.service.ts` mapper to read these from the `profiles` row.
+Resultado: en `/` el bundle inicial deja de incluir el código de `CustomerDashboard` y `StaffPanel` (y resto de páginas no usadas).
 
-## Out of scope
-- No change to staff registration.
-- No change to login (phone remains the auth handle).
-- No backfill of existing rows — new columns are nullable.
+## 2) `src/contexts/AuthContext.tsx` — diferir hidratación en reload
 
-## Technical summary
-1. Migration: `ALTER TABLE profiles ADD COLUMN email text, ADD COLUMN birthdate date;` + update `handle_new_user()`.
-2. Update zod schema with email + birthdate validation.
-3. Update `CustomerRegister.tsx` with two new fields and validation.
-4. Update `signUp` metadata pass-through.
-5. Update `Customer` type + customers mapper.
+- Añadir estado `const [isHydrating, setIsHydrating] = useState(false);`
+- Añadir `isHydrating: boolean;` a `AuthContextValue`.
+- Añadirlo al `value` del provider y a las dependencias del `useMemo`.
+- **Sólo** en la rama `supabase.auth.getSession().then(...)` (rehidratación al recargar), reemplazar:
+
+```ts
+// ANTES
+hydratePostAuth().finally(() => {
+  rolesLoadedForUserRef.current = data.session!.user.id;
+  setRolesLoaded(true);
+  setLoading(false);
+});
+
+// DESPUÉS
+rolesLoadedForUserRef.current = data.session!.user.id;
+setRolesLoaded(true);
+setLoading(false);
+setIsHydrating(true);
+void hydratePostAuth()
+  .catch(err => console.error('Hydration error:', err))
+  .finally(() => setIsHydrating(false));
+```
+
+- **No tocar** las ramas `signIn` ni `signUp`: siguen con `await hydratePostAuth()` para evitar flash post-login.
+- La rama del listener `onAuthStateChange` tampoco se modifica.
+
+## 3) `src/pages/CustomerDashboard.tsx` y `src/pages/StaffPanel.tsx` — skeleton durante hidratación
+
+- En `CustomerDashboard.tsx` añadir `import { useAuth } from "@/hooks/useAuth";` (StaffPanel ya lo importa).
+- En ambos componentes, leer `const { isHydrating } = useAuth();` al inicio del componente.
+- **Reglas de Hooks**: el early return va **después** de todos los hooks existentes (`useCustomerSession`, `useStaffAuth`, `useQuery`, `useState`, `useEffect`, etc.), nunca antes. Todos los hooks deben ejecutarse siempre en el mismo orden.
+
+Skeleton común:
+
+```tsx
+if (isHydrating) {
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+        <div className="h-32 bg-gray-200 rounded"></div>
+        <div className="h-32 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  );
+}
+```
+
+## Verificación
+
+- En `/`: Network no carga los chunks de `CustomerDashboard` ni `StaffPanel`.
+- Login (cliente y staff): entra al panel sin flash (signIn sigue esperando `hydratePostAuth`).
+- Recargar con sesión activa: aparece el skeleton del panel mientras `isHydrating` es true, luego el contenido real.
+- Los hooks de los paneles se ejecutan siempre — no hay early return antes de ellos.
+- Suscripciones realtime siguen activándose dentro de `hydratePostAuth` (sin cambios).
