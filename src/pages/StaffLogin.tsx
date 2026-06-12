@@ -21,6 +21,7 @@ export default function StaffLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    const panelLoad = loadStaffPanelPage();
     const { error } = await signIn(username, password, 'staff');
     setSubmitting(false);
     if (error) {
@@ -28,7 +29,7 @@ export default function StaffLogin() {
       return;
     }
     toast.success('Bienvenido');
-    void loadStaffPanelPage();
+    await panelLoad;
     navigate(appRoute('/staff/panel'));
   };
 

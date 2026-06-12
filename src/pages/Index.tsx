@@ -61,6 +61,16 @@ function SocialFooter() {
 export default function Index() {
   const navigate = useNavigate();
 
+  const goCustomerLogin = async () => {
+    await loadCustomerLoginPage();
+    navigate(appRoute("/cliente/login"));
+  };
+
+  const goStaffLogin = async () => {
+    await loadStaffLoginPage();
+    navigate(appRoute("/staff/login"));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-navy flex flex-col items-center p-4">
       <div className="flex-1 flex items-center justify-center w-full">
@@ -75,7 +85,8 @@ export default function Index() {
             <Button
               onMouseEnter={loadCustomerLoginPage}
               onFocus={loadCustomerLoginPage}
-              onClick={() => navigate(appRoute("/cliente/login"))}
+              onPointerDown={loadCustomerLoginPage}
+              onClick={() => void goCustomerLogin()}
               className="w-full h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground gap-3 shadow-gold"
             >
               <Users className="w-5 h-5" />
@@ -84,7 +95,8 @@ export default function Index() {
             <Button
               onMouseEnter={loadStaffLoginPage}
               onFocus={loadStaffLoginPage}
-              onClick={() => navigate(appRoute("/staff/login"))}
+              onPointerDown={loadStaffLoginPage}
+              onClick={() => void goStaffLogin()}
               variant="outline"
               className="w-full h-12 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
             >
