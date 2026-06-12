@@ -24,6 +24,7 @@ import {
   getPendingRequest,
 } from "@/services/redemptionRequests.service";
 import { useCustomerSession } from "@/hooks/useCustomerSession";
+import { useAuth } from "@/hooks/useAuth";
 
 import ProgressRoute from "@/components/ProgressRoute";
 import TransactionItem from "@/components/TransactionItem";
@@ -131,6 +132,7 @@ const mapRequestToTransaction = (request: RedemptionRequest): Transaction => ({
 });
 
 export default function CustomerDashboard() {
+  const { isHydrating } = useAuth();
   const { customer, refresh: refreshCustomer, logout } = useCustomerSession("/cliente/login");
   const [, setTick] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
@@ -411,6 +413,18 @@ export default function CustomerDashboard() {
           onSubmit={handleChangePassword}
         />
         <SocialFooter />
+      </div>
+    );
+  }
+
+  if (isHydrating) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+        </div>
       </div>
     );
   }
