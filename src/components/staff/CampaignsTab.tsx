@@ -1,4 +1,5 @@
-import { getCampaigns, setCampaignStatus } from '@/lib/store';
+import { useState } from 'react';
+import { getCampaigns, setCampaignStatus, deleteCampaign } from '@/services';
 import { Campaign } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,11 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProgressRoute from '@/components/ProgressRoute';
-import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy } from 'lucide-react';
+import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy, Eye, Award, Coins, Zap, ArrowLeftRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
+import { getBranchAccent } from '@/lib/utils';
 
 const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
 
@@ -32,8 +35,57 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
     addBonusRule, updateBonusRule, removeBonusRule,
   } = useCampaignEditor(onRefresh);
 
+  const [deleteTarget, setDeleteTarget] = useState<Campaign | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const canConfirmDelete = deleteConfirmText.trim().toUpperCase() === 'ELIMINAR';
+
   return (
     <div className="space-y-4 mt-4">
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={open => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(''); } }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Eliminar campaña</DialogTitle>
+            <DialogDescription>
+              Esta acción no se puede deshacer. Se eliminará la campaña{' '}
+              <strong>{deleteTarget?.name}</strong>. Para continuar, escribe <strong>ELIMINAR</strong> en el campo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Label className="text-xs">Confirmación</Label>
+            <Input
+              autoFocus
+              value={deleteConfirmText}
+              onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="Escribe ELIMINAR"
+              className="mt-1"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteConfirmText(''); }}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!canConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              onClick={() => {
+                if (!deleteTarget || !canConfirmDelete) return;
+                const name = deleteTarget.name;
+                deleteCampaign(deleteTarget.id);
+                setDeleteTarget(null);
+                setDeleteConfirmText('');
+                onRefresh();
+                toast.success(`Campaña "${name}" eliminada`);
+              }}
+            >
+              Eliminar definitivamente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {!editingCampaign ? (
         <>
           <div className="flex justify-between items-center">
@@ -42,13 +94,47 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               <Plus className="w-4 h-4" />Nueva Campaña
             </Button>
           </div>
-          {getCampaigns().map(c => (
-            <Card key={c.id}>
+          {(() => {
+            const statusOrder: Record<string, number> = { active: 0, paused: 1, draft: 2, finished: 3 };
+            return [...getCampaigns()].sort((a, b) => {
+              const sa = statusOrder[a.status] ?? 99;
+              const sb = statusOrder[b.status] ?? 99;
+              if (sa !== sb) return sa - sb;
+              return (a.name || '').localeCompare(b.name || '');
+            });
+          })().map(c => {
+            const branchAccent = getBranchAccent(c.branch);
+            const statusStyles =
+              c.status === 'active'
+                ? { borderColor: 'hsl(var(--success))', borderLeftWidth: '4px', background: 'hsl(var(--card))' }
+                : c.status === 'paused'
+                ? { borderColor: 'rgb(251,191,36)', borderLeftWidth: '4px', background: 'rgba(251,191,36,0.04)' }
+                : c.status === 'draft'
+                ? { borderColor: 'hsl(var(--muted-foreground) / 0.4)', borderLeftWidth: '4px', borderStyle: 'dashed' as const, background: 'hsl(var(--muted) / 0.3)' }
+                : { borderColor: 'hsl(var(--destructive) / 0.4)', borderLeftWidth: '4px', background: 'hsl(var(--destructive) / 0.04)', opacity: 0.85 };
+            return (
+            <Card key={c.id} style={statusStyles}>
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-heading font-bold text-lg">{c.name}</h3>
-                    <p className="text-xs text-muted-foreground">📍 {c.branch || '—'} · {c.startDate} → {c.endDate}</p>
+                  <div
+                    className="rounded-md px-3 py-1.5"
+                    style={branchAccent ? {
+                      background: branchAccent.bg,
+                      border: `1px solid ${branchAccent.border}`,
+                    } : undefined}
+                  >
+                    <h3
+                      className="font-heading font-bold text-lg"
+                      style={branchAccent ? { color: branchAccent.color } : undefined}
+                    >
+                      {c.name}
+                    </h3>
+                    <p
+                      className="text-xs"
+                      style={branchAccent ? { color: branchAccent.color, opacity: 0.85 } : undefined}
+                    >
+                      📍 {c.branch || '—'} · {c.startDate} → {c.endDate}
+                    </p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     c.status === 'active' ? 'bg-success/10 text-success' :
@@ -177,10 +263,20 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                   {c.status === 'finished' && (
                     <Button size="sm" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => onReactivateCampaign(c.id)}>Reactivar</Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto border-destructive/40 text-destructive hover:bg-destructive/10 gap-1"
+                    onClick={() => { setDeleteTarget(c); setDeleteConfirmText(''); }}
+                    aria-label="Eliminar campaña"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />Eliminar
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </>
       ) : (
         <Card>
@@ -217,21 +313,6 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                 <Label>Fin</Label>
                 <Input type="date" value={editingCampaign.endDate} onChange={e => setEditingCampaign({ ...editingCampaign, endDate: e.target.value })} />
               </div>
-            </div>
-
-            {/* Terms and Conditions */}
-            <div>
-              <Label className="text-sm font-bold flex items-center gap-1.5">
-                📋 Términos y Condiciones <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                value={editingCampaign.termsAndConditions}
-                onChange={e => setEditingCampaign({ ...editingCampaign, termsAndConditions: e.target.value })}
-                placeholder="Escribe los términos y condiciones de esta campaña..."
-                rows={5}
-                className="mt-1"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">Este texto será visible para clientes y cajeros.</p>
             </div>
 
             {/* Milestones */}
@@ -290,6 +371,65 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                 <Button onClick={addMilestone} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-1"><Plus className="w-4 h-4" />Agregar</Button>
               </div>
             </div>
+
+            {/* Configuración de puntos por orden */}
+            {(() => {
+              const amount = editingCampaign.minOrderAmount ?? 5;
+              const dynamicPlaceholder = `Ej: 1 punto por orden de $${amount.toFixed(2)} USD o más. El monto no importa, cuenta la orden.`;
+              return (
+                <div
+                  className="rounded-lg p-4 space-y-4"
+                  style={{ background: '#EEF2F8', border: '1.5px solid #C9A84C' }}
+                >
+                  <h3 className="font-heading font-bold" style={{ color: '#1B3A6B' }}>
+                    Cómo se gana 1 punto
+                  </h3>
+
+                  <div>
+                    <Label>Monto mínimo por orden para ganar 1 punto</Label>
+                    <div className="relative mt-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editingCampaign.minOrderAmount ?? ''}
+                        onChange={e => {
+                          const v = e.target.value;
+                          setEditingCampaign({
+                            ...editingCampaign,
+                            minOrderAmount: v === '' ? undefined : Math.max(0, parseFloat(v) || 0),
+                          });
+                        }}
+                        placeholder="Ej: 5.00"
+                        className="pr-12 bg-white"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground pointer-events-none">
+                        USD
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">Si se deja vacío, se usa $5.00 USD por defecto.</p>
+                  </div>
+
+                  <div>
+                    <Label>Descripción de cómo ganar puntos</Label>
+                    <Input
+                      type="text"
+                      maxLength={120}
+                      value={editingCampaign.pointsDescription ?? ''}
+                      onChange={e => setEditingCampaign({ ...editingCampaign, pointsDescription: e.target.value })}
+                      placeholder={dynamicPlaceholder}
+                      className="mt-1 bg-white"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Si lo dejas vacío, se usará: 1 punto por orden de ${amount.toFixed(2)} USD o más.
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {(editingCampaign.pointsDescription?.length ?? 0)}/120
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Bonus rules */}
             <div>
@@ -406,15 +546,23 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               )}
             </div>
 
-            {/* Preview */}
-            {editingCampaign.milestones.length > 0 && (
-              <div>
-                <h3 className="font-heading font-bold mb-2 text-sm text-muted-foreground">Vista previa del cliente:</h3>
-                <div className="bg-muted p-4 rounded-lg">
-                  <ProgressRoute currentPoints={0} animate={false} milestones={editingCampaign.milestones} />
-                </div>
-              </div>
-            )}
+            {/* Terms and Conditions */}
+            <div>
+              <Label className="text-sm font-bold flex items-center gap-1.5">
+                📋 Términos y Condiciones <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                value={editingCampaign.termsAndConditions}
+                onChange={e => setEditingCampaign({ ...editingCampaign, termsAndConditions: e.target.value })}
+                placeholder="Escribe los términos y condiciones de esta campaña..."
+                rows={5}
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Este texto será visible para clientes y cajeros.</p>
+            </div>
+
+            {/* Preview en vivo de lo que verá el cliente */}
+            <CustomerTermsPreview campaign={editingCampaign} />
 
             <div className="flex gap-2">
               <Button onClick={saveCampaignChanges} className="bg-success hover:bg-success/90 text-success-foreground">Guardar Campaña</Button>
@@ -423,6 +571,81 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
+  const [legalOpen, setLegalOpen] = useState(false);
+  const amount = campaign?.minOrderAmount ?? 5;
+  const cardText = campaign?.pointsDescription?.trim()
+    ? campaign.pointsDescription
+    : `1 punto por orden de $${amount.toFixed(2)} USD o más. El monto no importa, cuenta la orden.`;
+
+  return (
+    <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-4">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+        <Eye className="h-3.5 w-3.5" />
+        Vista del cliente
+      </div>
+
+      <div className="rounded-lg bg-background border border-border p-4 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="rounded-full p-2" style={{ background: 'rgba(27,58,107,0.1)' }}>
+            <Award className="h-5 w-5" style={{ color: '#1B3A6B' }} />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold" style={{ color: '#1B3A6B' }}>
+              {campaign?.name || 'Nombre de la campaña'}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Antes de continuar, conoce cómo funciona
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-md border border-border p-3 flex gap-3">
+          <Coins className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Cómo ganar puntos</p>
+            <p className="text-xs text-muted-foreground">{cardText}</p>
+          </div>
+        </div>
+
+        {(campaign?.bonusRules || []).filter(r => r.active).length > 0 && (
+          <div className="rounded-md border border-border p-3 flex gap-3">
+            <Zap className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Puntos dobles activos</p>
+              <p className="text-xs text-muted-foreground">Gana puntos extra en días y horarios seleccionados.</p>
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-md border border-border p-3 flex gap-3">
+          <ArrowLeftRight className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+          <div className="flex-1">
+            <p className="text-sm font-medium">Canje parcial</p>
+            <p className="text-xs text-muted-foreground">Puedes canjear premios parcialmente según tus puntos disponibles.</p>
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-3">
+          <button
+            type="button"
+            onClick={() => setLegalOpen(o => !o)}
+            className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <span>Términos y condiciones legales</span>
+            {legalOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          {legalOpen && (
+            <div className="mt-2 max-h-48 overflow-y-auto text-xs text-muted-foreground whitespace-pre-wrap">
+              {campaign?.termsAndConditions || 'Sin términos definidos.'}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

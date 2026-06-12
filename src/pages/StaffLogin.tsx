@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoute } from '@/lib/navigation';
+import { loadStaffPanelPage } from '@/lib/routePreload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +21,7 @@ export default function StaffLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    const panelLoad = loadStaffPanelPage();
     const { error } = await signIn(username, password, 'staff');
     setSubmitting(false);
     if (error) {
@@ -26,12 +29,13 @@ export default function StaffLogin() {
       return;
     }
     toast.success('Bienvenido');
-    navigate('/staff/panel');
+    await panelLoad;
+    navigate(appRoute('/staff/panel'));
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-navy">
-      <Card className="w-full max-w-md shadow-brand animate-scale-in">
+      <Card className="w-full max-w-md shadow-brand">
         <CardHeader className="text-center pb-2">
           <BrandHeader subtitle="Acceso del Personal" />
           <div className="flex items-center justify-center gap-2">

@@ -7,6 +7,10 @@ export interface Customer {
   phone: string;
   name: string;
   gender: Gender | null;
+  /** Correo electrónico de contacto (opcional, recolectado en registro). */
+  email?: string;
+  /** Fecha de nacimiento (ISO YYYY-MM-DD). */
+  birthdate?: string;
   /** Puntos por campaña (clave = campaignId). Reemplaza al antiguo `points`. */
   /**
    * @deprecated Los puntos viven ahora en la tabla `customer_campaign_points`.
@@ -40,6 +44,8 @@ export interface StaffUser {
   name: string;
   /** Sucursal/campaña activa de la sesión del staff. */
   branchCampaignId?: string;
+  /** ID de la sucursal asignada en el perfil del staff. */
+  branchId?: string;
   /** Si está activo. Inactivo = no puede iniciar sesión. Default true. */
   active?: boolean;
 }
@@ -51,6 +57,8 @@ export type TransactionType =
   | 'terms_acceptance'
   | 'redemption_request'
   | 'redemption_request_cancelled'
+  | 'redemption_request_rejected'
+  | 'redemption_request_approved'
   | 'consent_revocation';
 
 export type CommentCategory = 'positive' | 'complaint' | 'observation' | 'promotion' | 'suggestion' | 'other';
@@ -73,6 +81,8 @@ export interface Transaction {
   rewardName?: string;
   staffId: string;
   staffName: string;
+  /** Rol del actor que registró la transacción (para mostrar quién la hizo). */
+  actorRole?: 'admin' | 'cashier' | 'customer' | 'system' | null;
   commentCategory?: CommentCategory;
   commentText?: string;
   reversedTransactionId?: string;
@@ -121,6 +131,8 @@ export interface BonusRule {
 export interface Campaign {
   id: string;
   name: string;
+  /** ID de la sucursal asociada en base de datos. */
+  branchId?: string;
   /** Nombre corto de la sucursal asociada (ej: "Gaviota Azul Express"). */
   branch: string;
   startDate: string;
@@ -130,10 +142,14 @@ export interface Campaign {
   /** Reglas de bonificación opcionales (días/horas con multiplicador). */
   bonusRules?: BonusRule[];
   termsAndConditions: string;
+  /** Monto mínimo por orden (USD) requerido para acumular 1 punto. Default visual: 5. */
+  minOrderAmount?: number;
+  /** Descripción libre de cómo ganar puntos (override del texto por defecto). */
+  pointsDescription?: string;
   createdAt: string;
 }
 
-export type RedemptionRequestStatus = 'pending' | 'approved' | 'cancelled';
+export type RedemptionRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 /**
  * Solicitud de canje iniciada por el cliente.

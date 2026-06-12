@@ -36,12 +36,3 @@ export function clearLegacySessions(): void {
     console.error('[legacyBridge] clearLegacySessions crashed', error);
   }
 }
-
-/**
- * @deprecated Phase 2.8 — no-op kept so older imports do not break the
- * build. New code MUST NOT call this. Logs a warning if hit.
- */
-export function syncLegacyCustomerSession(_user: User): null {
-  console.warn('[legacyBridge] syncLegacyCustomerSession is a no-op (Phase 2.8 purge)');
-  return null;
-}

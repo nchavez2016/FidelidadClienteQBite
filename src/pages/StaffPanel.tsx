@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getOperableCampaigns, getCampaignById } from '@/lib/store';
+import { getOperableCampaigns, getCampaignById } from '@/services';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -28,7 +28,7 @@ const carouselImages = [dishImg1, dishImg2, dishImg3];
 
 export default function StaffPanel() {
   const { staff, isAdmin, logout } = useStaffAuth();
-  const { roles, rolesLoaded, user } = useAuth();
+  const { roles, rolesLoaded, user, isHydrating } = useAuth();
   const TAB_KEY = 'staff.activeTab';
   const VALID_TABS = ['operations', 'dashboard', 'campaigns', 'reports', 'users'];
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -58,10 +58,14 @@ export default function StaffPanel() {
     return () => clearInterval(interval);
   }, []);
 
+  // Campañas operables (activas + pausadas) — se usan para el selector de sucursal,
+  // dashboard y reportes. La restricción de "solo activas" se aplica únicamente
+  // dentro de Operaciones (no se pueden asignar/canjear puntos en pausadas).
   const activeCampaigns = getOperableCampaigns();
-  const initialBranchId = staff?.branchCampaignId && activeCampaigns.find(c => c.id === staff.branchCampaignId)
-    ? staff.branchCampaignId
-    : activeCampaigns[0]?.id || '';
+  const campaignForStaffBranch = staff?.branchId
+    ? activeCampaigns.find(c => c.branchId === staff.branchId)
+    : undefined;
+  const initialBranchId = campaignForStaffBranch?.id ?? activeCampaigns[0]?.id ?? '';
   const [branchCampaignId, setBranchCampaignId] = useState<string>(initialBranchId);
 
   useEffect(() => {
@@ -69,6 +73,18 @@ export default function StaffPanel() {
       setBranchCampaignId(activeCampaigns[0].id);
     }
   }, [activeCampaigns, branchCampaignId]);
+
+  // Sync to the branch assigned to this staff user whenever it (re)loads,
+  // so a cashier always lands on the branch the admin assigned — not the
+  // first active campaign in the list.
+  useEffect(() => {
+    if (!staff?.branchId) return;
+    const match = activeCampaigns.find(c => c.branchId === staff.branchId);
+    if (match && match.id !== branchCampaignId) {
+      setBranchCampaignId(match.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staff?.branchId, activeCampaigns.length]);
 
   const handleBranchChange = (id: string) => {
     setBranchCampaignId(id);
@@ -87,6 +103,18 @@ export default function StaffPanel() {
     }
     return null;
   }
+  if (isHydrating) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
   if (!staff) return null;
 
   const currentCampaign = getCampaignById(branchCampaignId);
@@ -261,6 +289,7 @@ export default function StaffPanel() {
               phoneSearch={ops.phoneSearch} setPhoneSearch={ops.setPhoneSearch}
               searchCustomer={ops.searchCustomer} selectedCustomer={ops.selectedCustomer} setSelectedCustomer={ops.setSelectedCustomer}
               handleAddPoint={ops.handleAddPoint} rewards={ops.rewards}
+              handleAddProPoints={ops.handleAddProPoints}
               setShowRedeemDialog={ops.setShowRedeemDialog} setShowReverseDialog={ops.setShowReverseDialog}
               commentCat={ops.commentCat} commentText={ops.commentText}
               setCommentCat={ops.setCommentCat} setCommentText={ops.setCommentText}
@@ -269,6 +298,8 @@ export default function StaffPanel() {
               activeCampaigns={activeCampaigns}
               currentCampaignId={branchCampaignId}
               pendingRequest={ops.pendingRequest}
+              historicalRequests={ops.historicalRequests}
+              customerTransactions={ops.customerTransactions}
               onApproveRequest={ops.approvePendingRequest}
               onRejectRequest={ops.rejectPendingRequest}
               onRefresh={ops.refresh}

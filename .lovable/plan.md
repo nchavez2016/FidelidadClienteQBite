@@ -1,86 +1,79 @@
-# Phase 4 — Operational UX & Admin Tooling (revised)
+# Optimización de carga inicial
 
-Builds on Phase 3.4. Auth/ledger architecture untouched unless a critical bug appears.
+Cambios mínimos. No se tocan rutas, ProtectedRoute, servicios, signIn/signUp/signOut ni idle timeout.
 
-## 4.1 Admin reset UI (`reset_customer_points`)
+## 1) `src/App.tsx` — lazy loading
 
-- New `src/components/staff/ResetPointsDialog.tsx`, admin-only (`useAuth().roles.includes('admin')`).
-- Entry points: row action in `UsersTab` and customer panel in `OperationsTab`.
-- Modal flow:
-  1. Show current balance per campaign (from `customer_points`).
-  2. Required `reason` (zod, min 5 chars).
-  3. Irreversible warning + typed "RESET" confirmation.
-  4. Call `resetCustomerPoints(customerId, campaignId, reason)`.
-  5. Toast with returned `tx_id` + `new_balance`; UI updates via realtime.
+- Mantener `Index` como import estático (primera pantalla).
+- Convertir a `React.lazy()`: `CustomerLogin`, `CustomerRegister`, `CustomerDashboard`, `StaffLogin`, `StaffPanel`, `NotFound`.
+- Envolver `<Routes>` con un único `<Suspense>` cuyo fallback use `bg-gradient-navy` (mismo fondo que los logins / Index) para no provocar parpadeo de color:
 
-## 4.2 Professional ledger history
+```tsx
+<Suspense fallback={
+  <div className="min-h-screen bg-gradient-navy flex items-center justify-center">
+    <div className="animate-pulse text-white">Cargando...</div>
+  </div>
+}>
+  <Routes>…</Routes>
+</Suspense>
+```
 
-- New `LedgerHistoryView` mounted inside `ReportsTab`.
-- Service: `queryTransactions({ from, to, campaignId, branchId, kind, customerId, page, pageSize })`.
-- **Default time window: last 90 days**, user can extend explicitly. Hard cap 365 days per query.
-- **Pagination strategy** (avoid `count: 'exact'` on growing datasets):
-  - Use `count: 'estimated'` (Postgres planner stats) for the totals chip.
-  - Use `head + range` requests; if estimated count is unavailable, show "página N — más resultados" with a `hasMore` flag derived from `rows.length === pageSize + 1` (fetch one extra and slice).
-  - Page sizes 25/50/100, default 50.
-- Filters UI: date range, campaign, branch, kind multi-select, customer search.
-- Columns: created_at, customer, campaign, branch, kind label, delta, balance_after, actor, reason.
+Resultado: en `/` el bundle inicial deja de incluir el código de `CustomerDashboard` y `StaffPanel` (y resto de páginas no usadas).
 
-## 4.3 CSV export
+## 2) `src/contexts/AuthContext.tsx` — diferir hidratación en reload
 
-- `src/lib/csv.ts` helper, client-side.
-- Re-runs the active query without pagination, capped at **5,000 rows**.
-- If the result hits the cap, prepend a banner toast **and** add a `# Export truncated at 5000 rows. Narrow filters for full data.` header line in the CSV; disable the silent path.
+- Añadir estado `const [isHydrating, setIsHydrating] = useState(false);`
+- Añadir `isHydrating: boolean;` a `AuthContextValue`.
+- Añadirlo al `value` del provider y a las dependencias del `useMemo`.
+- **Sólo** en la rama `supabase.auth.getSession().then(...)` (rehidratación al recargar), reemplazar:
 
-## 4.4 Ops dashboard
+```ts
+// ANTES
+hydratePostAuth().finally(() => {
+  rolesLoadedForUserRef.current = data.session!.user.id;
+  setRolesLoaded(true);
+  setLoading(false);
+});
 
-- Replace KPI panel content in `DashboardTab` (keep shell).
-- Window toggle: Today / 7d / 30d.
-- KPI cards: points issued (earn+bonus), points redeemed (|redeem|), reversals count, active customers (distinct).
-- Lists: top 5 customers, top 5 campaigns, activity by cashier (`getStaffNameMap`).
-- Aggregations in new `analytics.service.ts` via `point_transactions` SELECTs (no extra tables).
+// DESPUÉS
+rolesLoadedForUserRef.current = data.session!.user.id;
+setRolesLoaded(true);
+setLoading(false);
+setIsHydrating(true);
+void hydratePostAuth()
+  .catch(err => console.error('Hydration error:', err))
+  .finally(() => setIsHydrating(false));
+```
 
-## 4.5 QA operacional
+- **No tocar** las ramas `signIn` ni `signUp`: siguen con `await hydratePostAuth()` para evitar flash post-login.
+- La rama del listener `onAuthStateChange` tampoco se modifica.
 
-- **Realtime reconnect** in `pointsLedger.service.ts`:
-  - Listen to channel `system` events (`CHANNEL_ERROR`, `TIMED_OUT`, `CLOSED`).
-  - **Exponential backoff**: 1s → 2s → 4s → 8s → 16s (cap 30s), reset on success.
-  - **Debounce** reconnect attempts (250ms) to coalesce bursts.
-  - **Single-flight lock** in `ledgerHistory.service.ts`: `hydrateLedgerHistory()` already returns an `inflight` promise; extend to also coalesce reconnect-triggered rehydrates so concurrent reconnects share one fetch.
-- Visibility-change in `AuthContext`: on `visibilitychange → visible`, schedule a single `hydrateLedgerHistory()` (skipped if inflight or last-hydrate < 5s).
-- Loading/error states: skeletons in history + dashboard, error fallbacks with retry.
-- `docs/SMOKE_TESTS_PHASE_4.md`: reconnect, multi-tab convergence, hard refresh persistence, admin-only reset, cooldown toast.
+## 3) `src/pages/CustomerDashboard.tsx` y `src/pages/StaffPanel.tsx` — skeleton durante hidratación
 
-## 4.6 Security prep (scaffolding, no enforcement)
+- En `CustomerDashboard.tsx` añadir `import { useAuth } from "@/hooks/useAuth";` (StaffPanel ya lo importa).
+- En ambos componentes, leer `const { isHydrating } = useAuth();` al inicio del componente.
+- **Reglas de Hooks**: el early return va **después** de todos los hooks existentes (`useCustomerSession`, `useStaffAuth`, `useQuery`, `useState`, `useEffect`, etc.), nunca antes. Todos los hooks deben ejecutarse siempre en el mismo orden.
 
-- `src/services/security/sessionPolicy.ts`:
-  - Constants `STAFF_IDLE_TIMEOUT_MS = 30 * 60_000`, `CUSTOMER_IDLE_TIMEOUT_MS = 12h`.
-  - **Feature flag** `IDLE_TIMEOUT_ENABLED = false` (env-overridable). Hook is wired but **does not call `signOut`** while disabled — instead logs to console for QA.
-  - `useIdleTimeout(role)` hook:
-    - Activity events: `mousemove`, `keydown`, `click`, `scroll`, `touchstart`, `focus` (passive listeners).
-    - **Warning modal**: shows 60s before expiry with countdown; "Sigo aquí" extends; "Cerrar sesión" logs out immediately.
-    - Even when enabled later, requires explicit confirmation timeout (no silent kick) — protects cashier mid-operation.
-    - Cleared on unmount; resets on tab focus.
-  - Wired in `AuthContext` based on resolved role; while flag off it only renders warning never auto-logout.
-- `src/services/security/mfa.ts` stub: thin wrappers around `supabase.auth.mfa.*`. Surfaced as disabled "Próximamente" item in admin settings menu.
-- **Audit trail migration** (separate Supabase migration call):
-  - Table `admin_audit_log(actor_id, action, target_type, target_id, metadata jsonb)` + RLS (insert via SECURITY DEFINER `log_admin_action`, select admin-only).
-  - Called after `reset_customer_points`, `adjust_points`, `staff-admin` mutations.
+Skeleton común:
 
-## Technical notes
+```tsx
+if (isHydrating) {
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+        <div className="h-32 bg-gray-200 rounded"></div>
+        <div className="h-32 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  );
+}
+```
 
-- No new dependencies.
-- All queries scoped by existing RLS.
-- Realtime continues using the `supabase_realtime` publication.
-- CSV stays client-side this phase.
+## Verificación
 
-## Out of scope
-
-- Enabling MFA in Supabase project settings.
-- Server-side aggregations / materialized views.
-- Activating `IDLE_TIMEOUT_ENABLED=true` (deferred until QA signs off).
-
-## Deliverables
-
-- New: `ResetPointsDialog.tsx`, `LedgerHistoryView.tsx`, `analytics.service.ts`, `csv.ts`, `sessionPolicy.ts`, `IdleWarningDialog.tsx`, `mfa.ts`, audit-log migration, `SMOKE_TESTS_PHASE_4.md`.
-- Edited: `UsersTab`, `OperationsTab`, `DashboardTab`, `ReportsTab`, `AuthContext`, `pointsLedger.service.ts`, `ledgerHistory.service.ts`, `customers.service.ts`.
-- One DB migration (admin audit log + `log_admin_action` RPC).
+- En `/`: Network no carga los chunks de `CustomerDashboard` ni `StaffPanel`.
+- Login (cliente y staff): entra al panel sin flash (signIn sigue esperando `hydratePostAuth`).
+- Recargar con sesión activa: aparece el skeleton del panel mientras `isHydrating` es true, luego el contenido real.
+- Los hooks de los paneles se ejecutan siempre — no hay early return antes de ellos.
+- Suscripciones realtime siguen activándose dentro de `hydratePostAuth` (sin cambios).

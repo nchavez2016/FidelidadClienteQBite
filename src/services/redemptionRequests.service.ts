@@ -1,47 +1,5 @@
-/**
- * Redemption requests domain service.
- *
- * El cliente crea una solicitud (estado `pending`) eligiendo un premio
- * para el cual ya tiene puntos suficientes. Un cajero/admin debe
- * aprobarla (lo que dispara la transacción de canje real) o rechazarla.
- * El propio cliente puede cancelar mientras siga `pending`.
- *
- * Reglas:
- *  - Sólo puede existir UNA solicitud `pending` por (cliente, campaña).
- *  - Aprobar valida nuevamente que los puntos sigan siendo suficientes.
- */
-import { RedemptionRequest } from '@/lib/types';
-import { db, TABLES } from './dbAdapter';
-
-function load(): RedemptionRequest[] {
-  return db.readSync<RedemptionRequest>(TABLES.redemptionRequests);
-}
-
-function save(list: RedemptionRequest[]): void {
-  db.writeSync(TABLES.redemptionRequests, list);
-}
-
-export function getRedemptionRequests(): RedemptionRequest[] {
-  return load();
-}
-
-export function getPendingRequest(
-  customerId: string,
-  campaignId: string,
-): RedemptionRequest | undefined {
-  return load().find(
-    r =>
-      r.customerId === customerId &&
-      r.campaignId === campaignId &&
-      r.status === 'pending',
-  );
-}
-
-export function getPendingRequestForCustomer(
-  customerId: string,
-): RedemptionRequest | undefined {
-  return load().find(r => r.customerId === customerId && r.status === 'pending');
-}
+import { supabase } from '@/integrations/supabase/client';
+import { RedemptionRequest, RedemptionRequestStatus } from '@/lib/types';
 
 export interface CreateRequestInput {
   customerId: string;
@@ -51,106 +9,270 @@ export interface CreateRequestInput {
   requiredPoints: number;
 }
 
-export function createRedemptionRequest(input: CreateRequestInput): RedemptionRequest {
-  const list = load();
-  // Asegura unicidad: si ya hay una pending para esa (cliente, campaña), recházala.
-  const existing = list.find(
-    r =>
-      r.customerId === input.customerId &&
-      r.campaignId === input.campaignId &&
-      r.status === 'pending',
-  );
-  if (existing) {
-    throw new Error('Ya tienes una solicitud pendiente en esta sucursal');
+// ─── Operational event types ─────────────────────────────────────────────────
+export type RequestEventType = 'created' | 'approved' | 'rejected' | 'cancelled';
+
+/**
+ * Fire-and-forget helper that records a lifecycle event in
+ * `public.redemption_request_events`.
+ *
+ * Errors are swallowed (with a console.warn) so a failed event insert
+ * NEVER aborts the primary operation.
+ */
+async function logRequestEvent(
+  requestId: string,
+  eventType: RequestEventType,
+  actorUserId?: string | null,
+  notes?: string | null,
+): Promise<void> {
+  const tag = `[REQUEST_EVENT_${eventType.toUpperCase()}]`;
+  try {
+    const { error } = await supabase
+      .from('redemption_request_events')
+      .insert({
+        request_id: requestId,
+        event_type: eventType,
+        actor_user_id: actorUserId ?? null,
+        notes: notes ?? null,
+      });
+
+    if (error) {
+      console.warn(`${tag} insert failed (non-critical):`, {
+        requestId,
+        eventType,
+        error,
+      });
+    } else {
+      console.info(tag, { requestId, eventType, actorUserId });
+    }
+  } catch (err) {
+    console.warn(`${tag} unexpected error (non-critical):`, { requestId, err });
   }
-  const req: RedemptionRequest = {
-    id: `req-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    customerId: input.customerId,
-    campaignId: input.campaignId,
-    rewardId: input.rewardId,
-    rewardName: input.rewardName,
-    requiredPoints: input.requiredPoints,
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-  };
-  save([...list, req]);
-  return req;
 }
 
-function resolveRequest(
-  id: string,
-  patch: Partial<RedemptionRequest>,
-): RedemptionRequest | undefined {
-  const list = load();
-  const idx = list.findIndex(r => r.id === id);
-  if (idx < 0) return undefined;
-  if (list[idx].status !== 'pending') return list[idx];
-  const updated: RedemptionRequest = {
-    ...list[idx],
-    ...patch,
-    resolvedAt: new Date().toISOString(),
-  };
-  list[idx] = updated;
-  save(list);
-  return updated;
-}
+// ─── Queries ─────────────────────────────────────────────────────────────────
 
-export function cancelRedemptionRequestByCustomer(id: string): RedemptionRequest | undefined {
-  return resolveRequest(id, { status: 'cancelled', resolvedBy: 'customer' });
-}
+export async function getPendingRequest(
+  customerId: string,
+  campaignId: string,
+): Promise<RedemptionRequest | null> {
+  console.info('[STAFF_REQUESTS_FETCH]', { customerId, campaignId });
+  const { data, error } = await supabase
+    .from('redemption_requests')
+    .select('*')
+    .eq('customer_id', customerId)
+    .eq('campaign_id', campaignId)
+    .eq('status', 'pending')
+    .maybeSingle();
 
-export function cancelRedemptionRequestByStaff(
-  id: string,
-  staffId: string,
-  staffName: string,
-): RedemptionRequest | undefined {
-  return resolveRequest(id, {
-    status: 'cancelled',
-    resolvedBy: 'staff',
-    resolvedByStaffId: staffId,
-    resolvedByStaffName: staffName,
-  });
-}
-
-export function approveRedemptionRequest(
-  id: string,
-  staffId: string,
-  staffName: string,
-): RedemptionRequest | undefined {
-  return resolveRequest(id, {
-    status: 'approved',
-    resolvedBy: 'staff',
-    resolvedByStaffId: staffId,
-    resolvedByStaffName: staffName,
-  });
+  if (error) {
+    console.error('[redemptionRequests] getPendingRequest failed:', error);
+    return null;
+  }
+  console.info(
+    '[STAFF_REQUESTS_RESULT]',
+    data ? { id: data.id, status: data.status } : 'no_pending_request',
+  );
+  if (!data) return null;
+  return mapRowToRequest(data);
 }
 
 /**
- * Helpers de trazabilidad: registran movimientos de auditoría (0 pts)
- * para cada solicitud / cancelación. Centralizan el formato del
- * `commentText` para que cliente, cajero y reportes lean el mismo log.
+ * @deprecated Use getPendingRequest(customerId, campaignId) instead.
+ * Queries globally across all campaigns — only kept for backwards compatibility.
+ * Must NOT be used in new code.
  */
-interface AuditCtx {
-  customerId: string;
-  campaignId: string;
-  balanceAfter: number;
-  staffId: string;
-  staffName: string;
+export async function getPendingRequestForCustomer(
+  customerId: string,
+): Promise<RedemptionRequest | null> {
+  const { data, error } = await supabase
+    .from('redemption_requests')
+    .select('*')
+    .eq('customer_id', customerId)
+    .eq('status', 'pending')
+    .maybeSingle();
+
+  if (error) {
+    console.error('[redemptionRequests] getPendingRequestForCustomer failed:', error);
+    return null;
+  }
+  if (!data) return null;
+  return mapRowToRequest(data);
 }
 
-export function logRequestCreated(req: RedemptionRequest, ctx: AuditCtx): void {
-  // Phase 3.3: 0-pt audit mirror in localStorage is removed. Request
-  // lifecycle is tracked in `redemption_requests`; the points ledger
-  // only records actual point movements.
-  void req; void ctx;
+// ─── Mutations ────────────────────────────────────────────────────────────────
+
+export async function createRedemptionRequest(
+  input: CreateRequestInput,
+): Promise<RedemptionRequest> {
+  const { data, error } = await supabase
+    .from('redemption_requests')
+    .insert({
+      customer_id: input.customerId,
+      campaign_id: input.campaignId,
+      reward_id: input.rewardId,
+      reward_name_snapshot: input.rewardName,
+      points_cost_snapshot: input.requiredPoints,
+      status: 'pending',
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[redemptionRequests] createRedemptionRequest failed:', error);
+    if (error.code === '23505') {
+      // Unique violation: one pending per (customer_id, campaign_id)
+      throw new Error('Ya tienes una solicitud pendiente en esta campaña');
+    }
+    throw new Error('Error al crear la solicitud de canje');
+  }
+
+  const req = mapRowToRequest(data);
+
+  // Non-blocking event log — fires after the main insert succeeds.
+  void logRequestEvent(req.id, 'created', input.customerId);
+
+  return req;
 }
 
-export function logRequestCancelled(
-  req: RedemptionRequest,
-  ctx: AuditCtx,
-  cancelledBy: 'customer' | 'staff',
-): void {
-  // Phase 3.3: see logRequestCreated. Lifecycle is tracked in
-  // `redemption_requests` itself.
-  void req; void ctx; void cancelledBy;
+// ─── Internal resolve helper ──────────────────────────────────────────────────
+
+async function resolveRequest(
+  id: string,
+  status: RedemptionRequestStatus,
+  resolvedByStaffId?: string,
+  notes?: string,
+): Promise<RedemptionRequest> {
+  const updatePayload: {
+    status: RedemptionRequestStatus;
+    resolved_at: string;
+    resolved_by?: string;
+    notes?: string;
+  } = {
+    status,
+    resolved_at: new Date().toISOString(),
+  };
+  if (resolvedByStaffId) updatePayload.resolved_by = resolvedByStaffId;
+  if (notes) updatePayload.notes = notes;
+
+  const { data, error } = await supabase
+    .from('redemption_requests')
+    .update(updatePayload)
+    .eq('id', id)
+    .eq('status', 'pending') // concurrency guard
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    console.error('[redemptionRequests] resolveRequest failed:', error);
+    throw new Error(`Error al actualizar estado a ${status}`);
+  }
+  if (!data) {
+    throw new Error('La solicitud ya fue procesada o no existe');
+  }
+  return mapRowToRequest(data);
 }
+
+// ─── Public resolve functions ─────────────────────────────────────────────────
+
+/** Customer cancels their own request. */
+export async function cancelRedemptionRequestByCustomer(
+  id: string,
+  customerId?: string,
+): Promise<RedemptionRequest> {
+  const req = await resolveRequest(id, 'cancelled');
+  void logRequestEvent(id, 'cancelled', customerId ?? null);
+  return req;
+}
+
+/** Staff rejects a pending request. */
+export async function rejectRedemptionRequest(
+  id: string,
+  staffId: string,
+  notes?: string,
+): Promise<RedemptionRequest> {
+  const req = await resolveRequest(id, 'rejected', staffId, notes);
+  void logRequestEvent(id, 'rejected', staffId, notes);
+  return req;
+}
+
+/** Staff cancels a pending request (administrative cancel). */
+export async function cancelRedemptionRequestByStaff(
+  id: string,
+  staffId: string,
+  notes?: string,
+): Promise<RedemptionRequest> {
+  const req = await resolveRequest(id, 'cancelled', staffId, notes);
+  void logRequestEvent(id, 'cancelled', staffId, notes);
+  return req;
+}
+
+/**
+ * Staff approves a pending request via the atomic RPC
+ * `approve_redemption_request` which also handles the ledger debit.
+ */
+export async function approveRedemptionRequest(
+  id: string,
+  staffId: string,
+  notes?: string,
+  branchId?: string,
+  commentCategory?: string,
+): Promise<void> {
+  // ✅ Firma sincronizada con BD (v2). Casting reward_id::uuid manejado internamente. Log usa named params.
+  const { error } = await supabase.rpc('approve_redemption_request', {
+    p_request_id: id,
+    p_staff_id: staffId,
+    p_notes: notes || '',
+    p_branch_id: branchId ?? null,
+    p_comment_category: commentCategory ?? null,
+  });
+
+  if (error) {
+    console.error('[redemptionRequests] approveRedemptionRequest failed:', error);
+    throw new Error('Error al aprobar la solicitud de canje');
+  }
+
+  // Non-blocking event log — RPC already committed, so log afterwards.
+  void logRequestEvent(id, 'approved', staffId, notes);
+}
+
+// ─── Mapper ───────────────────────────────────────────────────────────────────
+
+function mapRowToRequest(row: Record<string, unknown>): RedemptionRequest {
+  return {
+    id: row.id as string,
+    customerId: row.customer_id as string,
+    campaignId: row.campaign_id as string,
+    rewardId: row.reward_id as string,
+    rewardName: row.reward_name_snapshot as string,
+    requiredPoints: row.points_cost_snapshot as number,
+    status: row.status as RedemptionRequestStatus,
+    resolvedByStaffId: (row.resolved_by as string | null) ?? undefined,
+    resolvedAt: (row.resolved_at as string | null) ?? undefined,
+    createdAt: row.created_at as string,
+  };
+}
+
+// ─── History ──────────────────────────────────────────────────────────────────
+
+export async function getHistoricalRequests(
+  customerId: string,
+  campaignId: string,
+): Promise<RedemptionRequest[]> {
+  const { data, error } = await supabase
+    .from('redemption_requests')
+    .select('*')
+    .eq('customer_id', customerId)
+    .eq('campaign_id', campaignId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[redemptionRequests] getHistoricalRequests failed:', error);
+    return [];
+  }
+  return (data ?? []).map(r => mapRowToRequest(r as Record<string, unknown>));
+}
+
+// ─── Legacy no-op stubs (backwards compat) ────────────────────────────────────
+export function logRequestCreated(): void { }
+export function logRequestCancelled(): void { }

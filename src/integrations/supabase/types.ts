@@ -87,7 +87,9 @@ export type Database = {
           id: string
           legacy_id: string | null
           milestones: Json
+          min_order_amount: number | null
           name: string
+          points_description: string | null
           start_date: string
           status: Database["public"]["Enums"]["campaign_status"]
           terms_and_conditions: string
@@ -102,7 +104,9 @@ export type Database = {
           id?: string
           legacy_id?: string | null
           milestones?: Json
+          min_order_amount?: number | null
           name: string
+          points_description?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["campaign_status"]
           terms_and_conditions?: string
@@ -117,7 +121,9 @@ export type Database = {
           id?: string
           legacy_id?: string | null
           milestones?: Json
+          min_order_amount?: number | null
           name?: string
+          points_description?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["campaign_status"]
           terms_and_conditions?: string
@@ -252,10 +258,12 @@ export type Database = {
       profiles: {
         Row: {
           accepted_campaigns: string[]
+          birthdate: string | null
           branch_id: string | null
           created_at: string
           deleted_at: string | null
           display_name: string
+          email: string | null
           gender: Database["public"]["Enums"]["gender_type"] | null
           id: string
           is_active: boolean
@@ -266,10 +274,12 @@ export type Database = {
         }
         Insert: {
           accepted_campaigns?: string[]
+          birthdate?: string | null
           branch_id?: string | null
           created_at?: string
           deleted_at?: string | null
           display_name?: string
+          email?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id: string
           is_active?: boolean
@@ -280,10 +290,12 @@ export type Database = {
         }
         Update: {
           accepted_campaigns?: string[]
+          birthdate?: string | null
           branch_id?: string | null
           created_at?: string
           deleted_at?: string | null
           display_name?: string
+          email?: string | null
           gender?: Database["public"]["Enums"]["gender_type"] | null
           id?: string
           is_active?: boolean
@@ -298,6 +310,118 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      redemption_request_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          notes: string | null
+          request_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          notes?: string | null
+          request_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          notes?: string | null
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redemption_request_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemption_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "redemption_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      redemption_requests: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          customer_id: string
+          id: string
+          notes: string | null
+          points_cost_snapshot: number
+          requested_at: string
+          resolved_at: string | null
+          resolved_by: string | null
+          reward_id: string
+          reward_name_snapshot: string
+          status: Database["public"]["Enums"]["redemption_status"]
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          notes?: string | null
+          points_cost_snapshot: number
+          requested_at?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          reward_id: string
+          reward_name_snapshot: string
+          status?: Database["public"]["Enums"]["redemption_status"]
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          points_cost_snapshot?: number
+          requested_at?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          reward_id?: string
+          reward_name_snapshot?: string
+          status?: Database["public"]["Enums"]["redemption_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redemption_requests_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemption_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redemption_requests_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -367,6 +491,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      approve_redemption_request: {
+        Args: {
+          p_branch_id: string
+          p_comment_category: string
+          p_notes: string
+          p_request_id: string
+          p_staff_id: string
+        }
+        Returns: undefined
+      }
       earn_points: {
         Args: {
           p_bonus_multiplier?: number
@@ -411,6 +545,24 @@ export type Database = {
         Returns: {
           display_name: string
           id: string
+        }[]
+      }
+      get_dashboard_stats: {
+        Args: { p_branch_id?: string; p_date_from?: string; p_date_to?: string }
+        Returns: {
+          cashier_activity: Json
+          funnel_data: Json
+          gender_data: Json
+          peak_hours: Json
+          pending_points: number
+          return_rate_days: number
+          top_campaigns: Json
+          top_customers: Json
+          total_customers: number
+          total_points_issued: number
+          total_redemptions: number
+          total_reversals: number
+          total_visits: number
         }[]
       }
       has_role: {
@@ -513,6 +665,7 @@ export type Database = {
       app_role: "admin" | "cashier" | "customer"
       campaign_status: "draft" | "active" | "paused" | "finished"
       gender_type: "masculino" | "femenino" | "otro"
+      redemption_status: "pending" | "approved" | "rejected" | "cancelled"
       tx_kind:
         | "earn"
         | "bonus"
@@ -650,6 +803,7 @@ export const Constants = {
       app_role: ["admin", "cashier", "customer"],
       campaign_status: ["draft", "active", "paused", "finished"],
       gender_type: ["masculino", "femenino", "otro"],
+      redemption_status: ["pending", "approved", "rejected", "cancelled"],
       tx_kind: [
         "earn",
         "bonus",

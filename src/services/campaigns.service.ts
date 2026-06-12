@@ -57,6 +57,8 @@ interface CampaignRow {
   terms_and_conditions: string;
   milestones: Milestone[] | null;
   bonus_rules: BonusRule[] | null;
+  min_order_amount: number | null;
+  points_description: string | null;
   legacy_id: string | null;
   deleted_at: string | null;
   created_at: string;
@@ -72,6 +74,7 @@ function fromRow(r: CampaignRow): Campaign {
   return {
     id: r.id,
     name: r.name,
+    branchId: r.branch_id,
     branch: branch?.name ?? r.name,
     startDate: r.start_date,
     endDate: r.end_date,
@@ -79,6 +82,8 @@ function fromRow(r: CampaignRow): Campaign {
     milestones: Array.isArray(r.milestones) ? r.milestones : [],
     bonusRules: Array.isArray(r.bonus_rules) ? r.bonus_rules : [],
     termsAndConditions: r.terms_and_conditions,
+    minOrderAmount: r.min_order_amount ?? undefined,
+    pointsDescription: r.points_description ?? undefined,
     createdAt: r.created_at,
   };
 }
@@ -178,6 +183,9 @@ export async function saveCampaignAsync(campaign: Campaign): Promise<void> {
     terms_and_conditions: campaign.termsAndConditions,
     milestones: normalizedMilestones,
     bonus_rules: normalizedBonusRules,
+    min_order_amount:
+      typeof campaign.minOrderAmount === 'number' ? campaign.minOrderAmount : null,
+    points_description: campaign.pointsDescription?.trim() || null,
   };
 
   const legacyId = !isUuid(campaign.id) ? campaign.id : null;
@@ -225,6 +233,23 @@ export async function setCampaignStatusAsync(
     console.error('[campaigns] setStatus failed', err);
     throw err;
   }
+}
+
+export async function deleteCampaignAsync(id: string): Promise<void> {
+  try {
+    await supabaseDriver.update<CampaignRow>(TABLE, id, {
+      deleted_at: new Date().toISOString(),
+    } as Partial<CampaignRow>);
+    await hydrateCampaigns();
+  } catch (err) {
+    console.error('[campaigns] delete failed', err);
+    throw err;
+  }
+}
+
+export function deleteCampaign(id: string): void {
+  cache = cache.filter(c => c.id !== id);
+  void deleteCampaignAsync(id).catch(() => {/* logged */});
 }
 
 // ===== Sync wrappers (transitional — fire-and-forget + optimistic cache) =====

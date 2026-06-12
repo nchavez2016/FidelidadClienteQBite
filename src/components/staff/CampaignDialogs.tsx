@@ -1,4 +1,4 @@
-import { setCampaignStatus, resetAllCustomerPoints } from '@/lib/store';
+import { setCampaignStatus, resetAllCustomerPoints } from '@/services';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';

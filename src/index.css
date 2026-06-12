@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -79,8 +79,19 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased;
+    background: linear-gradient(135deg, hsl(216 60% 26%), hsl(212 59% 44%));
   }
-  h1, h2, h3, h4, h5, h6 {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading;
   }
 }
@@ -103,4 +114,11 @@
   .shadow-gold {
     box-shadow: 0 4px 20px -4px hsl(42 52% 54% / 0.3);
   }
+}
+
+html,
+body,
+#root {
+  background: #1e293b; /* o el color base de tu bg-gradient-navy */
+  min-height: 100vh;
 }

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { appRoute } from '@/lib/navigation';
+import { loadCustomerDashboardPage, loadCustomerRegisterPage } from '@/lib/routePreload';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +20,7 @@ export default function CustomerLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    const dashboardLoad = loadCustomerDashboardPage();
     const { error } = await signIn(phone, password, 'customer');
     setSubmitting(false);
     if (error) {
@@ -25,12 +28,13 @@ export default function CustomerLogin() {
       return;
     }
     toast.success('¡Bienvenido!');
-    navigate('/cliente/dashboard');
+    await dashboardLoad;
+    navigate(appRoute('/cliente/dashboard'));
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-navy">
-      <Card className="w-full max-w-md shadow-brand animate-scale-in">
+      <Card className="w-full max-w-md shadow-brand">
         <CardHeader className="text-center pb-2">
           <BrandHeader subtitle="Programa de Fidelidad" />
           <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
@@ -48,7 +52,7 @@ export default function CustomerLogin() {
             <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground">{submitting ? 'Ingresando…' : 'Ingresar'}</Button>
             <p className="text-center text-sm text-muted-foreground">
               ¿No tienes cuenta?{' '}
-              <button type="button" onClick={() => navigate('/cliente/registro')} className="text-secondary underline font-medium">Regístrate aquí</button>
+              <button type="button" onMouseEnter={loadCustomerRegisterPage} onFocus={loadCustomerRegisterPage} onPointerDown={loadCustomerRegisterPage} onClick={() => void loadCustomerRegisterPage().then(() => navigate(appRoute('/cliente/registro')))} className="text-secondary underline font-medium">Regístrate aquí</button>
             </p>
           </form>
         </CardContent>

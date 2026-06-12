@@ -11,12 +11,14 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { clearLegacySessions } from '@/services/auth/legacyBridge';
+import { hydrateCampaigns } from '@/services/campaigns.service';
 import { hydrateCustomerPoints, subscribeCustomerPointsRealtime } from '@/services/customerPoints.service';
 import { hydrateLedgerHistory, rehydrateLedgerHistory } from '@/services/ledgerHistory.service';
 import { subscribePointTransactionsRealtime } from '@/services/pointsLedger.service';
@@ -33,6 +35,8 @@ export interface AuthContextValue {
   /** True once roles have been fetched for the current user (or when signed out). */
   rolesLoaded: boolean;
   loading: boolean;
+  /** True while background post-auth hydration is running after a reload. */
+  isHydrating: boolean;
   signIn: (
     identifier: string,
     password: string,
@@ -104,11 +108,25 @@ function bridgeLegacy(_user: User, _roles: AppRole[]): void {
 }
 
 /** Post-auth hydrations that require an authenticated session (RLS). */
-function postAuthHydrate(): void {
-  void hydrateCustomerPoints().catch((err) => console.error('[Auth] hydrateCustomerPoints failed', err));
-  void hydrateLedgerHistory().catch((err) => console.error('[Auth] hydrateLedgerHistory failed', err));
+async function hydratePostAuth(audience?: 'customer' | 'staff'): Promise<void> {
+  const jobs: Promise<unknown>[] = [
+    hydrateCampaigns(),
+    hydrateCustomerPoints(),
+    hydrateLedgerHistory(),
+  ];
+
   // Profiles are RLS-gated; only hydrate after the user has authenticated.
-  void hydrateCustomers().catch((err) => console.error('[Auth] hydrateCustomers failed', err));
+  // It is critical for customer/staff panels because their first render reads
+  // from the synchronous cache; without this, the route opens blank for a frame.
+  jobs.push(hydrateCustomers());
+
+  const results = await Promise.allSettled(jobs);
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error('[Auth] post-auth hydrate failed', { audience, index, reason: result.reason });
+    }
+  });
+
   // Phase 3.4 — start realtime listeners (idempotent, shared channels).
   try {
     subscribePointTransactionsRealtime();
@@ -124,6 +142,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isHydrating, setIsHydrating] = useState(false);
+  // Mantener el último user.id visto por el listener para distinguir
+  // TOKEN_REFRESHED / USER_UPDATED del mismo usuario (no debe remount)
+  // vs SIGNED_IN de un usuario distinto (sí re-hidratar roles).
+  const lastUserIdRef = useRef<string | null>(null);
+  // Tracks which user id we have ALREADY fetched roles for. Used to dedupe
+  // the listener's deferred fetch when signIn()/getSession() already
+  // resolved roles for the same user — otherwise rolesLoaded flips
+  // false→true twice in a row and ProtectedRoute remounts the page
+  // (visible as a "double reload / flash" right after login).
+  const rolesLoadedForUserRef = useRef<string | null>(null);
+  // True while signIn()/signUp() is mid-flight. Supabase fires
+  // onAuthStateChange BEFORE signInWithPassword resolves, so the
+  // listener sees lastUserIdRef=null and treats it as a brand-new
+  // user → setRolesLoaded(false). Combined with the navigate() that
+  // immediately follows signIn, ProtectedRoute briefly renders the
+  // "Cargando…" screen between login page and dashboard. Suppress
+  // the listener's reset while we're driving the sign-in ourselves.
+  const signInInFlightRef = useRef(false);
 
   useEffect(() => {
     // 1. Subscribe FIRST so we never miss an event.
@@ -132,19 +169,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       if (nextSession?.user) {
+        const prevUserId = lastUserIdRef.current;
+        const sameUser = prevUserId === nextSession.user.id;
+        lastUserIdRef.current = nextSession.user.id;
+
+        // Para el mismo usuario, un TOKEN_REFRESHED / USER_UPDATED no debe
+        // disparar setRolesLoaded(false): eso desmonta StaffPanel y borra el
+        // estado local (cliente seleccionado, búsqueda, comentarios…) cada
+        // vez que la pestaña del navegador pierde y recupera el foco.
+        // Supabase también puede emitir SIGNED_IN al reenfocar una pestaña con
+        // la misma sesión; debe tratarse como continuidad, no como nuevo login.
+        if (sameUser) {
+          return;
+        }
+
+        // Si signIn()/signUp() está en curso, esa llamada se encargará de
+        // hidratar roles y avisar a la UI. No reseteamos rolesLoaded aquí
+        // para evitar un destello "Cargando…" entre login y dashboard.
+        if (signInInFlightRef.current) {
+          return;
+        }
+
         setRolesLoaded(false);
         // Defer Supabase calls to avoid deadlocks inside the listener.
         setTimeout(() => {
+          // Dedupe: if signIn()/getSession() already loaded roles for
+          // this user between the listener firing and this microtask
+          // running, skip the redundant round-trip + state churn.
+          if (rolesLoadedForUserRef.current === nextSession.user.id) {
+            setRolesLoaded(true);
+            return;
+          }
           fetchProfile(nextSession.user.id).catch((error) => console.error('🚨 [Auth] listener profile rejected', error));
           fetchRoles(nextSession.user.id).then((r) => {
             console.info('🚨 [Auth] roles fetched (listener)', r);
             setRoles(r);
-            // CRITICAL: bridgeLegacy must run BEFORE setRolesLoaded(true)
-            // so that ProtectedRoute / CustomerDashboard see a hydrated
-            // sessionCustomer slot on the very same render that unblocks them.
+            // CRITICAL: bridgeLegacy + post-auth hydration must run BEFORE
+            // setRolesLoaded(true), otherwise ProtectedRoute opens the panel
+            // while its sync caches are still empty and the user sees a flash.
             bridgeLegacy(nextSession.user, r);
-            setRolesLoaded(true);
-            postAuthHydrate();
+            hydratePostAuth().finally(() => {
+              rolesLoadedForUserRef.current = nextSession.user.id;
+              setRolesLoaded(true);
+            });
           }).catch((error) => {
             console.error('🚨 [Auth] listener roles rejected', error);
             setRoles([]);
@@ -152,6 +219,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }, 0);
       } else {
+        lastUserIdRef.current = null;
+        rolesLoadedForUserRef.current = null;
         setRoles([]);
         setRolesLoaded(true);
         clearLegacySessions();
@@ -164,16 +233,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.session?.user ?? null);
       console.info('🚨 [Auth] getSession:done', { hasSession: !!data.session, uid: data.session?.user?.id });
       if (data.session?.user) {
+        lastUserIdRef.current = data.session.user.id;
         fetchProfile(data.session.user.id).catch((error) => console.error('🚨 [Auth] init profile rejected', error));
         fetchRoles(data.session.user.id).then((r) => {
           console.info('🚨 [Auth] roles fetched (init)', r);
           setRoles(r);
-          // Hydrate legacy customer slot BEFORE flipping rolesLoaded so
-          // sync consumers (getCurrentCustomer) find the row immediately.
+          // Reload path: flip rolesLoaded/loading immediately so `/` and the
+          // shell render without waiting on background hydration. Panels show
+          // a skeleton while `isHydrating` is true (see CustomerDashboard /
+          // StaffPanel). signIn/signUp branches still await hydratePostAuth
+          // to avoid post-login flash.
           bridgeLegacy(data.session!.user, r);
+          rolesLoadedForUserRef.current = data.session!.user.id;
           setRolesLoaded(true);
-          postAuthHydrate();
           setLoading(false);
+          setIsHydrating(true);
+          void hydratePostAuth()
+            .catch((err) => console.error('Hydration error:', err))
+            .finally(() => setIsHydrating(false));
         }).catch((error) => {
           console.error('🚨 [Auth] init roles rejected', error);
           setRoles([]);
@@ -206,11 +283,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback<AuthContextValue['signIn']>(async (identifier, password, audience) => {
     const email = toEmail(identifier, audience);
     console.info('🚨 [Auth] login request', { audience, identifier, email });
+    signInInFlightRef.current = true;
+    try {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     console.info('🚨 [Auth] login response', { hasSession: !!data.session, uid: data.user?.id, error });
     if (data?.session && data.user) {
       // Set state synchronously so callers can navigate immediately
       // without racing the onAuthStateChange listener.
+      lastUserIdRef.current = data.user.id;
       setSession(data.session);
       setUser(data.user);
       setRolesLoaded(false);
@@ -219,14 +299,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.info('🚨 [Auth] signIn roles', { audience, r });
       setRoles(r);
       bridgeLegacy(data.user, r);
+      await hydratePostAuth(audience);
+      rolesLoadedForUserRef.current = data.user.id;
       setRolesLoaded(true);
-      postAuthHydrate();
     }
     return { error: error?.message ?? null };
+    } finally {
+      signInInFlightRef.current = false;
+    }
   }, []);
 
   const signUp = useCallback<AuthContextValue['signUp']>(async (identifier, password, audience, metadata) => {
     const email = toEmail(identifier, audience);
+    signInInFlightRef.current = true;
+    try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -242,10 +328,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const r = await fetchRoles(data.user.id);
       setRoles(r);
       bridgeLegacy(data.user, r);
+      await hydratePostAuth(audience);
+      rolesLoadedForUserRef.current = data.user.id;
       setRolesLoaded(true);
-      postAuthHydrate();
     }
     return { error: error?.message ?? null };
+    } finally {
+      signInInFlightRef.current = false;
+    }
   }, []);
 
   const signOut = useCallback(async () => {
@@ -255,6 +345,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setRoles([]);
     setRolesLoaded(true);
+    rolesLoadedForUserRef.current = null;
+    lastUserIdRef.current = null;
   }, []);
 
   const hasRole = useCallback(
@@ -263,8 +355,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, session, roles, rolesLoaded, loading, signIn, signUp, signOut, hasRole }),
-    [user, session, roles, rolesLoaded, loading, signIn, signUp, signOut, hasRole],
+    () => ({ user, session, roles, rolesLoaded, loading, isHydrating, signIn, signUp, signOut, hasRole }),
+    [user, session, roles, rolesLoaded, loading, isHydrating, signIn, signUp, signOut, hasRole],
   );
 
   // Phase 4.6 — idle-timeout warning. Auto-logout itself stays gated by
