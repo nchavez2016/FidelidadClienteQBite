@@ -103,8 +103,6 @@ export default function StaffPanel() {
     }
     return null;
   }
-  if (!staff) return null;
-
   if (isHydrating) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -116,6 +114,8 @@ export default function StaffPanel() {
       </div>
     );
   }
+
+  if (!staff) return null;
 
   const currentCampaign = getCampaignById(branchCampaignId);
 

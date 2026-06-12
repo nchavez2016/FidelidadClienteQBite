@@ -6,13 +6,21 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import {
+  loadCustomerDashboardPage,
+  loadCustomerLoginPage,
+  loadCustomerRegisterPage,
+  loadNotFoundPage,
+  loadStaffLoginPage,
+  loadStaffPanelPage,
+} from "@/lib/routePreload";
 
-const CustomerLogin = lazy(() => import("./pages/CustomerLogin"));
-const CustomerRegister = lazy(() => import("./pages/CustomerRegister"));
-const CustomerDashboard = lazy(() => import("./pages/CustomerDashboard"));
-const StaffLogin = lazy(() => import("./pages/StaffLogin"));
-const StaffPanel = lazy(() => import("./pages/StaffPanel"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+const CustomerLogin = lazy(loadCustomerLoginPage);
+const CustomerRegister = lazy(loadCustomerRegisterPage);
+const CustomerDashboard = lazy(loadCustomerDashboardPage);
+const StaffLogin = lazy(loadStaffLoginPage);
+const StaffPanel = lazy(loadStaffPanelPage);
+const NotFound = lazy(loadNotFoundPage);
 // TEST_BRANCH_AZUL
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,9 +38,7 @@ const App = () => (
       <BrowserRouter>
         <Suspense
           fallback={
-            <div className="min-h-screen bg-gradient-navy flex items-center justify-center">
-              <div className="animate-pulse text-white">Cargando...</div>
-            </div>
+            <div className="min-h-screen bg-gradient-navy" aria-hidden="true" />
           }
         >
           <Routes>

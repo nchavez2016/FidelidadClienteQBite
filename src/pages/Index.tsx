@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import BrandHeader from "@/components/BrandHeader";
 import { appRoute } from "@/lib/navigation";
+import { loadCustomerLoginPage, loadStaffLoginPage } from "@/lib/routePreload";
 import { Instagram, MessageCircle, Music2, Shield, Users, type LucideIcon } from "lucide-react";
 
 type SocialLink = {
@@ -60,6 +61,16 @@ function SocialFooter() {
 export default function Index() {
   const navigate = useNavigate();
 
+  const goCustomerLogin = async () => {
+    await loadCustomerLoginPage();
+    navigate(appRoute("/cliente/login"));
+  };
+
+  const goStaffLogin = async () => {
+    await loadStaffLoginPage();
+    navigate(appRoute("/staff/login"));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-navy flex flex-col items-center p-4">
       <div className="flex-1 flex items-center justify-center w-full">
@@ -72,14 +83,20 @@ export default function Index() {
 
           <div className="space-y-3">
             <Button
-              onClick={() => navigate(appRoute("/cliente/login"))}
+              onMouseEnter={loadCustomerLoginPage}
+              onFocus={loadCustomerLoginPage}
+              onPointerDown={loadCustomerLoginPage}
+              onClick={() => void goCustomerLogin()}
               className="w-full h-14 text-lg bg-accent hover:bg-accent/90 text-accent-foreground gap-3 shadow-gold"
             >
               <Users className="w-5 h-5" />
               Soy Cliente
             </Button>
             <Button
-              onClick={() => navigate(appRoute("/staff/login"))}
+              onMouseEnter={loadStaffLoginPage}
+              onFocus={loadStaffLoginPage}
+              onPointerDown={loadStaffLoginPage}
+              onClick={() => void goStaffLogin()}
               variant="outline"
               className="w-full h-12 border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
             >
