@@ -68,7 +68,10 @@ export function useCustomerOperations(staff: StaffUser, currentCampaignId: strin
         campaignId: r.campaign_id,
         type: (r.kind === 'earn' || r.kind === 'bonus') ? 'accumulation' :
               (r.kind === 'redeem') ? 'redemption' :
-              (r.kind === 'reversal') ? 'reversal' : 'accumulation',
+              (r.kind === 'reversal') ? 'reversal' :
+              (r.kind === 'terms_acceptance') ? 'terms_acceptance' :
+              (r.kind === 'manual_adjustment') ? (r.points_delta >= 0 ? 'accumulation' : 'redemption') :
+              'accumulation',
         ledgerKind: r.kind,
         points: r.points_delta,
         balanceAfter: r.balance_after || 0,
