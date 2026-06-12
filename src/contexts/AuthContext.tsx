@@ -35,6 +35,8 @@ export interface AuthContextValue {
   /** True once roles have been fetched for the current user (or when signed out). */
   rolesLoaded: boolean;
   loading: boolean;
+  /** True while background post-auth hydration is running after a reload. */
+  isHydrating: boolean;
   signIn: (
     identifier: string,
     password: string,
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isHydrating, setIsHydrating] = useState(false);
   // Mantener el último user.id visto por el listener para distinguir
   // TOKEN_REFRESHED / USER_UPDATED del mismo usuario (no debe remount)
   // vs SIGNED_IN de un usuario distinto (sí re-hidratar roles).
@@ -235,14 +238,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchRoles(data.session.user.id).then((r) => {
           console.info('🚨 [Auth] roles fetched (init)', r);
           setRoles(r);
-          // Hydrate sync caches BEFORE flipping rolesLoaded so protected
-          // panels do not mount as blank shells for a frame.
+          // Reload path: flip rolesLoaded/loading immediately so `/` and the
+          // shell render without waiting on background hydration. Panels show
+          // a skeleton while `isHydrating` is true (see CustomerDashboard /
+          // StaffPanel). signIn/signUp branches still await hydratePostAuth
+          // to avoid post-login flash.
           bridgeLegacy(data.session!.user, r);
-          hydratePostAuth().finally(() => {
-            rolesLoadedForUserRef.current = data.session!.user.id;
-            setRolesLoaded(true);
-            setLoading(false);
-          });
+          rolesLoadedForUserRef.current = data.session!.user.id;
+          setRolesLoaded(true);
+          setLoading(false);
+          setIsHydrating(true);
+          void hydratePostAuth()
+            .catch((err) => console.error('Hydration error:', err))
+            .finally(() => setIsHydrating(false));
         }).catch((error) => {
           console.error('🚨 [Auth] init roles rejected', error);
           setRoles([]);
@@ -347,8 +355,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, session, roles, rolesLoaded, loading, signIn, signUp, signOut, hasRole }),
-    [user, session, roles, rolesLoaded, loading, signIn, signUp, signOut, hasRole],
+    () => ({ user, session, roles, rolesLoaded, loading, isHydrating, signIn, signUp, signOut, hasRole }),
+    [user, session, roles, rolesLoaded, loading, isHydrating, signIn, signUp, signOut, hasRole],
   );
 
   // Phase 4.6 — idle-timeout warning. Auto-logout itself stays gated by

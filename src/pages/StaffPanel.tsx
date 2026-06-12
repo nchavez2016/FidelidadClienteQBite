@@ -28,7 +28,7 @@ const carouselImages = [dishImg1, dishImg2, dishImg3];
 
 export default function StaffPanel() {
   const { staff, isAdmin, logout } = useStaffAuth();
-  const { roles, rolesLoaded, user } = useAuth();
+  const { roles, rolesLoaded, user, isHydrating } = useAuth();
   const TAB_KEY = 'staff.activeTab';
   const VALID_TABS = ['operations', 'dashboard', 'campaigns', 'reports', 'users'];
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -104,6 +104,18 @@ export default function StaffPanel() {
     return null;
   }
   if (!staff) return null;
+
+  if (isHydrating) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   const currentCampaign = getCampaignById(branchCampaignId);
 
