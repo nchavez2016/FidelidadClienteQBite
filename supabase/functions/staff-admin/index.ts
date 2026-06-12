@@ -75,16 +75,17 @@ Deno.serve(async (req) => {
     return json(401, { error: 'missing_authorization' });
   }
 
+  const token = authHeader.slice('Bearer '.length).trim();
   const callerClient = createClient(SUPABASE_URL, ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data: callerData, error: callerError } = await callerClient.auth.getUser();
-  if (callerError || !callerData.user) {
+  const { data: claimsData, error: callerError } = await callerClient.auth.getClaims(token);
+  if (callerError || !claimsData?.claims?.sub) {
+    console.warn('[staff-admin] getClaims failed', callerError?.message);
     return json(401, { error: 'invalid_token' });
   }
-  const callerId = callerData.user.id;
+  const callerId = claimsData.claims.sub as string;
 
   // 2. Cliente con privilegios (service role) — solo dentro del worker.
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
