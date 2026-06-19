@@ -367,7 +367,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     : roles.includes('customer') ? 'customer'
     : null;
   const idle = useIdleTimeout({
-    enabled: !!user && !!primaryRole,
+    // Solo activamos el hook (y por tanto el modal de aviso) cuando el
+    // auto-logout por inactividad está habilitado por flag. Si no, el
+    // modal aparecía periódicamente (~30 min en staff) y el usuario lo
+    // percibía como "la pantalla se pone azul y se recarga sola".
+    enabled: !!user && !!primaryRole && isIdleTimeoutEnabled(),
     role: primaryRole,
     onTimeout: () => { void signOut(); },
   });
