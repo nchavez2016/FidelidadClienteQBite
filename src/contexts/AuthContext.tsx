@@ -25,6 +25,7 @@ import { subscribePointTransactionsRealtime } from '@/services/pointsLedger.serv
 import { hydrateCustomers } from '@/services/customers.service';
 import IdleWarningDialog from '@/components/security/IdleWarningDialog';
 import { useIdleTimeout } from '@/hooks/useIdleTimeout';
+import { isIdleTimeoutEnabled } from '@/services/security/sessionPolicy';
 
 export type AppRole = 'admin' | 'cashier' | 'customer';
 
