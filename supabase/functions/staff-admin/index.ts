@@ -80,12 +80,12 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data: claimsData, error: callerError } = await callerClient.auth.getClaims(token);
-  if (callerError || !claimsData?.claims?.sub) {
-    console.warn('[staff-admin] getClaims failed', callerError?.message);
+  const { data: userData, error: callerError } = await callerClient.auth.getUser(token);
+  if (callerError || !userData?.user?.id) {
+    console.warn('[staff-admin] getUser failed', callerError?.message);
     return json(401, { error: 'invalid_token' });
   }
-  const callerId = claimsData.claims.sub as string;
+  const callerId = userData.user.id;
 
   // 2. Cliente con privilegios (service role) — solo dentro del worker.
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
