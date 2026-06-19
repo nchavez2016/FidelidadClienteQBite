@@ -127,6 +127,14 @@ export default function RewardsCard({
               <span className="text-[11px] font-body font-semibold text-center leading-tight" style={{ color: '#1B3A6B' }}>
                 {m.rewardName}
               </span>
+              {m.description && (
+                <span
+                  className="text-[10px] font-body text-center leading-tight px-1"
+                  style={{ color: '#5A6B82' }}
+                >
+                  {m.description}
+                </span>
+              )}
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                 style={{
