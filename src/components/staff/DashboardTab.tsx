@@ -632,6 +632,50 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
       </div>
 
       {/* ═══ HISTORIAL DE TRANSACCIONES ═══ */}
+      {/* ═══ CUMPLEAÑEROS DEL MES ═══ */}
+      <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(197,160,89,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2 capitalize">
+            <Cake className="w-5 h-5" style={{ color: '#C5A059' }} />
+            Cumpleañeros de {monthName}
+            <span className="ml-auto text-xs font-normal text-muted-foreground normal-case">
+              {monthBirthdays.length} {monthBirthdays.length === 1 ? 'cliente' : 'clientes'}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {monthBirthdays.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No hay cumpleañeros registrados este mes.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-72 overflow-y-auto">
+              {monthBirthdays.map(b => (
+                <div
+                  key={b.id}
+                  className={`flex items-center gap-3 rounded-lg border p-2.5 text-sm ${
+                    b.isToday ? 'border-accent/40 bg-accent/10' : 'border-border bg-muted/30'
+                  }`}
+                >
+                  <div className="flex flex-col items-center justify-center w-10 h-10 rounded-md shrink-0" style={{ background: 'rgba(197,160,89,0.15)', color: '#8a6f30' }}>
+                    <span className="text-base font-bold leading-none">{b.day}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{b.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{b.phone}</p>
+                  </div>
+                  {b.isToday && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent shrink-0">
+                      ¡HOY!
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
