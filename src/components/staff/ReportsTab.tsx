@@ -81,7 +81,7 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
 
   // --- 2. Reporte Base de Datos (Tropa) ---
   const exportCustomerDB = () => {
-    const header = 'Nombre,Teléfono,Género,Puntos Actuales,Fecha Registro,Última Visita,Días Promedio Retorno,Total Visitas';
+    const header = 'Nombre,Teléfono,Género,Fecha Nacimiento,Mes Cumpleaños,Puntos Actuales,Fecha Registro,Última Visita,Días Promedio Retorno,Total Visitas';
     const rows = allCustomers.map(c => {
       const custTx = filtered.filter(t => t.customerId === c.id
           && (t.ledgerKind ? (t.ledgerKind === 'earn' || t.ledgerKind === 'bonus') : t.type === 'accumulation')
@@ -96,7 +96,14 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
         }
         avgReturn = (totalDays / (custTx.length - 1)).toFixed(1);
       }
-      return `"${c.name}","${c.phone}","${c.gender ?? ''}","${pointsOf(c)}","${fmtDateShort(c.createdAt)}","${lastVisit ? fmtDateShort(lastVisit) : 'Sin visitas'}","${avgReturn}","${custTx.length}"`;
+      let birthdayMonth = '';
+      if (c.birthdate) {
+        const parts = c.birthdate.split('-').map(Number);
+        if (parts.length >= 2 && parts[1] >= 1 && parts[1] <= 12) {
+          birthdayMonth = new Date(2000, parts[1] - 1, 1).toLocaleDateString('es-EC', { month: 'long' });
+        }
+      }
+      return `"${c.name}","${c.phone}","${c.gender ?? ''}","${c.birthdate ?? ''}","${birthdayMonth}","${pointsOf(c)}","${fmtDateShort(c.createdAt)}","${lastVisit ? fmtDateShort(lastVisit) : 'Sin visitas'}","${avgReturn}","${custTx.length}"`;
     });
     downloadCSV(`base_clientes_${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
   };
