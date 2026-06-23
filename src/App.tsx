@@ -5,20 +5,17 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index";
+import CustomerLogin from "./pages/CustomerLogin";
+import CustomerRegister from "./pages/CustomerRegister";
+import StaffLogin from "./pages/StaffLogin";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import {
   loadCustomerDashboardPage,
-  loadCustomerLoginPage,
-  loadCustomerRegisterPage,
   loadNotFoundPage,
-  loadStaffLoginPage,
   loadStaffPanelPage,
 } from "@/lib/routePreload";
 
-const CustomerLogin = lazy(loadCustomerLoginPage);
-const CustomerRegister = lazy(loadCustomerRegisterPage);
 const CustomerDashboard = lazy(loadCustomerDashboardPage);
-const StaffLogin = lazy(loadStaffLoginPage);
 const StaffPanel = lazy(loadStaffPanelPage);
 const NotFound = lazy(loadNotFoundPage);
 // TEST_BRANCH_AZUL
@@ -37,9 +34,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Suspense
-          fallback={
-            <div className="min-h-screen bg-gradient-navy" aria-hidden="true" />
-          }
+          fallback={null}
         >
           <Routes>
             <Route path="/" element={<Index />} />

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, type ReactNode } from 'react';
-import { getCustomers, getTransactions, getCampaignById, getCustomerById, getCustomerPoints, getCustomerTotalPoints } from '@/services';
+import { getCustomers, getTransactions, getCampaignById, getCustomerById, getCustomerPoints, getCustomerTotalPoints, hydrateCustomers } from '@/services';
 import { getCustomerCounts, type CustomerCounts } from '@/services/analytics/customerCounts.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip as InfoTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import TransactionItem from '@/components/TransactionItem';
-import { Users, TrendingUp, Award, Coins, Filter, PieChart, Clock, RotateCcw, CalendarDays, ShoppingBag, ArrowUpRight, ArrowDownRight, Minus, MessageSquare, Info } from 'lucide-react';
+import { Users, TrendingUp, Award, Coins, Filter, PieChart, Clock, RotateCcw, CalendarDays, ShoppingBag, ArrowUpRight, ArrowDownRight, Minus, MessageSquare, Info, Cake, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { CommentCategory } from '@/lib/types';
 
@@ -60,6 +60,7 @@ interface DashboardTabProps {
 }
 
 export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
+  const [birthdayTick, setBirthdayTick] = useState(0);
   const allCustomers = getCustomers();
   const allTransactions = getTransactions();
   const campaign = branchCampaignId ? getCampaignById(branchCampaignId) : undefined;
@@ -70,6 +71,16 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
   useEffect(() => {
     let cancelled = false;
     void getCustomerCounts().then((c) => { if (!cancelled) setCustomerCounts(c); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Refresca el cache de clientes al montar el dashboard para asegurar que
+  // fechas de nacimiento recién sincronizadas desde Supabase aparezcan.
+  useEffect(() => {
+    let cancelled = false;
+    void hydrateCustomers().then(() => {
+      if (!cancelled) setBirthdayTick(t => t + 1);
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -274,6 +285,31 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
   const toggleCategoryFilter = (cat: CommentCategory) => {
     setCategoryFilter(prev => prev === cat ? null : cat);
   };
+
+  // ═══ Cumpleañeros del mes (independiente del filtro de fechas) ═══
+  const monthBirthdays = useMemo(() => {
+    const currentMonth = new Date().getMonth(); // 0-11
+    const today = new Date();
+    const todayKey = `${today.getMonth()}-${today.getDate()}`;
+    return allCustomers
+      .filter(c => c.isActive !== false && c.birthdate)
+      .map(c => {
+        // birthdate stored as YYYY-MM-DD — parse as local date to avoid TZ shifts
+        const [y, m, d] = (c.birthdate as string).split('-').map(Number);
+        if (!m || !d) return null;
+        return { customer: c, month: m - 1, day: d, year: y };
+      })
+      .filter((x): x is { customer: typeof allCustomers[number]; month: number; day: number; year: number } => x !== null && x.month === currentMonth)
+      .sort((a, b) => a.day - b.day)
+      .map(b => ({
+        id: b.customer.id,
+        name: b.customer.name,
+        phone: b.customer.phone,
+        day: b.day,
+        isToday: `${b.month}-${b.day}` === todayKey,
+      }));
+  }, [allCustomers]);
+  const monthName = new Date().toLocaleDateString('es-EC', { month: 'long' });
 
   return (
     <div className="space-y-4 mt-4">
@@ -605,6 +641,62 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* ═══ CUMPLEAÑEROS DEL MES ═══ */}
+      <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(197,160,89,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2 capitalize">
+            <Cake className="w-5 h-5" style={{ color: '#C5A059' }} />
+            Cumpleañeros de {monthName}
+            <span className="ml-auto text-xs font-normal text-muted-foreground normal-case flex items-center gap-2">
+              {monthBirthdays.length} {monthBirthdays.length === 1 ? 'cliente' : 'clientes'}
+              <button
+                type="button"
+                onClick={() => { void hydrateCustomers().then(() => setBirthdayTick(t => t + 1)); }}
+                className="inline-flex items-center gap-1 text-[10px] text-secondary hover:text-foreground transition-colors"
+                aria-label="Refrescar cumpleañeros"
+                title="Refrescar cumpleañeros"
+              >
+                <RefreshCw className="w-3 h-3" />
+              </button>
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {monthBirthdays.length === 0 ? (
+            <div className="text-sm text-muted-foreground text-center py-4 space-y-1">
+              <p>No hay cumpleañeros registrados este mes.</p>
+              <p className="text-xs">
+                {allCustomers.filter(c => c.birthdate).length} de {allCustomers.length} clientes tienen fecha de nacimiento registrada.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-72 overflow-y-auto">
+              {monthBirthdays.map(b => (
+                <div
+                  key={b.id}
+                  className={`flex items-center gap-3 rounded-lg border p-2.5 text-sm ${
+                    b.isToday ? 'border-accent/40 bg-accent/10' : 'border-border bg-muted/30'
+                  }`}
+                >
+                  <div className="flex flex-col items-center justify-center w-10 h-10 rounded-md shrink-0" style={{ background: 'rgba(197,160,89,0.15)', color: '#8a6f30' }}>
+                    <span className="text-base font-bold leading-none">{b.day}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{b.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{b.phone}</p>
+                  </div>
+                  {b.isToday && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent shrink-0">
+                      ¡HOY!
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ═══ HISTORIAL DE TRANSACCIONES ═══ */}
       <Card>

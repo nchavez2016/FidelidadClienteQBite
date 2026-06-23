@@ -212,7 +212,7 @@ export default function OperationsTab({
           <Button
             onClick={() => handleAddProPoints?.()}
             disabled={!selectedCustomer || !handleAddProPoints || isCampaignPaused}
-            className="w-full gap-2 text-white font-semibold"
+            className="w-full gap-2 text-white font-semibold text-xs sm:text-sm"
             style={{
               background: 'linear-gradient(135deg, #1B3A6B 0%, #C5A059 100%)',
               border: '1px solid rgba(197,160,89,0.5)',
@@ -220,8 +220,9 @@ export default function OperationsTab({
             }}
             title={selectedCustomer ? 'Premio directo Nivel Pro: otorga 2 puntos al cliente' : 'Selecciona un cliente para premiar'}
           >
-            <Sparkles className="w-4 h-4" />
-            Premiar Cliente + 2 pts
+            <Sparkles className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline truncate">Premiar Cliente + 2 pts</span>
+            <span className="inline sm:hidden truncate">+2 pts</span>
           </Button>
 
         </CardContent>
@@ -445,7 +446,7 @@ export default function OperationsTab({
                 </motion.div>
               )}
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Button
                   onClick={() => {
                     if (isCampaignPaused) {
