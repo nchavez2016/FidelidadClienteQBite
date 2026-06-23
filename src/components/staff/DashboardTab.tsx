@@ -308,7 +308,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
         day: b.day,
         isToday: `${b.month}-${b.day}` === todayKey,
       }));
-  }, [allCustomers, birthdayTick]);
+  }, [allCustomers]);
   const monthName = new Date().toLocaleDateString('es-EC', { month: 'long' });
 
   return (
