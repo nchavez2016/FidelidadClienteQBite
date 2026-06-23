@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, type ReactNode } from 'react';
-import { getCustomers, getTransactions, getCampaignById, getCustomerById, getCustomerPoints, getCustomerTotalPoints } from '@/services';
+import { getCustomers, getTransactions, getCampaignById, getCustomerById, getCustomerPoints, getCustomerTotalPoints, hydrateCustomers } from '@/services';
 import { getCustomerCounts, type CustomerCounts } from '@/services/analytics/customerCounts.service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip as InfoTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import TransactionItem from '@/components/TransactionItem';
-import { Users, TrendingUp, Award, Coins, Filter, PieChart, Clock, RotateCcw, CalendarDays, ShoppingBag, ArrowUpRight, ArrowDownRight, Minus, MessageSquare, Info, Cake } from 'lucide-react';
+import { Users, TrendingUp, Award, Coins, Filter, PieChart, Clock, RotateCcw, CalendarDays, ShoppingBag, ArrowUpRight, ArrowDownRight, Minus, MessageSquare, Info, Cake, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { CommentCategory } from '@/lib/types';
 
@@ -60,7 +60,8 @@ interface DashboardTabProps {
 }
 
 export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
-  const allCustomers = getCustomers();
+  const [birthdayTick, setBirthdayTick] = useState(0);
+  const allCustomers = useMemo(() => getCustomers(), [birthdayTick]);
   const allTransactions = getTransactions();
   const campaign = branchCampaignId ? getCampaignById(branchCampaignId) : undefined;
 
@@ -70,6 +71,16 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
   useEffect(() => {
     let cancelled = false;
     void getCustomerCounts().then((c) => { if (!cancelled) setCustomerCounts(c); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Refresca el cache de clientes al montar el dashboard para asegurar que
+  // fechas de nacimiento recién sincronizadas desde Supabase aparezcan.
+  useEffect(() => {
+    let cancelled = false;
+    void hydrateCustomers().then(() => {
+      if (!cancelled) setBirthdayTick(t => t + 1);
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -297,7 +308,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
         day: b.day,
         isToday: `${b.month}-${b.day}` === todayKey,
       }));
-  }, [allCustomers]);
+  }, [allCustomers, birthdayTick]);
   const monthName = new Date().toLocaleDateString('es-EC', { month: 'long' });
 
   return (
