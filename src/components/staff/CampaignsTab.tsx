@@ -222,55 +222,68 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                   </div>
                 )}
 
-                <div className="flex gap-2 mt-3">
-                  <Button size="sm" variant="outline" onClick={() => startEditCampaign(c)}>Editar</Button>
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 mt-3">
+                  <Button size="sm" variant="outline" className="w-full sm:w-auto min-w-0 overflow-hidden" onClick={() => startEditCampaign(c)}>
+                    <span className="block truncate">Editar</span>
+                  </Button>
                   {c.status === 'draft' && (
-                    <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground" onClick={() => { setCampaignStatus(c.id, 'active'); onRefresh(); toast.success('Campaña activada'); }}>Activar</Button>
+                    <Button size="sm" className="w-full sm:w-auto min-w-0 overflow-hidden bg-success hover:bg-success/90 text-success-foreground" onClick={() => { setCampaignStatus(c.id, 'active'); onRefresh(); toast.success('Campaña activada'); }}>
+                      <span className="block truncate">Activar</span>
+                    </Button>
                   )}
                   {c.status === 'active' && (
                     <>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-amber-400 text-amber-700 hover:bg-amber-50 gap-1"
+                        className="w-full sm:w-auto min-w-0 overflow-hidden border-amber-400 text-amber-700 hover:bg-amber-50 gap-1"
                         onClick={() => {
                           setCampaignStatus(c.id, 'paused');
                           onRefresh();
                           toast.success('Campaña pausada — los clientes no la verán');
                         }}
                       >
-                        <Pause className="w-3.5 h-3.5" />Pausar
+                        <Pause className="w-3.5 h-3.5 shrink-0" />
+                        <span className="block truncate">Pausar</span>
                       </Button>
-                      <Button size="sm" variant="outline" className="border-destructive/30 text-destructive" onClick={() => onFinishCampaign(c.id)}>Finalizar</Button>
+                      <Button size="sm" variant="outline" className="w-full sm:w-auto min-w-0 overflow-hidden border-destructive/30 text-destructive" onClick={() => onFinishCampaign(c.id)}>
+                        <span className="block truncate">Finalizar</span>
+                      </Button>
                     </>
                   )}
                   {c.status === 'paused' && (
                     <>
                       <Button
                         size="sm"
-                        className="bg-success hover:bg-success/90 text-success-foreground gap-1"
+                        className="w-full sm:w-auto min-w-0 overflow-hidden bg-success hover:bg-success/90 text-success-foreground gap-1"
                         onClick={() => {
                           setCampaignStatus(c.id, 'active');
                           onRefresh();
                           toast.success('Campaña reanudada — visible para los clientes');
                         }}
                       >
-                        <Play className="w-3.5 h-3.5" />Reanudar
+                        <Play className="w-3.5 h-3.5 shrink-0" />
+                        <span className="block truncate">Reanudar</span>
                       </Button>
-                      <Button size="sm" variant="outline" className="border-destructive/30 text-destructive" onClick={() => onFinishCampaign(c.id)}>Finalizar</Button>
+                      <Button size="sm" variant="outline" className="w-full sm:w-auto min-w-0 overflow-hidden border-destructive/30 text-destructive" onClick={() => onFinishCampaign(c.id)}>
+                        <span className="block truncate">Finalizar</span>
+                      </Button>
                     </>
                   )}
                   {c.status === 'finished' && (
-                    <Button size="sm" className="bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => onReactivateCampaign(c.id)}>Reactivar</Button>
+                    <Button size="sm" className="w-full sm:w-auto min-w-0 overflow-hidden bg-secondary hover:bg-secondary/90 text-secondary-foreground" onClick={() => onReactivateCampaign(c.id)}>
+                      <span className="block truncate">Reactivar</span>
+                    </Button>
                   )}
                   <Button
                     size="sm"
                     variant="outline"
-                    className="ml-auto border-destructive/40 text-destructive hover:bg-destructive/10 gap-1"
+                    className="w-full sm:w-auto min-w-0 overflow-hidden ml-auto sm:ml-auto border-destructive/40 text-destructive hover:bg-destructive/10 gap-1"
                     onClick={() => { setDeleteTarget(c); setDeleteConfirmText(''); }}
                     aria-label="Eliminar campaña"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />Eliminar
+                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                    <span className="block truncate">Eliminar</span>
                   </Button>
                 </div>
               </CardContent>
