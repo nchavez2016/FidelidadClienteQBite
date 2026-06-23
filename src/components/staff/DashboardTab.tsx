@@ -631,7 +631,6 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
         </Card>
       </div>
 
-      {/* ═══ HISTORIAL DE TRANSACCIONES ═══ */}
       {/* ═══ CUMPLEAÑEROS DEL MES ═══ */}
       <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(197,160,89,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
         <CardHeader className="pb-2">
@@ -676,6 +675,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
         </CardContent>
       </Card>
 
+      {/* ═══ HISTORIAL DE TRANSACCIONES ═══ */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
