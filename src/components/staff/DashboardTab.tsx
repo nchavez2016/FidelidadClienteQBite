@@ -648,8 +648,17 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
           <CardTitle className="text-base flex items-center gap-2 capitalize">
             <Cake className="w-5 h-5" style={{ color: '#C5A059' }} />
             Cumpleañeros de {monthName}
-            <span className="ml-auto text-xs font-normal text-muted-foreground normal-case">
+            <span className="ml-auto text-xs font-normal text-muted-foreground normal-case flex items-center gap-2">
               {monthBirthdays.length} {monthBirthdays.length === 1 ? 'cliente' : 'clientes'}
+              <button
+                type="button"
+                onClick={() => { void hydrateCustomers().then(() => setBirthdayTick(t => t + 1)); }}
+                className="inline-flex items-center gap-1 text-[10px] text-secondary hover:text-foreground transition-colors"
+                aria-label="Refrescar cumpleañeros"
+                title="Refrescar cumpleañeros"
+              >
+                <RefreshCw className="w-3 h-3" />
+              </button>
             </span>
           </CardTitle>
         </CardHeader>
