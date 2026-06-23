@@ -61,7 +61,7 @@ interface DashboardTabProps {
 
 export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
   const [birthdayTick, setBirthdayTick] = useState(0);
-  const allCustomers = useMemo(() => getCustomers(), [birthdayTick]);
+  const allCustomers = getCustomers();
   const allTransactions = getTransactions();
   const campaign = branchCampaignId ? getCampaignById(branchCampaignId) : undefined;
 
