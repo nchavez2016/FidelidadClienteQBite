@@ -664,9 +664,12 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
         </CardHeader>
         <CardContent>
           {monthBirthdays.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No hay cumpleañeros registrados este mes.
-            </p>
+            <div className="text-sm text-muted-foreground text-center py-4 space-y-1">
+              <p>No hay cumpleañeros registrados este mes.</p>
+              <p className="text-xs">
+                {allCustomers.filter(c => c.birthdate).length} de {allCustomers.length} clientes tienen fecha de nacimiento registrada.
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-72 overflow-y-auto">
               {monthBirthdays.map(b => (
