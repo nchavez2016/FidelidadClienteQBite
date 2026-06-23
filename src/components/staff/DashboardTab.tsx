@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip as InfoTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import TransactionItem from '@/components/TransactionItem';
-import { Users, TrendingUp, Award, Coins, Filter, PieChart, Clock, RotateCcw, CalendarDays, ShoppingBag, ArrowUpRight, ArrowDownRight, Minus, MessageSquare, Info } from 'lucide-react';
+import { Users, TrendingUp, Award, Coins, Filter, PieChart, Clock, RotateCcw, CalendarDays, ShoppingBag, ArrowUpRight, ArrowDownRight, Minus, MessageSquare, Info, Cake } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { CommentCategory } from '@/lib/types';
 
@@ -274,6 +274,31 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
   const toggleCategoryFilter = (cat: CommentCategory) => {
     setCategoryFilter(prev => prev === cat ? null : cat);
   };
+
+  // ═══ Cumpleañeros del mes (independiente del filtro de fechas) ═══
+  const monthBirthdays = useMemo(() => {
+    const currentMonth = new Date().getMonth(); // 0-11
+    const today = new Date();
+    const todayKey = `${today.getMonth()}-${today.getDate()}`;
+    return allCustomers
+      .filter(c => c.isActive !== false && c.birthdate)
+      .map(c => {
+        // birthdate stored as YYYY-MM-DD — parse as local date to avoid TZ shifts
+        const [y, m, d] = (c.birthdate as string).split('-').map(Number);
+        if (!m || !d) return null;
+        return { customer: c, month: m - 1, day: d, year: y };
+      })
+      .filter((x): x is { customer: typeof allCustomers[number]; month: number; day: number; year: number } => x !== null && x.month === currentMonth)
+      .sort((a, b) => a.day - b.day)
+      .map(b => ({
+        id: b.customer.id,
+        name: b.customer.name,
+        phone: b.customer.phone,
+        day: b.day,
+        isToday: `${b.month}-${b.day}` === todayKey,
+      }));
+  }, [allCustomers]);
+  const monthName = new Date().toLocaleDateString('es-EC', { month: 'long' });
 
   return (
     <div className="space-y-4 mt-4">
