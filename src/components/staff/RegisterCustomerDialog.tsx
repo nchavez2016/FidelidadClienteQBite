@@ -138,6 +138,7 @@ export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }
           <Button
             type="submit"
             disabled={!consent || submitting}
+            onClick={() => console.log('CLICK REGISTRAR', { consent, submitting, name, phone, gender })}
             className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-2"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
