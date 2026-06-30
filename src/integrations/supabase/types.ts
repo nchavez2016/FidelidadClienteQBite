@@ -255,6 +255,75 @@ export type Database = {
           },
         ]
       }
+      point_transactions_archive: {
+        Row: {
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          archived_at: string
+          balance_after: number | null
+          bonus_multiplier: number | null
+          bonus_rule_id: string | null
+          branch_id: string | null
+          campaign_id: string
+          comment_category: string | null
+          comment_text: string | null
+          created_at: string
+          customer_id: string
+          effective_at: string
+          id: string
+          idempotency_key: string | null
+          kind: Database["public"]["Enums"]["tx_kind"]
+          metadata: Json
+          points_delta: number
+          reverses_tx_id: string | null
+          reward_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          archived_at?: string
+          balance_after?: number | null
+          bonus_multiplier?: number | null
+          bonus_rule_id?: string | null
+          branch_id?: string | null
+          campaign_id: string
+          comment_category?: string | null
+          comment_text?: string | null
+          created_at?: string
+          customer_id: string
+          effective_at?: string
+          id?: string
+          idempotency_key?: string | null
+          kind: Database["public"]["Enums"]["tx_kind"]
+          metadata?: Json
+          points_delta: number
+          reverses_tx_id?: string | null
+          reward_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: Database["public"]["Enums"]["app_role"] | null
+          archived_at?: string
+          balance_after?: number | null
+          bonus_multiplier?: number | null
+          bonus_rule_id?: string | null
+          branch_id?: string | null
+          campaign_id?: string
+          comment_category?: string | null
+          comment_text?: string | null
+          created_at?: string
+          customer_id?: string
+          effective_at?: string
+          id?: string
+          idempotency_key?: string | null
+          kind?: Database["public"]["Enums"]["tx_kind"]
+          metadata?: Json
+          points_delta?: number
+          reverses_tx_id?: string | null
+          reward_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           accepted_campaigns: string[]
@@ -269,6 +338,10 @@ export type Database = {
           is_active: boolean
           legacy_id: string | null
           phone: string | null
+          phone_consent_actor_id: string | null
+          phone_consent_at: string | null
+          phone_consent_granted: boolean
+          phone_consent_source: string | null
           revoked_from_phone: string | null
           updated_at: string
         }
@@ -285,6 +358,10 @@ export type Database = {
           is_active?: boolean
           legacy_id?: string | null
           phone?: string | null
+          phone_consent_actor_id?: string | null
+          phone_consent_at?: string | null
+          phone_consent_granted?: boolean
+          phone_consent_source?: string | null
           revoked_from_phone?: string | null
           updated_at?: string
         }
@@ -301,6 +378,10 @@ export type Database = {
           is_active?: boolean
           legacy_id?: string | null
           phone?: string | null
+          phone_consent_actor_id?: string | null
+          phone_consent_at?: string | null
+          phone_consent_granted?: boolean
+          phone_consent_source?: string | null
           revoked_from_phone?: string | null
           updated_at?: string
         }
@@ -449,7 +530,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      point_transactions_full: {
+        Row: {
+          actor_id: string | null
+          actor_role: Database["public"]["Enums"]["app_role"] | null
+          archived_at: string | null
+          balance_after: number | null
+          bonus_multiplier: number | null
+          bonus_rule_id: string | null
+          branch_id: string | null
+          campaign_id: string | null
+          comment_category: string | null
+          comment_text: string | null
+          created_at: string | null
+          customer_id: string | null
+          effective_at: string | null
+          id: string | null
+          idempotency_key: string | null
+          is_archived: boolean | null
+          kind: Database["public"]["Enums"]["tx_kind"] | null
+          metadata: Json | null
+          points_delta: number | null
+          reverses_tx_id: string | null
+          reward_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_campaign_terms: {
@@ -501,6 +607,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      archive_point_transactions: { Args: never; Returns: number }
       earn_points: {
         Args: {
           p_bonus_multiplier?: number
@@ -581,6 +688,18 @@ export type Database = {
         }
         Returns: string
       }
+      log_system_action: {
+        Args: {
+          p_action: string
+          p_metadata?: Json
+          p_target_id?: string
+          p_target_type?: string
+        }
+        Returns: string
+      }
+      purge_archived_point_transactions: { Args: never; Returns: number }
+      purge_old_admin_audit_log: { Args: never; Returns: number }
+      purge_old_redemption_request_events: { Args: never; Returns: number }
       redeem_reward: {
         Args: {
           p_branch_id: string
