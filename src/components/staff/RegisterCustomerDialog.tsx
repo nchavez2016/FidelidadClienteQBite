@@ -29,6 +29,7 @@ export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.info('[RegisterCustomerDialog] submit', { name, phone, gender, consent });
     if (!name.trim()) { toast.error('Ingresa el nombre completo'); return; }
     if (!/^\d{10}$/.test(phone)) { toast.error('El número debe tener 10 dígitos'); return; }
     if (!gender) { toast.error('Selecciona el género del cliente'); return; }
@@ -36,6 +37,7 @@ export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }
 
     setSubmitting(true);
     try {
+      console.info('[RegisterCustomerDialog] invoking staff-admin create_customer');
       const { data, error } = await supabase.functions.invoke('staff-admin', {
         body: {
           action: 'create_customer',
@@ -46,6 +48,7 @@ export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }
           branch_id: staff?.branchId ?? null,
         },
       });
+      console.info('[RegisterCustomerDialog] invoke result', { data, error });
       if (error) {
         // FunctionsHttpError exposes context with the body
         const ctx = (error as { context?: Response }).context;
@@ -68,6 +71,7 @@ export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }
       onOpenChange(false);
       onCreated?.(phone);
     } catch (err) {
+      console.error('[RegisterCustomerDialog] unexpected error', err);
       toast.error(err instanceof Error ? err.message : 'Error inesperado');
     } finally {
       setSubmitting(false);
@@ -137,7 +141,7 @@ export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }
             className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-2"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-            {submitting ? 'Registrando...' : 'Registrar cliente'}
+            {submitting ? 'Registrando...' : 'Registrar'}
           </Button>
         </form>
       </DialogContent>
