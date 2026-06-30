@@ -482,7 +482,6 @@ async function handleCreateCustomer(
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
     password,
-    phone,
     email_confirm: true,
     user_metadata: {
       audience: 'customer',
