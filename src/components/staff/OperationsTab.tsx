@@ -208,6 +208,9 @@ export default function OperationsTab({
                 <Search className="w-4 h-4" />Buscar
               </Button>
             )}
+            <Button variant="outline" className="gap-2" onClick={() => setShowRegisterDialog(true)}>
+              <UserPlus className="w-4 h-4" />Nuevo Cliente
+            </Button>
           </div>
           <Button
             onClick={() => handleAddProPoints?.()}
