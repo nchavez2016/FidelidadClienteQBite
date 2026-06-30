@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
+type InvokeResult<T> = Awaited<ReturnType<typeof supabase.functions.invoke<T>>>;
+
 /**
  * Wrapper para invocaciones a la edge function `staff-admin`.
  *
@@ -10,8 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export async function invokeStaffAdmin<T = unknown>(
   payload: Record<string, unknown>,
-): Promise<{ data: T | null; error: unknown }> {
-  let result = await supabase.functions.invoke('staff-admin', { body: payload });
+): Promise<InvokeResult<T>> {
+  let result = await supabase.functions.invoke<T>('staff-admin', { body: payload });
 
   const status = (result.error as { status?: number } | null)?.status;
   if (result.error && status === 401) {
@@ -23,10 +25,10 @@ export async function invokeStaffAdmin<T = unknown>(
       if (typeof window !== 'undefined') {
         window.location.href = '/staff/login';
       }
-      return result as { data: T | null; error: unknown };
+      return result;
     }
-    result = await supabase.functions.invoke('staff-admin', { body: payload });
+    result = await supabase.functions.invoke<T>('staff-admin', { body: payload });
   }
 
-  return result as { data: T | null; error: unknown };
+  return result;
 }
