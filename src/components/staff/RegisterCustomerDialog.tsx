@@ -18,7 +18,7 @@ interface Props {
 }
 
 export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }: Props) {
-  const { currentStaff } = useStaffAuth();
+  const { staff } = useStaffAuth();
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
@@ -43,7 +43,7 @@ export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }
           phone,
           gender,
           phone_consent_confirmed: true,
-          branch_id: currentStaff?.branchId ?? null,
+          branch_id: staff?.branchId ?? null,
         },
       });
       if (error) {
