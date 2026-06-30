@@ -209,7 +209,7 @@ export default function OperationsTab({
               </Button>
             )}
             <Button variant="outline" className="gap-2" onClick={() => setShowRegisterDialog(true)}>
-              <UserPlus className="w-4 h-4" />Nuevo Cliente
+              <UserPlus className="w-4 h-4" />Registrar Cliente
             </Button>
           </div>
           <Button
