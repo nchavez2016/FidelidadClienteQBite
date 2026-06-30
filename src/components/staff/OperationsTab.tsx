@@ -201,7 +201,7 @@ export default function OperationsTab({
             />
             {selectedCustomer ? (
               <Button onClick={clearAndFocus} variant="outline" className="gap-2 border-secondary/40 text-secondary hover:bg-secondary/5">
-                <TimerReset className="w-4 h-4" />Nuevo cliente
+                <TimerReset className="w-4 h-4" />Otra búsqueda
               </Button>
             ) : (
               <Button onClick={searchCustomer} className="gap-2 text-white font-semibold" style={{ background: 'linear-gradient(135deg, #C5A059, #D4B06A)', border: '1px solid rgba(197,160,89,0.5)' }}>
@@ -209,7 +209,7 @@ export default function OperationsTab({
               </Button>
             )}
             <Button variant="outline" className="gap-2" onClick={() => setShowRegisterDialog(true)}>
-              <UserPlus className="w-4 h-4" />Nuevo Cliente
+              <UserPlus className="w-4 h-4" />Registrar Cliente
             </Button>
           </div>
           <Button
