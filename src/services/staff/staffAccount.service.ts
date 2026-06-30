@@ -8,6 +8,7 @@
  * Multirol-friendly: si un usuario también es customer, esa fila NO se toca.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { invokeStaffAdmin } from '@/lib/invokeStaffAdmin';
 import { logAdminAction } from '@/services/security/adminAudit.service';
 
 export type StaffRole = 'admin' | 'cashier';
