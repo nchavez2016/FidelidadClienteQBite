@@ -73,9 +73,7 @@ function humanize(code: string, fallback?: string): string {
 }
 
 async function invoke<T>(payload: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('staff-admin', {
-    body: payload,
-  });
+  const { data, error } = await invokeStaffAdmin<T>(payload);
   if (error) {
     // FunctionsHttpError trae el body en .context.response (algunos clientes).
     let code = 'function_invoke_failed';
