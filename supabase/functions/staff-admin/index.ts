@@ -16,10 +16,11 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-type Action = 'create' | 'update' | 'set_active' | 'delete' | 'list';
+type Action = 'create' | 'update' | 'set_active' | 'delete' | 'list' | 'create_customer';
 type StaffRole = 'admin' | 'cashier';
 
 const STAFF_DOMAIN = 'staff.gaviota.local';
+const CUSTOMER_DOMAIN = 'phone.gaviota.local';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -92,20 +93,7 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
-  // 3. Verificar que el caller es admin.
-  const { data: isAdminResp, error: roleErr } = await admin.rpc('has_role', {
-    _user_id: callerId,
-    _role: 'admin',
-  });
-  if (roleErr) {
-    console.error('[staff-admin] has_role rpc failed', roleErr);
-    return json(500, { error: 'role_check_failed', details: roleErr.message });
-  }
-  if (isAdminResp !== true) {
-    return json(403, { error: 'forbidden_admin_only' });
-  }
-
-  // 4. Parse body
+  // 3. Parse body primero — para 'create_customer' permitimos cashier o admin.
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -114,12 +102,36 @@ Deno.serve(async (req) => {
   }
   const action = body.action as Action;
 
+  // 4. Verificar roles según action.
+  if (action === 'create_customer') {
+    const [adminCheck, cashierCheck] = await Promise.all([
+      admin.rpc('has_role', { _user_id: callerId, _role: 'admin' }),
+      admin.rpc('has_role', { _user_id: callerId, _role: 'cashier' }),
+    ]);
+    const isStaff = adminCheck.data === true || cashierCheck.data === true;
+    if (!isStaff) return json(403, { error: 'forbidden_staff_only' });
+  } else {
+    const { data: isAdminResp, error: roleErr } = await admin.rpc('has_role', {
+      _user_id: callerId,
+      _role: 'admin',
+    });
+    if (roleErr) {
+      console.error('[staff-admin] has_role rpc failed', roleErr);
+      return json(500, { error: 'role_check_failed', details: roleErr.message });
+    }
+    if (isAdminResp !== true) {
+      return json(403, { error: 'forbidden_admin_only' });
+    }
+  }
+
   try {
     switch (action) {
       case 'list':
         return await handleList(admin);
       case 'create':
         return await handleCreate(admin, body);
+      case 'create_customer':
+        return await handleCreateCustomer(admin, body, callerId);
       case 'update':
         return await handleUpdate(admin, body, callerId);
       case 'set_active':
@@ -439,4 +451,96 @@ async function handleDelete(
   if (error) return json(500, { error: 'delete_user_failed', details: error.message });
 
   return json(200, { ok: true, user_id, deleted: true });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CREATE_CUSTOMER — registro presencial de cliente desde el panel staff
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleCreateCustomer(
+  admin: ReturnType<typeof createClient>,
+  body: Record<string, unknown>,
+  callerId: string,
+): Promise<Response> {
+  const name = String(body.name ?? '').trim();
+  const phone = String(body.phone ?? '').trim();
+  const gender = body.gender as string | undefined;
+  const phone_consent_confirmed = body.phone_consent_confirmed === true;
+  const branch_id = body.branch_id ? String(body.branch_id) : null;
+
+  if (!name) return json(422, { error: 'name_required' });
+  if (!/^\d{10}$/.test(phone)) return json(422, { error: 'phone_invalid', message: 'El número debe tener 10 dígitos' });
+  if (gender !== 'masculino' && gender !== 'femenino' && gender !== 'otro') {
+    return json(422, { error: 'gender_invalid' });
+  }
+  if (!phone_consent_confirmed) {
+    return json(422, { error: 'consent_required', message: 'Debes confirmar el consentimiento verbal del cliente' });
+  }
+
+  const email = `${phone}@${CUSTOMER_DOMAIN}`;
+  const password = phone;
+
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email,
+    password,
+    phone,
+    email_confirm: true,
+    user_metadata: {
+      audience: 'customer',
+      identifier: phone,
+      phone,
+      display_name: name,
+      gender,
+      consent_accepted: true,
+      phone_consent_granted: true,
+      phone_consent_source: 'staff_panel',
+      phone_consent_actor_id: callerId,
+      registered_by_staff: callerId,
+      branch_id,
+    },
+  });
+
+  if (createErr) {
+    const msg = (createErr.message ?? '').toLowerCase();
+    const isDup =
+      msg.includes('already') ||
+      msg.includes('exist') ||
+      msg.includes('duplicate') ||
+      (createErr as { status?: number }).status === 422;
+    return json(isDup ? 409 : 500, {
+      error: isDup ? 'phone_already_exists' : 'create_user_failed',
+      message: isDup ? 'Ya existe un cliente con ese número' : (createErr.message ?? 'No se pudo crear el cliente'),
+    });
+  }
+
+  const newUserId = created.user!.id;
+
+  // Asegurar/parchar profile con branch_id + consentimiento (handle_new_user ya
+  // lo creó, pero el trigger no tiene branch_id en metadata).
+  const { error: profileErr } = await admin
+    .from('profiles')
+    .update({
+      branch_id,
+      phone_consent_granted: true,
+      phone_consent_at: new Date().toISOString(),
+      phone_consent_source: 'staff_panel',
+      phone_consent_actor_id: callerId,
+    })
+    .eq('id', newUserId);
+
+  if (profileErr) {
+    await admin.auth.admin.deleteUser(newUserId);
+    return json(500, { error: 'profile_update_failed', message: profileErr.message });
+  }
+
+  // Auditoría
+  await admin.from('admin_audit_log').insert({
+    actor_id: callerId,
+    actor_role: 'cashier',
+    action: 'customer_created_by_staff',
+    target_type: 'profile',
+    target_id: newUserId,
+    metadata: { phone, branch_id, registered_by: callerId, gender },
+  });
+
+  return json(200, { ok: true, user_id: newUserId, phone });
 }
