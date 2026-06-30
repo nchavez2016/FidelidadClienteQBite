@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from 'sonner';
 import { UserPlus, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeStaffAdmin } from '@/lib/invokeStaffAdmin';
 import { useStaffAuth } from '@/hooks/useStaffAuth';
 
 interface Props {
@@ -38,15 +39,13 @@ export default function RegisterCustomerDialog({ open, onOpenChange, onCreated }
     setSubmitting(true);
     try {
       console.info('[RegisterCustomerDialog] invoking staff-admin create_customer');
-      const { data, error } = await supabase.functions.invoke('staff-admin', {
-        body: {
-          action: 'create_customer',
-          name: name.trim(),
-          phone,
-          gender,
-          phone_consent_confirmed: true,
-          branch_id: staff?.branchId ?? null,
-        },
+      const { data, error } = await invokeStaffAdmin<{ error?: string; message?: string }>({
+        action: 'create_customer',
+        name: name.trim(),
+        phone,
+        gender,
+        phone_consent_confirmed: true,
+        branch_id: staff?.branchId ?? null,
       });
       console.info('[RegisterCustomerDialog] invoke result', { data, error });
       if (error) {
