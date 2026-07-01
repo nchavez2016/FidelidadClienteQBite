@@ -55,7 +55,8 @@ export default function CustomerLogin() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <Label htmlFor="phone">Número de teléfono</Label>
-              <Input id="phone" type="tel" placeholder="0991234567" value={phone} onChange={e => setPhone(e.target.value)} required />
+              <Input id="phone" type="tel" inputMode="numeric" placeholder="0991234567" value={phone} onChange={e => handlePhoneChange(e.target.value)} required />
+              {phoneError && <p className="text-xs text-destructive mt-1">{phoneError}</p>}
             </div>
             <div>
               <Label htmlFor="password">Contraseña</Label>
