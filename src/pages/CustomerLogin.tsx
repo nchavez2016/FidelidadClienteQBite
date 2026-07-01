@@ -14,11 +14,23 @@ export default function CustomerLogin() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
   const navigate = useNavigate();
   const { signIn } = useAuth();
 
+  const handlePhoneChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    setPhone(digits);
+    setPhoneError('');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (phone.length < 10) {
+      setPhoneError('El número debe tener 10 dígitos');
+      return;
+    }
+    setPhoneError('');
     setSubmitting(true);
     const dashboardLoad = loadCustomerDashboardPage();
     const { error } = await signIn(phone, password, 'customer');
