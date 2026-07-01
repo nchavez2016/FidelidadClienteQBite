@@ -14,7 +14,7 @@ export default function TransactionItem({ tx, customerName, showStaff, showComme
   const isBonus = tx.type === 'accumulation' && tx.bonusMultiplier && tx.bonusMultiplier > 1;
   const isProReward = isBonus && /Nivel Pro/i.test(tx.commentText ?? '');
   const label = isProReward
-    ? `⭐ Premio Cliente · +${tx.points} pts (directo)`
+    ? `⭐ Bono Cliente · +${tx.points} pts`
     : isBonus
       ? `🔥 Compra con Bonus x${tx.bonusMultiplier}${tx.bonusRuleLabel ? ` · ${tx.bonusRuleLabel}` : ''}`
       : baseLabel;
