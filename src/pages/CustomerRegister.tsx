@@ -22,12 +22,23 @@ export default function CustomerRegister() {
   const [gender, setGender] = useState<Gender | ''>('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
   const navigate = useNavigate();
   const { signUp } = useAuth();
 
+  const handlePhoneChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    setPhone(digits);
+    setPhoneError('');
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.length < 7) { toast.error('Número de teléfono inválido'); return; }
+    if (phone.length < 10) {
+      setPhoneError('El número debe tener 10 dígitos');
+      return;
+    }
+    setPhoneError('');
     if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
     if (!gender) { toast.error('Por favor selecciona tu género'); return; }
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,7 +82,8 @@ export default function CustomerRegister() {
             </div>
             <div>
               <Label htmlFor="phone">Número de teléfono</Label>
-              <Input id="phone" type="tel" placeholder="0991234567" value={phone} onChange={e => setPhone(e.target.value)} required />
+              <Input id="phone" type="tel" inputMode="numeric" placeholder="0991234567" value={phone} onChange={e => handlePhoneChange(e.target.value)} required />
+              {phoneError && <p className="text-xs text-destructive mt-1">{phoneError}</p>}
             </div>
             <div>
               <Label htmlFor="email">Correo electrónico</Label>
