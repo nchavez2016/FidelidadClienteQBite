@@ -224,7 +224,7 @@ export default function OperationsTab({
             title={selectedCustomer ? 'Premio directo Nivel Pro: otorga 2 puntos al cliente' : 'Selecciona un cliente para premiar'}
           >
             <Sparkles className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline truncate">Premiar Cliente + 2 pts</span>
+            <span className="hidden sm:inline truncate">Bono Cliente + 2 pts</span>
             <span className="inline sm:hidden truncate">+2 pts</span>
           </Button>
 
