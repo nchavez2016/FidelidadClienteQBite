@@ -22,8 +22,15 @@ export default function CustomerRegister() {
   const [gender, setGender] = useState<Gender | ''>('');
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
   const navigate = useNavigate();
   const { signUp } = useAuth();
+
+  const handlePhoneChange = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 10);
+    setPhone(digits);
+    setPhoneError('');
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
