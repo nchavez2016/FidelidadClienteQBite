@@ -34,7 +34,11 @@ export default function CustomerRegister() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.length < 7) { toast.error('Número de teléfono inválido'); return; }
+    if (phone.length < 10) {
+      setPhoneError('El número debe tener 10 dígitos');
+      return;
+    }
+    setPhoneError('');
     if (password.length < 6) { toast.error('La contraseña debe tener al menos 6 caracteres'); return; }
     if (!gender) { toast.error('Por favor selecciona tu género'); return; }
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
