@@ -201,13 +201,16 @@ export default function OperationsTab({
             />
             {selectedCustomer ? (
               <Button onClick={clearAndFocus} variant="outline" className="gap-2 border-secondary/40 text-secondary hover:bg-secondary/5">
-                <TimerReset className="w-4 h-4" />Nuevo cliente
+                <TimerReset className="w-4 h-4" />Otra búsqueda
               </Button>
             ) : (
               <Button onClick={searchCustomer} className="gap-2 text-white font-semibold" style={{ background: 'linear-gradient(135deg, #C5A059, #D4B06A)', border: '1px solid rgba(197,160,89,0.5)' }}>
                 <Search className="w-4 h-4" />Buscar
               </Button>
             )}
+            <Button variant="outline" className="gap-2" onClick={() => setShowRegisterDialog(true)}>
+              <UserPlus className="w-4 h-4" />Registrar Cliente
+            </Button>
           </div>
           <Button
             onClick={() => handleAddProPoints?.()}
@@ -221,7 +224,7 @@ export default function OperationsTab({
             title={selectedCustomer ? 'Premio directo Nivel Pro: otorga 2 puntos al cliente' : 'Selecciona un cliente para premiar'}
           >
             <Sparkles className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline truncate">Premiar Cliente + 2 pts</span>
+            <span className="hidden sm:inline truncate">Bono Cliente + 2 pts</span>
             <span className="inline sm:hidden truncate">+2 pts</span>
           </Button>
 

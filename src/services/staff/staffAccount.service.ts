@@ -8,6 +8,7 @@
  * Multirol-friendly: si un usuario también es customer, esa fila NO se toca.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { invokeStaffAdmin } from '@/lib/invokeStaffAdmin';
 import { logAdminAction } from '@/services/security/adminAudit.service';
 
 export type StaffRole = 'admin' | 'cashier';
@@ -73,9 +74,7 @@ function humanize(code: string, fallback?: string): string {
 }
 
 async function invoke<T>(payload: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke('staff-admin', {
-    body: payload,
-  });
+  const { data, error } = await invokeStaffAdmin<T>(payload);
   if (error) {
     // FunctionsHttpError trae el body en .context.response (algunos clientes).
     let code = 'function_invoke_failed';
