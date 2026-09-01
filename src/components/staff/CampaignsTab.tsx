@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getCampaigns, setCampaignStatus, deleteCampaign } from '@/services';
 import { Campaign } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -15,8 +15,7 @@ import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
 import { getBranchAccent } from '@/lib/utils';
-
-const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
+import { getBranches, hydrateBranches, isBranchesHydrated } from '@/services/branches.service';
 
 interface CampaignsTabProps {
   onRefresh: () => void;
@@ -38,6 +37,19 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
   const [deleteTarget, setDeleteTarget] = useState<Campaign | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const canConfirmDelete = deleteConfirmText.trim().toUpperCase() === 'ELIMINAR';
+
+  const [branchesReady, setBranchesReady] = useState<boolean>(isBranchesHydrated());
+  useEffect(() => {
+    if (branchesReady) return;
+    let alive = true;
+    void hydrateBranches().then(() => {
+      if (alive) setBranchesReady(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [branchesReady]);
+  const branches = getBranches();
 
   return (
     <div className="space-y-4 mt-4">
@@ -312,8 +324,8 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                     <SelectValue placeholder="Selecciona una sucursal" />
                   </SelectTrigger>
                   <SelectContent>
-                    {BRANCH_OPTIONS.map(branch => (
-                      <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                    {branches.map(branch => (
+                      <SelectItem key={branch.id} value={branch.name}>{branch.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -392,9 +404,9 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               return (
                 <div
                   className="rounded-lg p-4 space-y-4"
-                  style={{ background: '#EEF2F8', border: '1.5px solid #C9A84C' }}
+                  style={{ background: '#EEF2F8', border: '1.5px solid #E8A145' }}
                 >
-                  <h3 className="font-heading font-bold" style={{ color: '#1B3A6B' }}>
+                  <h3 className="font-heading font-bold" style={{ color: '#0B181E' }}>
                     Cómo se gana 1 punto
                   </h3>
 
@@ -604,11 +616,11 @@ function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
 
       <div className="rounded-lg bg-background border border-border p-4 space-y-4">
         <div className="flex items-start gap-3">
-          <div className="rounded-full p-2" style={{ background: 'rgba(27,58,107,0.1)' }}>
-            <Award className="h-5 w-5" style={{ color: '#1B3A6B' }} />
+          <div className="rounded-full p-2" style={{ background: 'rgba(11,24,30,0.1)' }}>
+            <Award className="h-5 w-5" style={{ color: '#0B181E' }} />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold" style={{ color: '#1B3A6B' }}>
+            <h3 className="font-semibold" style={{ color: '#0B181E' }}>
               {campaign?.name || 'Nombre de la campaña'}
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -618,7 +630,7 @@ function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
         </div>
 
         <div className="rounded-md border border-border p-3 flex gap-3">
-          <Coins className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+          <Coins className="h-5 w-5 mt-0.5" style={{ color: '#E8A145' }} />
           <div className="flex-1">
             <p className="text-sm font-medium">Cómo ganar puntos</p>
             <p className="text-xs text-muted-foreground">{cardText}</p>
@@ -627,7 +639,7 @@ function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
 
         {(campaign?.bonusRules || []).filter(r => r.active).length > 0 && (
           <div className="rounded-md border border-border p-3 flex gap-3">
-            <Zap className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+            <Zap className="h-5 w-5 mt-0.5" style={{ color: '#E8A145' }} />
             <div className="flex-1">
               <p className="text-sm font-medium">Puntos dobles activos</p>
               <p className="text-xs text-muted-foreground">Gana puntos extra en días y horarios seleccionados.</p>
@@ -636,7 +648,7 @@ function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
         )}
 
         <div className="rounded-md border border-border p-3 flex gap-3">
-          <ArrowLeftRight className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+          <ArrowLeftRight className="h-5 w-5 mt-0.5" style={{ color: '#E8A145' }} />
           <div className="flex-1">
             <p className="text-sm font-medium">Canje parcial</p>
             <p className="text-xs text-muted-foreground">Puedes canjear premios parcialmente según tus puntos disponibles.</p>

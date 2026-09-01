@@ -63,7 +63,7 @@ export default function StaffShiftStats({ staffId, branchCampaignId, refreshKey 
               <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
               <span
                 className="font-heading font-bold leading-none truncate"
-                style={{ fontSize: '22px', color: gold ? '#C5A059' : '#ffffff' }}
+                style={{ fontSize: '22px', color: gold ? '#E8A145' : '#ffffff' }}
               >
                 {value}
               </span>

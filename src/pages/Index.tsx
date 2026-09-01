@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import BrandHeader from "@/components/BrandHeader";
 import { appRoute } from "@/lib/navigation";
 import { loadCustomerLoginPage, loadStaffLoginPage } from "@/lib/routePreload";
-import { Instagram, MessageCircle, Music2, Shield, Users, type LucideIcon } from "lucide-react";
+import { Facebook, Instagram, MessageCircle, Music2, Shield, Users, type LucideIcon } from "lucide-react";
 
 type SocialLink = {
   name: string;
@@ -15,14 +15,20 @@ type SocialLink = {
 const socialLinks: SocialLink[] = [
   {
     name: "Instagram",
-    href: "https://instagram.com/lagaviotaazulexpress",
-    handle: "@lagaviotaazulexpress",
+    href: "https://instagram.com/qbites.ec",
+    handle: "@qbites.ec",
     icon: Instagram,
   },
   {
+    name: "Facebook",
+    href: "https://facebook.com/share/19aTJCqfFQ",
+    handle: "Facebook",
+    icon: Facebook,
+  },
+  {
     name: "TikTok",
-    href: "https://www.tiktok.com/@lagaviotaazulexpr",
-    handle: "@cevicheriagaviotaazul",
+    href: "https://tiktok.com/@qbites.ec",
+    handle: "@qbites.ec",
     icon: Music2,
   },
   {

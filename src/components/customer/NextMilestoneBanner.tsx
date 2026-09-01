@@ -14,13 +14,13 @@ export default function NextMilestoneBanner({ allCompleted, nextMilestone, point
         <div
           className="flex items-center justify-center gap-2 py-3 px-5 font-body text-[13px] sm:text-[14px]"
           style={{
-            background: 'linear-gradient(135deg, #2E6DB4 0%, #1a4a80 100%)',
+            background: 'linear-gradient(135deg, #D92521 0%, #921816 100%)',
             color: '#fff',
             borderRadius: 12,
-            boxShadow: '0 4px 16px -4px rgba(46,109,180,0.4)',
+            boxShadow: '0 4px 16px -4px rgba(217,37,33,0.4)',
           }}
         >
-          <Star className="w-4 h-4 shrink-0" style={{ color: '#C5A059', fill: '#C5A059' }} />
+          <Star className="w-4 h-4 shrink-0" style={{ color: '#E8A145', fill: '#E8A145' }} />
           🎉 ¡Completaste la ruta de premios!
         </div>
       </div>
@@ -32,7 +32,7 @@ export default function NextMilestoneBanner({ allCompleted, nextMilestone, point
       <div className="max-w-[720px] mx-auto px-4 sm:px-6 mt-3 mb-1">
         <div
           className="flex items-center justify-center gap-2 py-3 px-5 font-body text-[13px]"
-          style={{ background: 'rgba(46,109,180,0.1)', color: '#1B3A6B', borderRadius: 12 }}
+          style={{ background: 'rgba(217,37,33,0.1)', color: '#0B181E', borderRadius: 12 }}
         >
           Sin campaña activa
         </div>
@@ -45,16 +45,16 @@ export default function NextMilestoneBanner({ allCompleted, nextMilestone, point
       <div
         className="flex items-center gap-3 py-3 px-4"
         style={{
-          background: 'linear-gradient(135deg, #2E6DB4 0%, #1a4a80 100%)',
+          background: 'linear-gradient(135deg, #D92521 0%, #921816 100%)',
           borderRadius: 12,
-          boxShadow: '0 4px 16px -4px rgba(46,109,180,0.4)',
+          boxShadow: '0 4px 16px -4px rgba(217,37,33,0.4)',
         }}
       >
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: 'rgba(197,160,89,0.18)', border: '1px solid rgba(197,160,89,0.4)' }}
+          style={{ background: 'rgba(232,161,69,0.18)', border: '1px solid rgba(232,161,69,0.4)' }}
         >
-          <Star className="w-4 h-4" style={{ color: '#C5A059', fill: '#C5A059' }} />
+          <Star className="w-4 h-4" style={{ color: '#E8A145', fill: '#E8A145' }} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-body font-bold text-white text-[13px] sm:text-[14px] leading-tight">
@@ -65,10 +65,10 @@ export default function NextMilestoneBanner({ allCompleted, nextMilestone, point
           </p>
         </div>
         <div className="text-right shrink-0">
-          <div className="font-heading font-bold text-[20px] sm:text-[22px] leading-none" style={{ color: '#C5A059' }}>
+          <div className="font-heading font-bold text-[20px] sm:text-[22px] leading-none" style={{ color: '#E8A145' }}>
             {pointsToNext}
           </div>
-          <p className="font-body text-[9px] uppercase tracking-wider mt-0.5" style={{ color: 'rgba(197,160,89,0.85)' }}>
+          <p className="font-body text-[9px] uppercase tracking-wider mt-0.5" style={{ color: 'rgba(232,161,69,0.85)' }}>
             pts faltan
           </p>
         </div>

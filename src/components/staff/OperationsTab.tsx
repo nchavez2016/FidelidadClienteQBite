@@ -94,7 +94,7 @@ export default function OperationsTab({
         background: opsAccent.bgStrong,
         border: `1px solid ${opsAccent.borderStrong}`,
       }
-    : { background: 'rgba(197,160,89,0.06)', border: '1px solid rgba(197,160,89,0.2)' };
+    : { background: 'rgba(232,161,69,0.06)', border: '1px solid rgba(232,161,69,0.2)' };
   const opsInnerLabelColor = opsAccent?.color ?? '#8B6914';
 
   // Limpiar cliente y enfocar buscador (memoizable manualmente vía ref-stable callback)
@@ -204,7 +204,7 @@ export default function OperationsTab({
                 <TimerReset className="w-4 h-4" />Otra búsqueda
               </Button>
             ) : (
-              <Button onClick={searchCustomer} className="gap-2 text-white font-semibold" style={{ background: 'linear-gradient(135deg, #C5A059, #D4B06A)', border: '1px solid rgba(197,160,89,0.5)' }}>
+              <Button onClick={searchCustomer} className="gap-2 text-white font-semibold" style={{ background: 'linear-gradient(135deg, #E8A145, #EEB872)', border: '1px solid rgba(232,161,69,0.5)' }}>
                 <Search className="w-4 h-4" />Buscar
               </Button>
             )}
@@ -217,9 +217,9 @@ export default function OperationsTab({
             disabled={!selectedCustomer || !handleAddProPoints || isCampaignPaused}
             className="w-full gap-2 text-white font-semibold text-xs sm:text-sm"
             style={{
-              background: 'linear-gradient(135deg, #1B3A6B 0%, #C5A059 100%)',
-              border: '1px solid rgba(197,160,89,0.5)',
-              boxShadow: '0 4px 14px -4px rgba(27,58,107,0.45)',
+              background: 'linear-gradient(135deg, #0B181E 0%, #E8A145 100%)',
+              border: '1px solid rgba(232,161,69,0.5)',
+              boxShadow: '0 4px 14px -4px rgba(11,24,30,0.45)',
             }}
             title={selectedCustomer ? 'Premio directo Nivel Pro: otorga 2 puntos al cliente' : 'Selecciona un cliente para premiar'}
           >
@@ -263,7 +263,7 @@ export default function OperationsTab({
                   <div
                     className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-heading font-bold text-base text-white"
                     style={{
-                      background: 'linear-gradient(135deg, #001F3F 0%, #2E6DB4 100%)',
+                      background: 'linear-gradient(135deg, #0B181E 0%, #D92521 100%)',
                       boxShadow: '0 4px 12px rgba(0,31,63,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
                     }}
                     aria-label={`Avatar de ${selectedCustomer.name}`}
@@ -280,7 +280,7 @@ export default function OperationsTab({
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="text-4xl font-heading font-bold leading-none" style={{ color: '#C5A059' }}>{currentPoints}</span>
+                  <span className="text-4xl font-heading font-bold leading-none" style={{ color: '#E8A145' }}>{currentPoints}</span>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">pts acumulados</p>
                 </div>
               </div>
@@ -301,11 +301,11 @@ export default function OperationsTab({
                       const accent = getBranchAccent(c.branch);
                       const bg = accent
                         ? (isCurrent ? accent.bgStrong : accent.bg)
-                        : (isCurrent ? 'rgba(197,160,89,0.15)' : '#fff');
+                        : (isCurrent ? 'rgba(232,161,69,0.15)' : '#fff');
                       const border = accent
                         ? `1px solid ${isCurrent ? accent.borderStrong : accent.border}`
-                        : (isCurrent ? '1px solid #C5A059' : '1px solid #eee');
-                      const textColor = accent?.color ?? '#1B3A6B';
+                        : (isCurrent ? '1px solid #E8A145' : '1px solid #eee');
+                      const textColor = accent?.color ?? '#0B181E';
                       return (
                         <div key={c.id} className="flex items-center justify-between text-xs px-2 py-1 rounded" style={{ background: bg, border }}>
                           <span className="truncate flex items-center gap-1.5" style={{ color: textColor }}>
@@ -318,7 +318,7 @@ export default function OperationsTab({
                             )}
                             {c.branch}
                           </span>
-                          <strong style={{ color: isCurrent ? (accent?.borderStrong ?? '#C9A84C') : '#666' }}>{pts}</strong>
+                          <strong style={{ color: isCurrent ? (accent?.borderStrong ?? '#E8A145') : '#666' }}>{pts}</strong>
                         </div>
                       );
                     })}
@@ -404,20 +404,20 @@ export default function OperationsTab({
                   animate={{ opacity: 1, y: 0 }}
                   className="rounded-lg p-3 flex flex-col gap-2"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(46,109,180,0.10) 0%, rgba(197,160,89,0.10) 100%)',
-                    border: '1.5px solid #2E6DB4',
-                    boxShadow: '0 4px 16px -6px rgba(46,109,180,0.35)',
+                    background: 'linear-gradient(135deg, rgba(217,37,33,0.10) 0%, rgba(232,161,69,0.10) 100%)',
+                    border: '1.5px solid #D92521',
+                    boxShadow: '0 4px 16px -6px rgba(217,37,33,0.35)',
                   }}
                 >
                   <div className="flex items-start gap-2">
-                    <Hourglass className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#2E6DB4' }} />
+                    <Hourglass className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#D92521' }} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#1B3A6B' }}>
+                      <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#0B181E' }}>
                         El cliente solicitó un canje
                       </p>
-                      <p className="text-sm font-semibold mt-0.5" style={{ color: '#1B3A6B' }}>
+                      <p className="text-sm font-semibold mt-0.5" style={{ color: '#0B181E' }}>
                         🎁 {pendingRequest.rewardName}
-                        <span className="ml-2 text-xs font-normal" style={{ color: '#2E6DB4' }}>
+                        <span className="ml-2 text-xs font-normal" style={{ color: '#D92521' }}>
                           ({pendingRequest.requiredPoints} pts)
                         </span>
                       </p>
@@ -527,7 +527,7 @@ export default function OperationsTab({
                     type="button"
                     onClick={() => setShowOperationalTimeline(v => !v)}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg, #1e4d8c 0%, #2563eb 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #921816 0%, #D92521 100%)' }}
                   >
                     <Clock className="w-4 h-4" />
                     {showOperationalTimeline ? 'Ocultar historial' : 'Ver historial'}
@@ -549,7 +549,7 @@ export default function OperationsTab({
                           </p>
                         ) : (() => {
                           const STATUS_CFG: Record<string, { label: string; color: string; Icon: any }> = {
-                            pending:   { label: 'SOLICITADO', color: '#2E6DB4', Icon: Hourglass },
+                            pending:   { label: 'SOLICITADO', color: '#D92521', Icon: Hourglass },
                             approved:  { label: 'APROBADO',   color: '#16a34a', Icon: Check },
                             rejected:  { label: 'RECHAZADO',  color: '#dc2626', Icon: X },
                             cancelled: { label: 'CANCELADO',  color: '#6b7280', Icon: Undo2 },
@@ -612,7 +612,7 @@ export default function OperationsTab({
                     type="button"
                     onClick={() => setShowFinancialLedger(v => !v)}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg, #1e4d8c 0%, #2563eb 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #921816 0%, #D92521 100%)' }}
                   >
                     <Clock className="w-4 h-4" />
                     {showFinancialLedger ? 'Ocultar movimientos' : 'Ver movimientos'}

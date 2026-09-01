@@ -24,7 +24,7 @@ export default function PasswordChangeModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading">
-            <KeyRound className="w-5 h-5" style={{ color: '#C9A84C' }} />
+            <KeyRound className="w-5 h-5" style={{ color: '#E8A145' }} />
             Actualiza tu contraseña
           </DialogTitle>
         </DialogHeader>

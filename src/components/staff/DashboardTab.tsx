@@ -320,7 +320,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
             <CalendarDays className="w-5 h-5 text-secondary" />
             <span className="text-sm font-medium">Segmentador</span>
             {campaign && (
-              <span className="text-xs px-2 py-1 rounded-md font-body" style={{ background: 'rgba(197,160,89,0.15)', color: '#8a6f30', border: '1px solid rgba(197,160,89,0.4)' }}>
+              <span className="text-xs px-2 py-1 rounded-md font-body" style={{ background: 'rgba(232,161,69,0.15)', color: '#8a6f30', border: '1px solid rgba(232,161,69,0.4)' }}>
                 Sucursal: <strong>{campaign.branch}</strong>
               </span>
             )}
@@ -383,9 +383,9 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
             info: 'Saldo total de puntos que los clientes aún no han canjeado. Representa una obligación futura de la campaña: tarde o temprano se traducirán en premios.',
           },
         ].map((s, i) => (
-          <Card key={i} className="border-[0.5px] shadow-md hover:shadow-lg transition-shadow" style={{ borderColor: 'rgba(197,160,89,0.35)' }}>
+          <Card key={i} className="border-[0.5px] shadow-md hover:shadow-lg transition-shadow" style={{ borderColor: 'rgba(232,161,69,0.35)' }}>
             <CardContent className="pt-4 pb-3 text-center relative">
-              <s.icon className="w-6 h-6 mx-auto mb-1" style={{ color: '#C5A059' }} />
+              <s.icon className="w-6 h-6 mx-auto mb-1" style={{ color: '#E8A145' }} />
               <div className="flex items-center justify-center gap-1">
                 <p className="text-2xl font-heading font-bold">{s.value}</p>
                 {s.trend === 'up' && <ArrowUpRight className="w-4 h-4 text-success" />}
@@ -430,7 +430,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
                     className={`rounded-xl border p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
                       isActive ? `${cat.emphasisClass} ring-2 ring-primary/15 shadow-md` : 'border-border bg-card shadow-sm'
                     } ${emphasize && !isActive ? cat.emphasisClass : ''}`}
-                    style={isActive || emphasize ? undefined : { borderColor: 'rgba(197,160,89,0.2)' }}
+                    style={isActive || emphasize ? undefined : { borderColor: 'rgba(232,161,69,0.2)' }}
                 >
                     <div className="mb-3 flex items-start justify-between gap-2">
                       <span className="text-xl leading-none">{cat.icon}</span>
@@ -479,10 +479,10 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
       {/* ═══ NIVEL 2 — Segmentación y Lealtad ═══ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Análisis de Género */}
-        <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(197,160,89,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+        <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(232,161,69,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <PieChart className="w-5 h-5" style={{ color: '#C5A059' }} />
+              <PieChart className="w-5 h-5" style={{ color: '#E8A145' }} />
               Análisis de Género
             </CardTitle>
           </CardHeader>
@@ -516,10 +516,10 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
         </Card>
 
         {/* Distribución de la Tropa por Puntos */}
-        <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(197,160,89,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+        <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(232,161,69,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Filter className="w-5 h-5" style={{ color: '#C5A059' }} />
+              <Filter className="w-5 h-5" style={{ color: '#E8A145' }} />
               Distribución de la Tropa por Puntos
             </CardTitle>
           </CardHeader>
@@ -551,10 +551,10 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
       {/* ═══ NIVEL 3 — Inteligencia y Control ═══ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Horas Pico */}
-        <Card className="md:col-span-2 rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(197,160,89,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+        <Card className="md:col-span-2 rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(232,161,69,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="w-5 h-5" style={{ color: '#C5A059' }} />
+              <Clock className="w-5 h-5" style={{ color: '#E8A145' }} />
               Horas Pico — Santa Prisca
             </CardTitle>
           </CardHeader>
@@ -583,7 +583,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
                     />
                     <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                       {peakHoursChartData.map((entry, i) => (
-                        <Cell key={i} fill={entry.isPeak ? '#C5A059' : '#001F3F'} />
+                        <Cell key={i} fill={entry.isPeak ? '#E8A145' : '#0B181E'} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -595,10 +595,10 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
         </Card>
 
         {/* Alertas y Retorno */}
-        <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(197,160,89,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+        <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(232,161,69,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <RotateCcw className="w-5 h-5" style={{ color: '#C5A059' }} />
+              <RotateCcw className="w-5 h-5" style={{ color: '#E8A145' }} />
               Alertas y Retorno
             </CardTitle>
           </CardHeader>
@@ -643,10 +643,10 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
       </div>
 
       {/* ═══ CUMPLEAÑEROS DEL MES ═══ */}
-      <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(197,160,89,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+      <Card className="rounded-xl border-[0.5px] shadow-md" style={{ borderColor: 'rgba(232,161,69,0.35)', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2 capitalize">
-            <Cake className="w-5 h-5" style={{ color: '#C5A059' }} />
+            <Cake className="w-5 h-5" style={{ color: '#E8A145' }} />
             Cumpleañeros de {monthName}
             <span className="ml-auto text-xs font-normal text-muted-foreground normal-case flex items-center gap-2">
               {monthBirthdays.length} {monthBirthdays.length === 1 ? 'cliente' : 'clientes'}
@@ -679,7 +679,7 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
                     b.isToday ? 'border-accent/40 bg-accent/10' : 'border-border bg-muted/30'
                   }`}
                 >
-                  <div className="flex flex-col items-center justify-center w-10 h-10 rounded-md shrink-0" style={{ background: 'rgba(197,160,89,0.15)', color: '#8a6f30' }}>
+                  <div className="flex flex-col items-center justify-center w-10 h-10 rounded-md shrink-0" style={{ background: 'rgba(232,161,69,0.15)', color: '#8a6f30' }}>
                     <span className="text-base font-bold leading-none">{b.day}</span>
                   </div>
                   <div className="min-w-0 flex-1">

@@ -77,7 +77,7 @@ export default function UsersTab() {
     <div className="space-y-4 mt-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Users className="w-5 h-5" style={{ color: '#C5A059' }} />
+          <Users className="w-5 h-5" style={{ color: '#E8A145' }} />
           <h2 className="font-heading text-lg font-semibold">Usuarios del staff</h2>
         </div>
         <Button onClick={() => { setEditing(null); setDialogOpen(true); }} className="gap-2">

@@ -22,8 +22,8 @@ export default function CampaignSwitcher({ campaigns, customer, selectedCampaign
       transition={{ delay: 0.15 }}
     >
       <div className="flex items-center gap-1.5 mb-2 px-1">
-        <MapPin className="w-3.5 h-3.5" style={{ color: '#1B3A6B' }} />
-        <h3 className="font-heading font-bold text-xs tracking-wide" style={{ color: '#1B3A6B' }}>
+        <MapPin className="w-3.5 h-3.5" style={{ color: '#0B181E' }} />
+        <h3 className="font-heading font-bold text-xs tracking-wide" style={{ color: '#0B181E' }}>
           Tus rutas activas
         </h3>
       </div>
@@ -32,8 +32,8 @@ export default function CampaignSwitcher({ campaigns, customer, selectedCampaign
           const isActive = c.id === selectedCampaignId;
           const pts = getCustomerPoints(customer, c.id);
           const accent = getBranchAccent(c.branch);
-          const accentColor = accent?.borderStrong ?? '#C9A84C';
-          const textColor = accent?.color ?? '#1B3A6B';
+          const accentColor = accent?.borderStrong ?? '#E8A145';
+          const textColor = accent?.color ?? '#0B181E';
           return (
             <button
               key={c.id}
@@ -48,7 +48,7 @@ export default function CampaignSwitcher({ campaigns, customer, selectedCampaign
                 padding: '10px 14px',
                 minWidth: 150,
                 opacity: isActive ? 1 : 0.7,
-                boxShadow: isActive ? `0 4px 16px -6px ${accentColor}59` : '0 2px 6px -3px rgba(27,58,107,0.06)',
+                boxShadow: isActive ? `0 4px 16px -6px ${accentColor}59` : '0 2px 6px -3px rgba(11,24,30,0.06)',
                 transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
               }}
             >

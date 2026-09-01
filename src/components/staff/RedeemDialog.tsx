@@ -42,11 +42,11 @@ export default function RedeemDialog({
           <div className="space-y-4">
             <p className="text-sm">Puntos actuales en {campaign?.branch || 'sucursal'}: <strong className="text-accent">{currentPoints}</strong></p>
             {lockedFromRequest && selectedReward ? (
-              <div className="rounded-lg p-3 flex items-start gap-3" style={{ background: 'rgba(46,109,180,0.08)', border: '1.5px solid #2E6DB4' }}>
-                <Hourglass className="w-5 h-5 mt-0.5" style={{ color: '#2E6DB4' }} />
+              <div className="rounded-lg p-3 flex items-start gap-3" style={{ background: 'rgba(217,37,33,0.08)', border: '1.5px solid #D92521' }}>
+                <Hourglass className="w-5 h-5 mt-0.5" style={{ color: '#D92521' }} />
                 <div className="flex-1">
-                  <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#1B3A6B' }}>Premio solicitado por el cliente</p>
-                  <p className="text-sm font-semibold mt-0.5" style={{ color: '#1B3A6B' }}>🎁 {selectedReward.rewardName}</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#0B181E' }}>Premio solicitado por el cliente</p>
+                  <p className="text-sm font-semibold mt-0.5" style={{ color: '#0B181E' }}>🎁 {selectedReward.rewardName}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Costo: {selectedReward.requiredPoints} pts</p>
                 </div>
               </div>
