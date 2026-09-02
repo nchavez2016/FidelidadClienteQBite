@@ -1,6 +1,6 @@
-# Sistema de Fidelización de Clientes — Gaviota Azul
+# Sistema de Fidelización de Clientes — QBites
 
-Plataforma web de fidelización de clientes ("Ruta Gaviota") desarrollada para **Cevichería Gaviota Azul** (Ecuador), con arquitectura pensada para ser adaptable (white-label) a otros negocios de consumo (retail, restaurantes, etc.).
+Plataforma web de fidelización de clientes desarrollada para **All In Burgers by Qbites** (Quito, Ecuador), con arquitectura pensada para ser adaptable (white-label) a otros negocios de consumo (retail, restaurantes, etc.) — de hecho, este mismo código nació para otro negocio (una cevichería) y se adaptó a QBites sin cambios estructurales, como prueba de ese diseño.
 
 ## Tabla de contenidos
 
@@ -48,8 +48,8 @@ Qbite/
 │   ├── assets/                    # Imágenes usadas por la UI (logo, fotos de producto)
 │   ├── components/
 │   │   ├── auth/                  # Guards de ruta (ProtectedRoute)
-│   │   ├── customer/               # Componentes del panel del cliente (hero, stats, premios, términos)
-│   │   ├── staff/                  # Componentes del panel de caja/admin (operaciones, campañas, reportes, usuarios)
+│   │   ├── customer/               # Componentes del panel del cliente (hero, stats, premios, términos, BirthdayBanner)
+│   │   ├── staff/                  # Componentes del panel de caja/admin (operaciones, "Configuración" con sub-tabs Campañas/Cumpleaños, reportes, usuarios, BirthdayConfigDialog, BirthdayRewardCard)
 │   │   ├── security/                # Componentes de seguridad de sesión (aviso de inactividad)
 │   │   └── ui/                      # Design system (shadcn/ui) — componentes primitivos reutilizables
 │   ├── contexts/                  # AuthContext: sesión, rol activo, hidratación post-login
@@ -58,7 +58,7 @@ Qbite/
 │   │   └── supabase/               # Cliente Supabase tipado, tipos generados de la BD, middleware de auth
 │   ├── lib/                        # Utilidades transversales (formatters, csv, logger, navigation, invokeStaffAdmin)
 │   ├── pages/                      # Páginas/rutas de la app (Index, CustomerLogin/Dashboard, StaffLogin/Panel, NotFound)
-│   ├── services/                   # Capa de acceso a datos y reglas de negocio (ver Arquitectura backend)
+│   ├── services/                   # Capa de acceso a datos y reglas de negocio (ver Arquitectura backend), incluye birthday.service.ts
 │   │   ├── drivers/                 # Implementaciones intercambiables de persistencia (LocalStorage, Supabase)
 │   │   ├── analytics/               # Cálculo de KPIs y métricas para el dashboard
 │   │   ├── auth/                    # Puente de autenticación (legacy bridge, tipos)
@@ -120,14 +120,14 @@ Qbite/
 
 El backend es **Supabase como BaaS** (Backend as a Service): no hay un servidor Node/Express propio, la lógica de negocio sensible vive en la base de datos y en una única Edge Function.
 
-- **PostgreSQL** con esquema completo en `supabase/migrations/` (tablas, enums, índices, RLS). Tablas clave: `branches`, `profiles`, `user_roles`, `campaigns`, `customer_points`, `point_transactions` (ledger append-only), `point_transactions_archive`, `redemption_requests`, `redemption_request_events`, `admin_audit_log`.
-- **Reglas de negocio críticas viven en funciones RPC `SECURITY DEFINER`** (no en el cliente), por ejemplo `earn_points`, `redeem_reward`, `reverse_transaction`, `adjust_points`, `approve_redemption_request`, `accept_campaign_terms`. Esto evita que un cliente comprometido pueda manipular puntos directamente vía REST.
+- **PostgreSQL** con esquema completo en `supabase/Schemabbdd/schema_production.sql` (tablas, enums, índices, RLS). Tablas clave: `branches`, `profiles`, `user_roles`, `campaigns`, `customer_points`, `point_transactions` (ledger append-only), `point_transactions_archive`, `redemption_requests`, `redemption_request_events`, `admin_audit_log`, `birthday_config`, `birthday_grants`.
+- **Reglas de negocio críticas viven en funciones RPC `SECURITY DEFINER`** (no en el cliente), por ejemplo `earn_points`, `redeem_reward`, `reverse_transaction`, `adjust_points`, `approve_redemption_request`, `accept_campaign_terms`, `get_birthday_status`, `grant_birthday_reward`, `get_birthday_grants_this_year`. Esto evita que un cliente comprometido pueda manipular puntos directamente vía REST.
 - **Row Level Security (RLS)** en todas las tablas: el cliente solo lee/escribe sus propios datos; el staff tiene acceso acotado a su sucursal; el admin tiene acceso total. Los roles se resuelven con la función `has_role(user_id, role)`.
 - **Trigger anti-mutación** sobre `point_transactions`: impide `UPDATE`/`DELETE` directos sobre el ledger (excepto en operaciones internas de mantenimiento vía `set_config('app.pt_internal', '1', true)`), forzando que toda corrección se haga como una nueva transacción de tipo `reversal`.
 - **Jobs `pg_cron`** para mantenimiento periódico: purga de logs de auditoría y eventos de canje (retención 6 meses), archivado de transacciones con más de 12 meses, purga de archivo para clientes inactivos 18+ meses.
 - **Auth**: Supabase Auth con un patrón de "email interno" ya que no se piden correos reales — `<telefono>@phone.<negocio>.local` para clientes y `<usuario>@staff.<negocio>.local` para staff (requiere tener **desactivada** la confirmación de email en el proyecto Supabase).
 - **Edge Function `staff-admin`** (`supabase/functions/staff-admin/index.ts`, Deno): único endpoint privilegiado del sistema. Verifica el JWT del caller y exige rol `admin` (salvo `create_customer`, disponible también para `cashier`). Soporta las acciones `create`, `update`, `set_active`, `delete`, `list` (gestión de usuarios de staff) y `create_customer` (alta de cliente desde caja). Usa la Service Role Key solo dentro del propio worker, nunca expuesta al frontend. El wrapper `src/lib/invokeStaffAdmin.ts` maneja la expiración de token (401 → `refreshSession()` → reintento; si falla, `signOut()`).
-- **Realtime** de Supabase publicado sobre `point_transactions` y `customer_points` para sincronización en vivo con el frontend.
+- **Realtime** de Supabase publicado sobre `point_transactions`, `customer_points` y `admin_audit_log` para sincronización en vivo con el frontend.
 
 ---
 
@@ -175,16 +175,11 @@ Tienes dos caminos: usar un proyecto Supabase en la nube, o levantar Supabase lo
 
 1. Crea un proyecto nuevo en [supabase.com](https://supabase.com/).
 2. En **Authentication → Sign In / Providers**, **desactiva "Confirm email"** (imprescindible: el sistema usa dominios de correo internos ficticios y falla si esta opción está activa).
-3. Aplica el esquema ejecutando en orden, en el **SQL Editor** de Supabase, todos los archivos de `supabase/migrations/` (ordenados por fecha en el nombre de archivo), o vincula el proyecto con la CLI y aplica las migraciones:
+3. Aplica el esquema ejecutando **`supabase/Schemabbdd/schema_production.sql`** completo en el **SQL Editor** de Supabase — es la **fuente de verdad** del schema: incluye tablas, RLS, GRANTs, el trigger `on_auth_user_created`, las publicaciones de Realtime y el módulo de cumpleaños (`birthday_config`, `birthday_grants`).
 
-   ```bash
-   supabase login
-   supabase link --project-ref <tu-project-ref>
-   supabase db push
-   ```
-4. En **Database → Publications**, agrega las tablas `point_transactions` y `customer_points` a `supabase_realtime` para habilitar la actualización en vivo del panel del cliente.
-5. Verifica que las funciones RPC tengan `GRANT EXECUTE ... TO authenticated` (algunas migraciones ya lo incluyen; revisa si tu proyecto lo requiere).
-6. Copia la **URL** y la **anon key** del proyecto (Settings → API) a tu `.env` (paso 3).
+   > ⚠️ `supabase/migrations/` es **historial de referencia** (el registro incremental de cómo se llegó hasta acá), no la fuente de verdad para levantar un entorno nuevo — está incompleto respecto a `schema_production.sql` (le faltan, entre otras cosas, los GRANTs corregidos, el trigger `on_auth_user_created` y el módulo de cumpleaños completo). No lo uses para un setup desde cero.
+4. Verifica en **Database → Publications** que `point_transactions`, `customer_points` y `admin_audit_log` queden agregadas a `supabase_realtime`, y que las funciones RPC tengan `GRANT EXECUTE ... TO authenticated` — el script del paso 3 ya lo hace; este paso es solo para confirmarlo.
+5. Copia la **URL** y la **anon key** del proyecto (Settings → API) a tu `.env` (paso 3).
 
 #### Opción B — Supabase local (Docker)
 
@@ -197,6 +192,8 @@ Esto levanta Postgres, Auth, Realtime, Storage y el Studio local (con Docker). A
 ```bash
 supabase db reset
 ```
+
+> ⚠️ Ese auto-aplicado solo cubre `supabase/migrations/`, que está incompleto (ver nota de la Opción A) — después de `supabase start` o `supabase db reset`, aplica también `supabase/Schemabbdd/schema_production.sql` manualmente contra la instancia local (Studio local → SQL Editor) para tener el schema completo, incluido el módulo de cumpleaños.
 
 Para detener el entorno local:
 
