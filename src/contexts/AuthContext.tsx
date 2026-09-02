@@ -64,8 +64,8 @@ export const AuthContext = createContext<AuthContextValue | undefined>(undefined
  * NOTE: disable "Confirm email" in Supabase → Authentication → Providers →
  * Email, otherwise these synthetic addresses cannot complete signup.
  */
-const CUSTOMER_DOMAIN = 'phone.gaviota.local';
-const STAFF_DOMAIN = 'staff.gaviota.local';
+const CUSTOMER_DOMAIN = 'phone.qbites.local';
+const STAFF_DOMAIN = 'staff.qbites.local';
 
 function toEmail(identifier: string, audience: 'customer' | 'staff'): string {
   const cleaned = identifier.trim().toLowerCase().replace(/[^a-z0-9]/g, '');

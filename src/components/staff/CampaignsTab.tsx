@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getCampaigns, setCampaignStatus, deleteCampaign } from '@/services';
 import { Campaign } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -7,16 +7,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import ProgressRoute from '@/components/ProgressRoute';
-import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy, Eye, Award, Coins, Zap, ArrowLeftRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Settings, Pause, Play, Flame, Trash2, Trophy, Eye, Award, Coins, Zap, ArrowLeftRight, ChevronDown, ChevronUp, Star, Cake, Settings2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { DAY_LABELS } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useCampaignEditor } from '@/hooks/useCampaignEditor';
 import { getBranchAccent } from '@/lib/utils';
-
-const BRANCH_OPTIONS = ['Gaviota Azul - Matriz', 'Gaviota Azul - Express'];
+import { getBranches, hydrateBranches, isBranchesHydrated } from '@/services/branches.service';
+import { getBirthdayConfig, type BirthdayConfig } from '@/services/birthday.service';
+import BirthdayConfigDialog from './BirthdayConfigDialog';
 
 interface CampaignsTabProps {
   onRefresh: () => void;
@@ -38,6 +40,19 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
   const [deleteTarget, setDeleteTarget] = useState<Campaign | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const canConfirmDelete = deleteConfirmText.trim().toUpperCase() === 'ELIMINAR';
+
+  const [branchesReady, setBranchesReady] = useState<boolean>(isBranchesHydrated());
+  useEffect(() => {
+    if (branchesReady) return;
+    let alive = true;
+    void hydrateBranches().then(() => {
+      if (alive) setBranchesReady(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [branchesReady]);
+  const branches = getBranches();
 
   return (
     <div className="space-y-4 mt-4">
@@ -86,6 +101,13 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
         </DialogContent>
       </Dialog>
 
+      <Tabs defaultValue="campaigns" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="campaigns" className="gap-1.5"><Star className="w-3.5 h-3.5" />Campañas</TabsTrigger>
+          <TabsTrigger value="birthday" className="gap-1.5"><Cake className="w-3.5 h-3.5" />Cumpleaños</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="campaigns" className="space-y-4">
       {!editingCampaign ? (
         <>
           <div className="flex justify-between items-center">
@@ -312,8 +334,8 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                     <SelectValue placeholder="Selecciona una sucursal" />
                   </SelectTrigger>
                   <SelectContent>
-                    {BRANCH_OPTIONS.map(branch => (
-                      <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                    {branches.map(branch => (
+                      <SelectItem key={branch.id} value={branch.name}>{branch.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -392,9 +414,9 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
               return (
                 <div
                   className="rounded-lg p-4 space-y-4"
-                  style={{ background: '#EEF2F8', border: '1.5px solid #C9A84C' }}
+                  style={{ background: '#EEF2F8', border: '1.5px solid #E8A145' }}
                 >
-                  <h3 className="font-heading font-bold" style={{ color: '#1B3A6B' }}>
+                  <h3 className="font-heading font-bold" style={{ color: '#0B181E' }}>
                     Cómo se gana 1 punto
                   </h3>
 
@@ -456,7 +478,7 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                 </Button>
               </div>
               <p className="text-[11px] text-muted-foreground mb-2">
-                Define multiplicadores (x2, x3...) por día y franja horaria para acelerar la frecuencia de visita. Ejemplo: doble gaviota lunes a miércoles de 9:00 a 12:00.
+                Define multiplicadores (x2, x3...) por día y franja horaria para acelerar la frecuencia de visita. Ejemplo: doble puntos lunes a miércoles de 9:00 a 12:00.
               </p>
               {(editingCampaign.bonusRules || []).length === 0 ? (
                 <div className="text-[11px] text-center text-muted-foreground py-3 rounded-lg" style={{ border: '1px dashed rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.04)' }}>
@@ -472,7 +494,7 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                           <Label className="text-[10px]">Etiqueta</Label>
                           <Input
                             value={rule.label || ''}
-                            placeholder="Doble gaviota lunes 9-12"
+                            placeholder="Doble puntos lunes a miércoles de 9:00 a 12:00"
                             onChange={e => updateBonusRule(rule.id, { label: e.target.value })}
                             className="h-9 text-sm"
                           />
@@ -584,7 +606,66 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+
+        <TabsContent value="birthday" className="space-y-4">
+          <BirthdayConfigCard />
+        </TabsContent>
+      </Tabs>
     </div>
+  );
+}
+
+function BirthdayConfigCard() {
+  const [config, setConfig] = useState<BirthdayConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showDialog, setShowDialog] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    void getBirthdayConfig()
+      .then(setConfig)
+      .catch(err => { console.error('[CampaignsTab] getBirthdayConfig failed', err); setConfig(null); })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Cake className="w-5 h-5 text-accent" />
+            Premio de cumpleaños
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Cargando…</p>
+          ) : !config ? (
+            <p className="text-sm text-muted-foreground">No se pudo cargar la configuración.</p>
+          ) : (
+            <>
+              <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
+                config.isActive ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+              }`}>
+                {config.isActive ? 'Activo' : 'Inactivo'}
+              </span>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1">Premio vigente</p>
+                <p className="text-sm">{config.rewardDescription || 'Sin definir'}</p>
+              </div>
+            </>
+          )}
+          <Button onClick={() => setShowDialog(true)} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground gap-2">
+            <Settings2 className="w-4 h-4" />Editar configuración
+          </Button>
+        </CardContent>
+      </Card>
+
+      <BirthdayConfigDialog open={showDialog} onOpenChange={setShowDialog} onSaved={load} />
+    </>
   );
 }
 
@@ -604,11 +685,11 @@ function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
 
       <div className="rounded-lg bg-background border border-border p-4 space-y-4">
         <div className="flex items-start gap-3">
-          <div className="rounded-full p-2" style={{ background: 'rgba(27,58,107,0.1)' }}>
-            <Award className="h-5 w-5" style={{ color: '#1B3A6B' }} />
+          <div className="rounded-full p-2" style={{ background: 'rgba(11,24,30,0.1)' }}>
+            <Award className="h-5 w-5" style={{ color: '#0B181E' }} />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold" style={{ color: '#1B3A6B' }}>
+            <h3 className="font-semibold" style={{ color: '#0B181E' }}>
               {campaign?.name || 'Nombre de la campaña'}
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -618,7 +699,7 @@ function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
         </div>
 
         <div className="rounded-md border border-border p-3 flex gap-3">
-          <Coins className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+          <Coins className="h-5 w-5 mt-0.5" style={{ color: '#E8A145' }} />
           <div className="flex-1">
             <p className="text-sm font-medium">Cómo ganar puntos</p>
             <p className="text-xs text-muted-foreground">{cardText}</p>
@@ -627,7 +708,7 @@ function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
 
         {(campaign?.bonusRules || []).filter(r => r.active).length > 0 && (
           <div className="rounded-md border border-border p-3 flex gap-3">
-            <Zap className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+            <Zap className="h-5 w-5 mt-0.5" style={{ color: '#E8A145' }} />
             <div className="flex-1">
               <p className="text-sm font-medium">Puntos dobles activos</p>
               <p className="text-xs text-muted-foreground">Gana puntos extra en días y horarios seleccionados.</p>
@@ -636,7 +717,7 @@ function CustomerTermsPreview({ campaign }: { campaign: Campaign }) {
         )}
 
         <div className="rounded-md border border-border p-3 flex gap-3">
-          <ArrowLeftRight className="h-5 w-5 mt-0.5" style={{ color: '#C5A059' }} />
+          <ArrowLeftRight className="h-5 w-5 mt-0.5" style={{ color: '#E8A145' }} />
           <div className="flex-1">
             <p className="text-sm font-medium">Canje parcial</p>
             <p className="text-xs text-muted-foreground">Puedes canjear premios parcialmente según tus puntos disponibles.</p>

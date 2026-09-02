@@ -16,17 +16,17 @@ export default function CampaignStrip({ campaign, selectedCustomer }: Props) {
     <div
       className="w-full"
       style={{
-        background: 'rgba(197,160,89,0.07)',
-        borderTop: '1px solid rgba(197,160,89,0.15)',
+        background: 'rgba(232,161,69,0.07)',
+        borderTop: '1px solid rgba(232,161,69,0.15)',
         padding: '11px 20px',
       }}
     >
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
         <div className="flex items-center gap-[10px] min-w-0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#C5A059" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#E8A145" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
-          <span style={{ fontSize: '11px', fontWeight: 400, color: 'rgba(197,160,89,0.5)' }}>
+          <span style={{ fontSize: '11px', fontWeight: 400, color: 'rgba(232,161,69,0.5)' }}>
             {isPaused ? 'Campaña en pausa' : 'Campaña activa'}
           </span>
           <span
@@ -34,11 +34,11 @@ export default function CampaignStrip({ campaign, selectedCustomer }: Props) {
               width: '3px',
               height: '3px',
               borderRadius: '50%',
-              background: 'rgba(197,160,89,0.35)',
+              background: 'rgba(232,161,69,0.35)',
               flexShrink: 0,
             }}
           />
-          <span className="truncate" style={{ fontSize: '13px', fontWeight: 600, color: '#C5A059' }}>
+          <span className="truncate" style={{ fontSize: '13px', fontWeight: 600, color: '#E8A145' }}>
             {campaign?.name || 'Sin campaña activa'}
           </span>
           {isPaused && (

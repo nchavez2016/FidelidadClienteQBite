@@ -18,21 +18,21 @@ export function getBranchAccent(branch: string | undefined | null): BranchAccent
   const b = (branch || '').toLowerCase();
   if (b.includes('express')) {
     return {
-      bg: 'rgba(201,168,76,0.10)',
-      bgStrong: 'rgba(201,168,76,0.22)',
+      bg: 'rgba(232,161,69,0.10)',
+      bgStrong: 'rgba(232,161,69,0.22)',
       color: '#8a6d1f',
-      border: 'rgba(201,168,76,0.30)',
-      borderStrong: '#C9A84C',
+      border: 'rgba(232,161,69,0.30)',
+      borderStrong: '#E8A145',
       label: 'Express',
     };
   }
   if (b.includes('matriz')) {
     return {
-      bg: 'rgba(27,58,107,0.07)',
-      bgStrong: 'rgba(27,58,107,0.16)',
-      color: '#1B3A6B',
-      border: 'rgba(27,58,107,0.22)',
-      borderStrong: '#1B3A6B',
+      bg: 'rgba(11,24,30,0.07)',
+      bgStrong: 'rgba(11,24,30,0.16)',
+      color: '#0B181E',
+      border: 'rgba(11,24,30,0.22)',
+      borderStrong: '#0B181E',
       label: 'Matriz',
     };
   }

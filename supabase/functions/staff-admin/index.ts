@@ -19,8 +19,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 type Action = 'create' | 'update' | 'set_active' | 'delete' | 'list' | 'create_customer';
 type StaffRole = 'admin' | 'cashier';
 
-const STAFF_DOMAIN = 'staff.gaviota.local';
-const CUSTOMER_DOMAIN = 'phone.gaviota.local';
+const STAFF_DOMAIN = 'staff.qbites.local';
+const CUSTOMER_DOMAIN = 'phone.qbites.local';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

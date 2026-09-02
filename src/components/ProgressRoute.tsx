@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Milestone } from "@/lib/types";
 import { getActiveCampaign } from "@/services";
 import { Gift, Lock, Check, Flag, Trophy } from "lucide-react";
-import gaviotaImg from "@/assets/gaviota3d.png";
+import markerImg from "@/assets/hamburguesa-3d.png";
 
 interface ProgressRouteProps {
   currentPoints: number;
@@ -106,9 +106,9 @@ export default function ProgressRoute({
   };
 
   const nodeInlineStyles = {
-    completed: { background: "#001F3F", borderColor: "#001F3F" },
-    current: { background: "#fff", borderColor: "#2E6DB4", boxShadow: "0 0 0 4px rgba(46,109,180,0.2)" },
-    locked: { background: "#fff", borderColor: "#C5A059" },
+    completed: { background: "#0B181E", borderColor: "#0B181E" },
+    current: { background: "#fff", borderColor: "#E8A145", boxShadow: "0 0 0 4px rgba(232,161,69,0.2)" },
+    locked: { background: "#fff", borderColor: "#E8A145" },
   };
 
   const NodeIcon = ({ state, isLast }: { state: "completed" | "current" | "locked"; isLast: boolean }) => {
@@ -118,8 +118,8 @@ export default function ProgressRoute({
       ) : (
         <Check className="w-4 h-4" style={{ color: "#fff" }} />
       );
-    if (state === "current") return <Gift className="w-4 h-4" style={{ color: "#2E6DB4" }} />;
-    return <Lock className="w-3.5 h-3.5" style={{ color: "#C5A059" }} />;
+    if (state === "current") return <Gift className="w-4 h-4" style={{ color: "#E8A145" }} />;
+    return <Lock className="w-3.5 h-3.5" style={{ color: "#E8A145" }} />;
   };
 
   // LAYOUT VERTICAL (mobile)
@@ -172,7 +172,7 @@ export default function ProgressRoute({
               height: TRACK_LENGTH,
               width: 3,
               borderRadius: 2,
-              background: "#001F3F",
+              background: "#0B181E",
               opacity: 0.15,
             }}
           />
@@ -184,7 +184,7 @@ export default function ProgressRoute({
               top: TRACK_START_TOP,
               width: 3,
               borderRadius: 2,
-              background: "linear-gradient(180deg, #001F3F, #2E6DB4)",
+              background: "linear-gradient(180deg, #0B181E, #E8A145)",
               minHeight: currentPoints > 0 ? "8px" : "0px",
             }}
             initial={animate ? { height: 0 } : false}
@@ -194,7 +194,7 @@ export default function ProgressRoute({
 
           {/* GAVIOTA MOBILE FIX: translateY(-100%) = la BASE de la imagen toca el punto de progreso */}
           <motion.img
-            src={gaviotaImg}
+            src={markerImg}
             alt="Progreso"
             className="absolute w-7 h-7 object-contain drop-shadow-md z-10"
             style={{ left: -10, transform: "translateY(calc(-100% + 8.22px))" }}
@@ -210,12 +210,12 @@ export default function ProgressRoute({
           <div className="flex items-center gap-3 relative" style={{ minHeight: 32, marginBottom: NODE_SPACING - 32 }}>
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0"
-              style={{ marginLeft: -20, background: "#001F3F", borderColor: "#001F3F" }}
+              style={{ marginLeft: -20, background: "#0B181E", borderColor: "#0B181E" }}
             >
               <Flag className="w-3.5 h-3.5" style={{ color: "#fff" }} />
             </div>
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: "#001F3F" }}>
+              <p className="text-xs font-bold leading-tight" style={{ color: "#0B181E" }}>
                 Inicio
               </p>
               <p className="text-[10px] text-muted-foreground leading-tight">Punto de partida</p>
@@ -243,10 +243,10 @@ export default function ProgressRoute({
                     className="text-xs leading-tight font-bold"
                     style={
                       state === "completed"
-                        ? { color: "#001F3F" }
+                        ? { color: "#0B181E" }
                         : state === "current"
-                          ? { color: "#2E6DB4" }
-                          : { color: "#C5A059" }
+                          ? { color: "#E8A145" }
+                          : { color: "#E8A145" }
                     }
                   >
                     {m.requiredPoints} pts — {m.rewardName}
@@ -296,9 +296,9 @@ export default function ProgressRoute({
   };
 
   const labelColorStyles = {
-    completed: { color: "#001F3F" },
-    current: { color: "#2E6DB4" },
-    locked: { color: "#C5A059" },
+    completed: { color: "#0B181E" },
+    current: { color: "#E8A145" },
+    locked: { color: "#E8A145" },
   };
 
   return (
@@ -324,7 +324,7 @@ export default function ProgressRoute({
           style={{
             top: "20px",
             left: PAD,
-            background: "linear-gradient(90deg, #001F3F, #2E6DB4)",
+            background: "linear-gradient(90deg, #0B181E, #E8A145)",
             minWidth: currentPoints > 0 ? "8px" : "0px",
           }}
           initial={animate ? { width: 0 } : false}
@@ -352,7 +352,7 @@ export default function ProgressRoute({
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
         >
           <motion.img
-            src={gaviotaImg}
+            src={markerImg}
             alt="Progreso"
             className="w-11 h-11 object-contain drop-shadow-lg"
             animate={
@@ -373,11 +373,11 @@ export default function ProgressRoute({
         <div className="absolute flex flex-col items-start" style={{ left: PAD, top: "12px" }}>
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center border-2"
-            style={{ background: "#001F3F", borderColor: "#001F3F" }}
+            style={{ background: "#0B181E", borderColor: "#0B181E" }}
           >
             <Flag className="w-3.5 h-3.5" style={{ color: "#fff" }} />
           </div>
-          <span className="text-[9px] mt-1 font-bold" style={{ color: "#001F3F" }}>
+          <span className="text-[9px] mt-1 font-bold" style={{ color: "#0B181E" }}>
             Inicio
           </span>
         </div>
@@ -415,7 +415,7 @@ export default function ProgressRoute({
               <div className={`flex items-center gap-0.5 ${isLast ? "flex-row-reverse" : ""}`}>
                 <Gift
                   className="w-2.5 h-2.5 shrink-0"
-                  style={{ color: state === "completed" ? "#001F3F" : "#C5A059" }}
+                  style={{ color: state === "completed" ? "#0B181E" : "#E8A145" }}
                 />
                 <span
                   className={`text-[8px] text-muted-foreground leading-tight max-w-[60px] break-words ${textAlign}`}

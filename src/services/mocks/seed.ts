@@ -20,7 +20,7 @@ function daysAgo(days: number, hour: number, minute = 0): string {
 const expressMilestones: Milestone[] = [
   { id: 'mx1', requiredPoints: 3, rewardName: 'Bebida cortesía', description: 'Una bebida natural a elección', order: 1 },
   { id: 'mx2', requiredPoints: 6, rewardName: 'Entrada del día', description: 'Entrada de la casa', order: 2 },
-  { id: 'mx3', requiredPoints: 10, rewardName: 'Ceviche mixto', description: 'Ceviche mixto de cortesía', order: 3 },
+  { id: 'mx3', requiredPoints: 10, rewardName: 'Premio de cortesía', description: 'Premio de cortesía', order: 3 },
   { id: 'mx4', requiredPoints: 15, rewardName: 'Combo Express VIP', description: 'Combo VIP completo', order: 4 },
 ];
 
@@ -35,13 +35,13 @@ export const SEED_CAMPAIGNS: Campaign[] = [
   {
     id: EXPRESS_ID,
     name: 'Ruta del Sabor Express',
-    branch: 'Gaviota Azul Express',
+    branch: 'Sucursal Principal',
     startDate: '2024-01-01',
     endDate: '2027-12-31',
     status: 'active',
     milestones: expressMilestones,
     bonusRules: [
-      { id: 'bonus-express-1', label: 'Doble gaviota L-M-X mañana', multiplier: 2, days: [1, 2, 3], startTime: '09:00', endTime: '12:00', active: true },
+      { id: 'bonus-express-1', label: 'Doble puntos L-M-X mañana', multiplier: 2, days: [1, 2, 3], startTime: '09:00', endTime: '12:00', active: true },
       { id: 'bonus-express-2', label: 'Sábado doble', multiplier: 2, days: [6], startTime: '10:00', endTime: '14:00', active: true },
     ],
     termsAndConditions:
@@ -51,7 +51,7 @@ export const SEED_CAMPAIGNS: Campaign[] = [
   {
     id: MATRIZ_ID,
     name: 'Ruta del Sabor Matriz',
-    branch: 'Gaviota Azul',
+    branch: 'Sucursal Principal',
     startDate: '2024-01-01',
     endDate: '2027-12-31',
     status: 'active',
@@ -94,7 +94,7 @@ export const SEED_TRANSACTIONS: Transaction[] = [
   { id: 'tx-demo-2', customerId: 'cust-demo-2', campaignId: EXPRESS_ID, type: 'accumulation', points: 1, balanceAfter: 1, staffId: 'cashier-1', staffName: 'Cajero Express', commentCategory: 'complaint', commentText: 'La espera fue larga al mediodía.', createdAt: daysAgo(7, 13, 30) },
   { id: 'tx-demo-3', customerId: 'cust-demo-1', campaignId: EXPRESS_ID, type: 'accumulation', points: 1, balanceAfter: 2, staffId: 'admin-1', staffName: 'Administrador', commentCategory: 'suggestion', commentText: 'Sería ideal una promo para almuerzos ejecutivos.', createdAt: daysAgo(6, 14) },
   { id: 'tx-demo-4', customerId: 'cust-demo-3', campaignId: MATRIZ_ID, type: 'accumulation', points: 1, balanceAfter: 6, staffId: 'cashier-2', staffName: 'Cajero Matriz', commentCategory: 'observation', commentText: 'Hoy llegó con grupo familiar completo.', createdAt: daysAgo(5, 15) },
-  { id: 'tx-demo-5', customerId: 'cust-demo-2', campaignId: MATRIZ_ID, type: 'accumulation', points: 1, balanceAfter: 1, staffId: 'cashier-2', staffName: 'Cajero Matriz', commentCategory: 'promotion', commentText: 'Usó la promoción del combo de camarón.', createdAt: daysAgo(4, 13) },
+  { id: 'tx-demo-5', customerId: 'cust-demo-2', campaignId: MATRIZ_ID, type: 'accumulation', points: 1, balanceAfter: 1, staffId: 'cashier-2', staffName: 'Cajero Matriz', commentCategory: 'promotion', commentText: 'Usó una promoción especial.', createdAt: daysAgo(4, 13) },
   { id: 'tx-demo-6', customerId: 'cust-demo-1', campaignId: EXPRESS_ID, type: 'redemption', points: -3, balanceAfter: 4, rewardId: 'mx1', rewardName: 'Bebida cortesía', staffId: 'admin-1', staffName: 'Administrador', commentCategory: 'other', commentText: 'Canje validado en caja sin novedad.', createdAt: daysAgo(3, 16) },
   { id: 'tx-demo-7', customerId: 'cust-demo-4', campaignId: MATRIZ_ID, type: 'accumulation', points: 1, balanceAfter: 1, staffId: 'cashier-2', staffName: 'Cajero Matriz', commentCategory: 'suggestion', commentText: 'Sugiere incluir opción más picante en Santa Prisca.', createdAt: daysAgo(2, 19) },
   { id: 'tx-demo-8', customerId: 'cust-demo-2', campaignId: EXPRESS_ID, type: 'reversal', points: -1, balanceAfter: 2, staffId: 'admin-1', staffName: 'Administrador', commentCategory: 'complaint', commentText: 'Se anuló un punto por cobro duplicado.', createdAt: daysAgo(1, 13, 15) },

@@ -26,7 +26,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
   const [legalOpen, setLegalOpen] = useState(false);
 
   const accent = getBranchAccent(campaign.branch);
-  const borderColor = accent?.borderStrong ?? '#C9A84C';
+  const borderColor = accent?.borderStrong ?? '#E8A145';
 
   const activeBonus = campaign.bonusRules?.find((r) => r.active);
   const amount = campaign.minOrderAmount ?? 5;
@@ -56,12 +56,12 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
       <div className="flex items-start gap-3 px-4 pt-4 pb-3">
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: 'rgba(201,168,76,0.15)' }}
+          style={{ background: 'rgba(232,161,69,0.15)' }}
         >
-          <Award className="w-5 h-5" style={{ color: '#C9A84C' }} />
+          <Award className="w-5 h-5" style={{ color: '#E8A145' }} />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="font-heading font-bold text-base leading-tight" style={{ color: '#1B3A6B' }}>
+          <h2 className="font-heading font-bold text-base leading-tight" style={{ color: '#0B181E' }}>
             {campaign.name}
           </h2>
           <p className="font-body text-[11px] mt-0.5" style={{ color: '#6b7a8c' }}>
@@ -75,8 +75,8 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
         {/* Card A */}
         <div style={cardBase}>
           <div className="flex items-center gap-2 mb-1.5">
-            <Coins className="w-4 h-4" style={{ color: '#C9A84C' }} />
-            <h3 className="font-heading font-bold text-xs" style={{ color: '#1B3A6B' }}>
+            <Coins className="w-4 h-4" style={{ color: '#E8A145' }} />
+            <h3 className="font-heading font-bold text-xs" style={{ color: '#0B181E' }}>
               Cómo ganar puntos
             </h3>
           </div>
@@ -93,8 +93,8 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
         {/* Card D */}
         <div style={cardBase}>
           <div className="flex items-center gap-2 mb-1.5">
-            <ArrowLeftRight className="w-4 h-4" style={{ color: '#C9A84C' }} />
-            <h3 className="font-heading font-bold text-xs" style={{ color: '#1B3A6B' }}>
+            <ArrowLeftRight className="w-4 h-4" style={{ color: '#E8A145' }} />
+            <h3 className="font-heading font-bold text-xs" style={{ color: '#0B181E' }}>
               Canje parcial
             </h3>
           </div>
@@ -110,7 +110,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
           type="button"
           onClick={() => setLegalOpen((v) => !v)}
           className="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg transition-colors"
-          style={{ background: '#f7f9fc', border: '1px solid #e8edf3', color: '#1B3A6B' }}
+          style={{ background: '#f7f9fc', border: '1px solid #e8edf3', color: '#0B181E' }}
         >
           <span className="font-body font-semibold text-xs flex-1">
             Ver términos y condiciones completos
@@ -138,7 +138,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
         {!hasAcceptedTerms ? (
           <div
             className="p-3.5 rounded-lg space-y-3"
-            style={{ background: 'rgba(201,168,76,0.06)', border: '1.5px solid rgba(201,168,76,0.25)' }}
+            style={{ background: 'rgba(232,161,69,0.06)', border: '1.5px solid rgba(232,161,69,0.25)' }}
           >
             <div className="flex items-start gap-3">
               <Checkbox
@@ -150,7 +150,7 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
               <label
                 htmlFor="accept-terms"
                 className="text-xs font-body leading-relaxed cursor-pointer"
-                style={{ color: '#1B3A6B' }}
+                style={{ color: '#0B181E' }}
               >
                 He leído y entendido el resumen del programa. Acepto los términos y condiciones.
               </label>
@@ -162,10 +162,10 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
               className="w-full font-body font-bold text-xs text-white px-4 py-2.5 rounded-lg transition-all disabled:cursor-not-allowed"
               style={{
                 background: accepted
-                  ? 'linear-gradient(135deg, #2E6DB4 0%, #1B3A6B 100%)'
+                  ? 'linear-gradient(135deg, #E8A145 0%, #0B181E 100%)'
                   : '#cbd2db',
                 opacity: accepted ? 1 : 0.6,
-                boxShadow: accepted ? '0 4px 14px -4px rgba(46,109,180,0.45)' : 'none',
+                boxShadow: accepted ? '0 4px 14px -4px rgba(232,161,69,0.45)' : 'none',
               }}
             >
               Participar en el programa

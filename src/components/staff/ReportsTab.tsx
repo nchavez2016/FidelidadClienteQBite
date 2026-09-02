@@ -222,7 +222,7 @@ export default function ReportsTab({ branchCampaignId }: ReportsTabProps) {
           <div className="flex items-end gap-3 flex-wrap">
             <CalendarDays className="w-5 h-5 text-secondary mb-2" />
             {campaign && (
-              <span className="text-xs px-2 py-1 rounded-md font-body mb-2" style={{ background: 'rgba(197,160,89,0.15)', color: '#8a6f30', border: '1px solid rgba(197,160,89,0.4)' }}>
+              <span className="text-xs px-2 py-1 rounded-md font-body mb-2" style={{ background: 'rgba(232,161,69,0.15)', color: '#8a6f30', border: '1px solid rgba(232,161,69,0.4)' }}>
                 Sucursal: <strong>{campaign.branch}</strong>
               </span>
             )}

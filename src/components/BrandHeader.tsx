@@ -1,9 +1,17 @@
-import logo from '@/assets/logo.png';
+import logoLight from '@/assets/logo-qbites.png';
+import logoDark from '@/assets/logo-qbites-dark.svg';
 
-export default function BrandHeader({ subtitle }: { subtitle?: string }) {
+interface BrandHeaderProps {
+  subtitle?: string;
+  /** Fondo sobre el que se renderiza el header: 'light' (tarjeta blanca, usa logo oscuro) o 'dark' (fondo negro de marca, usa logo claro). */
+  background?: 'light' | 'dark';
+}
+
+export default function BrandHeader({ subtitle, background = 'light' }: BrandHeaderProps) {
+  const logo = background === 'dark' ? logoLight : logoDark;
   return (
     <div className="flex flex-col items-center gap-3 py-6">
-      <img src={logo} alt="La Gaviota Azul Express" className="h-20 w-auto" />
+      <img src={logo} alt="Qbites" className="h-32 w-auto" />
       {subtitle && <p className="text-sm text-muted-foreground font-body">{subtitle}</p>}
     </div>
   );

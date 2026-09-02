@@ -24,8 +24,8 @@ export default function TransactionItem({ tx, customerName, showStaff, showComme
   // Etiqueta breve para identificar quién registró la transacción.
   const roleBadge = (() => {
     switch (tx.actorRole) {
-      case 'admin':    return { text: 'ADM', title: 'Administrador', bg: 'rgba(197,160,89,0.18)', fg: '#8B6914', border: 'rgba(197,160,89,0.45)' };
-      case 'cashier':  return { text: 'CAJ', title: 'Cajero',        bg: 'rgba(46,109,180,0.15)', fg: '#1B3A6B', border: 'rgba(46,109,180,0.4)' };
+      case 'admin':    return { text: 'ADM', title: 'Administrador', bg: 'rgba(232,161,69,0.18)', fg: '#8B6914', border: 'rgba(232,161,69,0.45)' };
+      case 'cashier':  return { text: 'CAJ', title: 'Cajero',        bg: 'rgba(11,24,30,0.08)', fg: '#0B181E', border: 'rgba(11,24,30,0.3)' };
       case 'customer': return { text: 'CLI', title: 'Cliente',       bg: 'rgba(127,227,181,0.15)', fg: '#0f7a4f', border: 'rgba(127,227,181,0.4)' };
       default:         return null;
     }

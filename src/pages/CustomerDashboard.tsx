@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, Instagram, KeyRound, MessageCircle, Music2, ShieldAlert, Star, type LucideIcon } from "lucide-react";
+import { Clock, Facebook, Instagram, KeyRound, MessageCircle, Music2, ShieldAlert, Star, type LucideIcon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -30,6 +30,7 @@ import ProgressRoute from "@/components/ProgressRoute";
 import TransactionItem from "@/components/TransactionItem";
 import HeroSection from "@/components/customer/HeroSection";
 import NextMilestoneBanner from "@/components/customer/NextMilestoneBanner";
+import BirthdayBanner from "@/components/customer/BirthdayBanner";
 import RewardsCard from "@/components/customer/RewardsCard";
 import TermsSection from "@/components/customer/TermsSection";
 import PasswordChangeModal from "@/components/customer/PasswordChangeModal";
@@ -47,14 +48,20 @@ type SocialLink = {
 const socialLinks: SocialLink[] = [
   {
     name: "Instagram",
-    href: "https://instagram.com/lagaviotaazulexpress",
-    handle: "@lagaviotaazulexpress",
+    href: "https://instagram.com/qbites.ec",
+    handle: "@qbites.ec",
     icon: Instagram,
   },
   {
+    name: "Facebook",
+    href: "https://facebook.com/share/19aTJCqfFQ",
+    handle: "Facebook",
+    icon: Facebook,
+  },
+  {
     name: "TikTok",
-    href: "https://tiktok.com/@lagaviotaazulexpr",
-    handle: "@lagaviotaazulexpr",
+    href: "https://tiktok.com/@qbites.ec",
+    handle: "@qbites.ec",
     icon: Music2,
   },
   {
@@ -364,7 +371,7 @@ export default function CustomerDashboard() {
     }
   };
 
-  const cardShadow = "0 4px 20px -6px rgba(27,58,107,0.10)";
+  const cardShadow = "0 4px 20px -6px rgba(11,24,30,0.10)";
   const branchAccent = getBranchAccent(selectedCampaign?.branch);
   const accentBorder = branchAccent ? `1.5px solid ${branchAccent.borderStrong}` : "1px solid #e8edf3";
   const accentShadow = branchAccent
@@ -378,7 +385,7 @@ export default function CustomerDashboard() {
         <div className="flex flex-col items-center gap-3">
           <div
             className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
-            style={{ borderColor: "#1B3A6B", borderTopColor: "transparent" }}
+            style={{ borderColor: "#0B181E", borderTopColor: "transparent" }}
           />
           <p className="text-xs font-body" style={{ color: "#6b7a8c" }}>
             Cargando tus campañas…
@@ -405,7 +412,7 @@ export default function CustomerDashboard() {
             style={{ borderRadius: 16, border: "1px solid #e8edf3", boxShadow: cardShadow }}
           >
             <div className="text-4xl mb-2">🌊</div>
-            <h2 className="font-heading font-bold text-base mb-1" style={{ color: "#1B3A6B" }}>
+            <h2 className="font-heading font-bold text-base mb-1" style={{ color: "#0B181E" }}>
               No hay promociones activas
             </h2>
             <p className="font-body text-xs leading-relaxed" style={{ color: "#6b7a8c" }}>
@@ -447,6 +454,8 @@ export default function CustomerDashboard() {
       <NextMilestoneBanner allCompleted={allCompleted} nextMilestone={nextMilestone} pointsToNext={pointsToNext} />
 
       <div className="max-w-[720px] mx-auto flex flex-col px-3 pb-5 sm:px-4 sm:pb-6" style={{ marginTop: 12, gap: 10 }}>
+        <BirthdayBanner customerId={customer.id} />
+
         {needsPasswordChange && (
           <div
             className="flex items-center gap-3 cursor-pointer"
@@ -491,8 +500,8 @@ export default function CustomerDashboard() {
               </span>
             )}
             <div className="flex items-center gap-2 mb-1">
-              <Star className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: "#C9A84C" }} />
-              <h2 className="font-heading font-bold text-sm sm:text-base" style={{ color: "#1B3A6B" }}>
+              <Star className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: "#E8A145" }} />
+              <h2 className="font-heading font-bold text-sm sm:text-base" style={{ color: "#0B181E" }}>
                 Tu Ruta de Premios
               </h2>
             </div>
@@ -549,12 +558,12 @@ export default function CustomerDashboard() {
             onClick={() => setShowHistory(!showHistory)}
             className="flex items-center justify-center gap-2 font-body font-semibold text-white cursor-pointer w-full"
             style={{
-              background: "linear-gradient(135deg, #1B3A6B 0%, #2E6DB4 100%)",
+              background: "linear-gradient(135deg, #0B181E 0%, hsl(199 35% 14%) 100%)",
               borderRadius: 14,
               padding: "12px",
               fontSize: 11,
               border: "none",
-              boxShadow: "0 4px 12px -4px rgba(27,58,107,0.3)",
+              boxShadow: "0 4px 12px -4px rgba(11,24,30,0.3)",
             }}
           >
             <Clock className="w-4 h-4" />
@@ -571,7 +580,7 @@ export default function CustomerDashboard() {
           >
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-5 h-5 text-secondary" />
-              <h2 className="font-heading font-bold text-sm sm:text-base" style={{ color: "#1B3A6B" }}>
+              <h2 className="font-heading font-bold text-sm sm:text-base" style={{ color: "#0B181E" }}>
                 Actividad — {selectedCampaign?.branch || "Sucursal"}
               </h2>
             </div>

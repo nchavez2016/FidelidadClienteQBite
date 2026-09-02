@@ -40,7 +40,7 @@ export default function BonusRuleBadge({ campaign, variant = 'chip' }: Props) {
     <div
       className="rounded-lg p-2.5"
       style={{
-        background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(197,160,89,0.08))',
+        background: 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(232,161,69,0.08))',
         border: '1px solid rgba(245,158,11,0.25)',
       }}
     >

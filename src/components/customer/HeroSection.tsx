@@ -1,9 +1,9 @@
 import { LogOut, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import logo from '@/assets/logo-gaviota.png';
-import dishImg1 from '@/assets/papa_ahogada.png';
-import dishImg2 from '@/assets/camaron_apanado.png';
-import dishImg3 from '@/assets/gaviota_especial.png';
+import logo from '@/assets/logo-qbites.png';
+import dishImg1 from '@/assets/chicken-tender.png';
+import dishImg2 from '@/assets/hamburguesa.png';
+import dishImg3 from '@/assets/sanduche.png';
 import type { Customer, Campaign, Milestone } from '@/lib/types';
 import { getCustomerPoints } from '@/services';
 import { getBranchAccent } from '@/lib/utils';
@@ -50,25 +50,25 @@ export default function HeroSection({
   const showSwitcher = activeCampaigns.length > 1 && !!onSelectCampaign;
 
   return (
-    <div className="relative w-full overflow-hidden" style={{ minHeight: '340px', background: '#001F3F' }}>
+    <div className="relative w-full overflow-hidden" style={{ minHeight: '340px', background: '#0B181E' }}>
       <svg className="absolute inset-0 w-full h-full opacity-[0.08]" preserveAspectRatio="none" viewBox="0 0 400 320">
         <defs>
           <pattern id="wavePattern" x="0" y="0" width="200" height="40" patternUnits="userSpaceOnUse">
-            <path d="M0 20 Q25 0 50 20 T100 20 T150 20 T200 20" fill="none" stroke="#C5A059" strokeWidth="1.2"/>
-            <path d="M0 30 Q25 10 50 30 T100 30 T150 30 T200 30" fill="none" stroke="#C5A059" strokeWidth="0.8"/>
+            <path d="M0 20 Q25 0 50 20 T100 20 T150 20 T200 20" fill="none" stroke="#E8A145" strokeWidth="1.2"/>
+            <path d="M0 30 Q25 10 50 30 T100 30 T150 30 T200 30" fill="none" stroke="#E8A145" strokeWidth="0.8"/>
           </pattern>
         </defs>
         <rect width="400" height="320" fill="url(#wavePattern)"/>
       </svg>
 
       <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.06]" style={{
-        background: 'linear-gradient(135deg, #C5A059 0%, transparent 60%)',
+        background: 'linear-gradient(135deg, #E8A145 0%, transparent 60%)',
         clipPath: 'polygon(100% 0, 0 0, 100% 100%)',
       }} />
 
       <div className="relative z-10 max-w-[720px] mx-auto px-3 sm:px-10">
         <div className="w-full flex items-center justify-between pt-4 pb-2">
-          <img src={logo} alt="La Gaviota Azul Express" className="w-12 h-auto sm:w-14 opacity-90" />
+          <img src={logo} alt="Qbites" className="w-12 h-auto sm:w-14 opacity-90" />
           <button
             onClick={onLogout}
             className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
@@ -90,8 +90,8 @@ export default function HeroSection({
                 background: 'rgba(255,255,255,0.08)',
                 backdropFilter: 'blur(18px)',
                 WebkitBackdropFilter: 'blur(18px)',
-                border: '1px solid rgba(197,160,89,0.45)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(197,160,89,0.15)',
+                border: '1px solid rgba(232,161,69,0.45)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(232,161,69,0.15)',
               }}
             >
               {campaign && (
@@ -99,10 +99,10 @@ export default function HeroSection({
                   {campaign.branch} · {campaign.name}
                 </p>
               )}
-              <div className="font-heading font-bold leading-none" style={{ fontSize: 'clamp(40px, 13vw, 56px)', color: '#C5A059' }}>
+              <div className="font-heading font-bold leading-none" style={{ fontSize: 'clamp(40px, 13vw, 56px)', color: '#E8A145' }}>
                 {points.toLocaleString()}
               </div>
-              <p className="font-body text-[11px] sm:text-[12px] mt-2 tracking-[0.2em] uppercase" style={{ color: 'rgba(197,160,89,0.85)' }}>
+              <p className="font-body text-[11px] sm:text-[12px] mt-2 tracking-[0.2em] uppercase" style={{ color: 'rgba(232,161,69,0.85)' }}>
                 Puntos Acumulados
               </p>
 
@@ -117,14 +117,14 @@ export default function HeroSection({
                       initial={false}
                       animate={{ width: `${progressPct}%` }}
                       transition={{ duration: 0.8, ease: 'easeOut' }}
-                      style={{ height: '100%', background: '#C5A059', borderRadius: 999 }}
+                      style={{ height: '100%', background: '#E8A145', borderRadius: 999 }}
                     />
                   </div>
                   <span
                     className="text-[10px] font-body text-center sm:text-right leading-tight"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
-                    Faltan <span style={{ color: '#C5A059', fontWeight: 600 }}>{pointsToNext}</span> pts: {nextMilestone.rewardName}
+                    Faltan <span style={{ color: '#E8A145', fontWeight: 600 }}>{pointsToNext}</span> pts: {nextMilestone.rewardName}
                   </span>
                 </div>
               )}
@@ -162,7 +162,7 @@ export default function HeroSection({
                 const active = c.id === selectedCampaignId;
                 const cPoints = getCustomerPoints(customer, c.id);
                 const accent = getBranchAccent(c.branch);
-                const accentColor = accent?.borderStrong ?? '#C5A059';
+                const accentColor = accent?.borderStrong ?? '#E8A145';
                 return (
                   <button
                     key={c.id}

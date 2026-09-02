@@ -19,10 +19,10 @@ import StaffShiftStats from '@/components/staff/StaffShiftStats';
 import CampaignStrip from '@/components/staff/CampaignStrip';
 import { LogOut, Activity, BarChart3, Settings, TrendingUp, MapPin, ArrowLeftRight, Users } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import logo from '@/assets/logo-gaviota.png';
-import dishImg1 from '@/assets/papa_ahogada.png';
-import dishImg2 from '@/assets/camaron_apanado.png';
-import dishImg3 from '@/assets/gaviota_especial.png';
+import logo from '@/assets/logo-qbites.png';
+import dishImg1 from '@/assets/chicken-tender.png';
+import dishImg2 from '@/assets/hamburguesa.png';
+import dishImg3 from '@/assets/sanduche.png';
 
 const carouselImages = [dishImg1, dishImg2, dishImg3];
 
@@ -128,19 +128,19 @@ export default function StaffPanel() {
         multiplier={ops.floatingMultiplier}
       />
 
-      <div className="relative overflow-hidden px-4 py-6" style={{ background: '#001F3F' }}>
+      <div className="relative overflow-hidden px-4 py-6" style={{ background: '#0B181E' }}>
         <svg className="absolute inset-0 w-full h-full opacity-[0.07]" preserveAspectRatio="none" viewBox="0 0 800 200">
           <defs>
             <pattern id="staffWaves" x="0" y="0" width="200" height="100" patternUnits="userSpaceOnUse">
-              <path d="M0 50 Q50 20 100 50 T200 50" fill="none" stroke="#C5A059" strokeWidth="1.5"/>
-              <path d="M0 70 Q50 40 100 70 T200 70" fill="none" stroke="#C5A059" strokeWidth="1"/>
-              <path d="M0 30 Q50 0 100 30 T200 30" fill="none" stroke="#C5A059" strokeWidth="0.8"/>
+              <path d="M0 50 Q50 20 100 50 T200 50" fill="none" stroke="#E8A145" strokeWidth="1.5"/>
+              <path d="M0 70 Q50 40 100 70 T200 70" fill="none" stroke="#E8A145" strokeWidth="1"/>
+              <path d="M0 30 Q50 0 100 30 T200 30" fill="none" stroke="#E8A145" strokeWidth="0.8"/>
             </pattern>
           </defs>
           <rect width="800" height="200" fill="url(#staffWaves)"/>
         </svg>
         <div className="absolute top-0 right-0 w-40 h-40 opacity-[0.06]" style={{
-          background: 'linear-gradient(135deg, #C5A059 0%, transparent 60%)',
+          background: 'linear-gradient(135deg, #E8A145 0%, transparent 60%)',
           clipPath: 'polygon(100% 0, 0 0, 100% 100%)',
         }} />
 
@@ -148,7 +148,7 @@ export default function StaffPanel() {
           {/* Fila 1: logo + bienvenida + rol + logout */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3 min-w-0">
-              <img src={logo} alt="La Gaviota Azul Express" className="h-12 w-auto shrink-0" />
+              <img src={logo} alt="Qbites" className="h-12 w-auto shrink-0" />
               <div className="flex flex-col min-w-0">
                 <span className="text-[10px] tracking-[0.18em] uppercase font-body leading-none" style={{ color: 'rgba(255,255,255,0.45)' }}>
                   Bienvenido,
@@ -182,7 +182,7 @@ export default function StaffPanel() {
                 className="flex items-center gap-3"
                 style={{
                   background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(197,160,89,0.25)',
+                  border: '1px solid rgba(232,161,69,0.25)',
                   borderRadius: '12px',
                   padding: '10px 14px',
                 }}
@@ -193,11 +193,11 @@ export default function StaffPanel() {
                   style={{
                     width: '34px',
                     height: '34px',
-                    background: 'rgba(197,160,89,0.15)',
+                    background: 'rgba(232,161,69,0.15)',
                     borderRadius: '8px',
                   }}
                 >
-                  <MapPin className="w-4 h-4" style={{ color: '#C5A059' }} />
+                  <MapPin className="w-4 h-4" style={{ color: '#E8A145' }} />
                 </div>
 
                 {/* Texto en 3 líneas */}
@@ -216,7 +216,7 @@ export default function StaffPanel() {
                   </span>
                   <span
                     className="font-body truncate leading-none"
-                    style={{ fontSize: '10px', color: 'rgba(197,160,89,0.7)' }}
+                    style={{ fontSize: '10px', color: 'rgba(232,161,69,0.7)' }}
                   >
                     {currentCampaign?.name || 'Sin campaña activa'}
                   </span>
@@ -237,8 +237,8 @@ export default function StaffPanel() {
                       className="inline-flex items-center gap-1 text-[10px] font-body font-semibold px-2 py-0.5 rounded-md transition-colors hover:bg-white/10"
                       style={{
                         background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(197,160,89,0.3)',
-                        color: '#C5A059',
+                        border: '1px solid rgba(232,161,69,0.3)',
+                        color: '#E8A145',
                       }}
                     >
                       <ArrowLeftRight className="w-2.5 h-2.5" />
@@ -277,11 +277,11 @@ export default function StaffPanel() {
       <div className="max-w-4xl mx-auto p-4">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-1'} bg-muted/60 h-auto gap-1 p-1`}>
-            <TabsTrigger value="operations" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'operations' ? '#C5A059' : 'transparent' }}><Activity className="w-4 h-4" /><span className="leading-tight text-center">Operaciones</span></TabsTrigger>
-            {isAdmin && <TabsTrigger value="dashboard" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'dashboard' ? '#C5A059' : 'transparent' }}><BarChart3 className="w-4 h-4" /><span className="leading-tight text-center">Dashboard</span></TabsTrigger>}
-            {isAdmin && <TabsTrigger value="campaigns" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'campaigns' ? '#C5A059' : 'transparent' }}><Settings className="w-4 h-4" /><span className="leading-tight text-center">Campañas</span></TabsTrigger>}
-            {isAdmin && <TabsTrigger value="reports" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'reports' ? '#C5A059' : 'transparent' }}><TrendingUp className="w-4 h-4" /><span className="leading-tight text-center">Reportes</span></TabsTrigger>}
-            {isAdmin && <TabsTrigger value="users" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'users' ? '#C5A059' : 'transparent' }}><Users className="w-4 h-4" /><span className="leading-tight text-center">Usuarios</span></TabsTrigger>}
+            <TabsTrigger value="operations" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'operations' ? '#E8A145' : 'transparent' }}><Activity className="w-4 h-4" /><span className="leading-tight text-center">Operaciones</span></TabsTrigger>
+            {isAdmin && <TabsTrigger value="dashboard" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'dashboard' ? '#E8A145' : 'transparent' }}><BarChart3 className="w-4 h-4" /><span className="leading-tight text-center">Dashboard</span></TabsTrigger>}
+            {isAdmin && <TabsTrigger value="campaigns" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'campaigns' ? '#E8A145' : 'transparent' }}><Settings className="w-4 h-4" /><span className="leading-tight text-center">Configuración</span></TabsTrigger>}
+            {isAdmin && <TabsTrigger value="reports" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'reports' ? '#E8A145' : 'transparent' }}><TrendingUp className="w-4 h-4" /><span className="leading-tight text-center">Reportes</span></TabsTrigger>}
+            {isAdmin && <TabsTrigger value="users" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'users' ? '#E8A145' : 'transparent' }}><Users className="w-4 h-4" /><span className="leading-tight text-center">Usuarios</span></TabsTrigger>}
           </TabsList>
 
           <TabsContent value="operations">
@@ -364,11 +364,11 @@ export default function StaffPanel() {
                   key={c.id}
                   onClick={() => { handleBranchChange(c.id); setShowBranchPicker(false); }}
                   className={`flex items-center justify-between gap-3 p-3 rounded-lg border text-left transition-colors ${
-                    isActive ? 'border-[#C5A059] bg-[#C5A059]/10' : 'border-border hover:bg-muted'
+                    isActive ? 'border-[#E8A145] bg-[#E8A145]/10' : 'border-border hover:bg-muted'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <MapPin className="w-4 h-4 shrink-0" style={{ color: '#C5A059' }} />
+                    <MapPin className="w-4 h-4 shrink-0" style={{ color: '#E8A145' }} />
                     <div className="flex flex-col min-w-0">
                       <span className="font-heading font-semibold text-sm truncate">{c.branch}</span>
                       <span className="text-xs text-muted-foreground truncate">{c.name}</span>
