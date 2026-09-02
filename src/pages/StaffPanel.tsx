@@ -20,9 +20,9 @@ import CampaignStrip from '@/components/staff/CampaignStrip';
 import { LogOut, Activity, BarChart3, Settings, TrendingUp, MapPin, ArrowLeftRight, Users } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import logo from '@/assets/logo-qbites.png';
-import dishImg1 from '@/assets/papa_ahogada.png';
-import dishImg2 from '@/assets/camaron_apanado.png';
-import dishImg3 from '@/assets/gaviota_especial.png';
+import dishImg1 from '@/assets/chicken-tender.png';
+import dishImg2 from '@/assets/hamburguesa.png';
+import dishImg3 from '@/assets/sanduche.png';
 
 const carouselImages = [dishImg1, dishImg2, dishImg3];
 
@@ -279,7 +279,7 @@ export default function StaffPanel() {
           <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-1'} bg-muted/60 h-auto gap-1 p-1`}>
             <TabsTrigger value="operations" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'operations' ? '#E8A145' : 'transparent' }}><Activity className="w-4 h-4" /><span className="leading-tight text-center">Operaciones</span></TabsTrigger>
             {isAdmin && <TabsTrigger value="dashboard" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'dashboard' ? '#E8A145' : 'transparent' }}><BarChart3 className="w-4 h-4" /><span className="leading-tight text-center">Dashboard</span></TabsTrigger>}
-            {isAdmin && <TabsTrigger value="campaigns" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'campaigns' ? '#E8A145' : 'transparent' }}><Settings className="w-4 h-4" /><span className="leading-tight text-center">Campañas</span></TabsTrigger>}
+            {isAdmin && <TabsTrigger value="campaigns" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'campaigns' ? '#E8A145' : 'transparent' }}><Settings className="w-4 h-4" /><span className="leading-tight text-center">Configuración</span></TabsTrigger>}
             {isAdmin && <TabsTrigger value="reports" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'reports' ? '#E8A145' : 'transparent' }}><TrendingUp className="w-4 h-4" /><span className="leading-tight text-center">Reportes</span></TabsTrigger>}
             {isAdmin && <TabsTrigger value="users" className="flex-col sm:flex-row gap-1 sm:gap-2 px-1 sm:px-3 py-1.5 font-heading text-[10px] sm:text-xs tracking-wide data-[state=active]:border-b-2 data-[state=active]:rounded-b-none data-[state=active]:shadow-none" style={{ borderColor: activeTab === 'users' ? '#E8A145' : 'transparent' }}><Users className="w-4 h-4" /><span className="leading-tight text-center">Usuarios</span></TabsTrigger>}
           </TabsList>

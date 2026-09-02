@@ -115,6 +115,20 @@ DELETE FROM public.user_roles WHERE user_id = '<uuid>' AND role = 'customer';
 
 ---
 
+## 10. Imágenes temáticas de Gaviota Azul reemplazadas por assets reales de QBites
+
+**Ícono de progreso** (`ProgressRoute.tsx`, marcador del hito actual en la ruta de puntos): se probaron sucesivamente `ficha-qbites.png`, `ficha-qbites.svg` y dos variantes 3D (`Hamburguesa3D1.png`/`Hamburguesa3D2.png`) — las dos primeras (ficha de póker con texto en el borde) resultaron ilegibles a 28×28px real, verificado capturando los píxeles renderizados vía canvas (sin suavizado ni zoom CSS, para evitar que un SVG se re-vectorice nítido al ampliarlo). **Resuelto** con `hamburguesa-3d.png` (copia de `Hamburguesa3D2.png`, elegida entre las dos por leerse más limpia a tamaño real) — sí se distingue como silueta de hamburguesa a 28px. Reemplaza a `gaviota3d.png` en los 3 puntos de uso del componente.
+
+**Ajuste posterior — recorte del margen transparente:** se probó agrandar la caja del ícono (`w-7 h-7` = 28px → 36px → 40px en `ProgressRoute.tsx`) para mejorar la legibilidad, pero se confirmó con `getBoundingClientRect()` que eso genera solapamiento real con el hito "Inicio" (10×15px de solapamiento a 28px, creciendo a 18×23px a 36px y 22×27px a 40px) — el límite es de espacio disponible en el layout, no de nitidez de la imagen. En su lugar, se recortó el margen transparente de `hamburguesa-3d.png`: el contenido útil real ocupaba solo 531×541px dentro de un lienzo de 1254×1254px (~43%). Se recortó a 561×571px (531×541 + 15px de aire), dejando la caja de 28px en `ProgressRoute.tsx` sin tocar. Verificado con `getBoundingClientRect()`: el solapamiento con "Inicio" no cambió (10×15px, igual al baseline) — el ícono se ve más grande dentro del mismo espacio disponible, sin invadir el layout. El original sin recortar se conservó en `src/assets/Hamburguesa3D2.png` por si se necesita reprocesar con otro margen.
+
+**Carrusel de fotos del hero** (`HeroSection.tsx` y `StaffPanel.tsx`): las 3 fotos originales (`gaviota_especial.png`, `camaron_apanado.png`, `papa_ahogada.png`, temática de cevichería) se reemplazaron por 3 fotos reales de QBites (`chicken-tender.png`, `hamburguesa.png`, `sanduche.png`), manteniendo el mismo patrón de rotación que ya existía (`heroCarouselImages`/`carouselImages` + `AnimatePresence`/crossfade por índice). Se pasó primero por un bloque de color sólido como placeholder temporal mientras no había fotos reales; ese placeholder ya no existe, quedó reemplazado por las fotos definitivas.
+
+**Assets huérfanos eliminados:** `ficha-qbites.svg`, `gaviota3d.png` (y `ficha-qbites.png`, que ya se había eliminado previamente).
+
+**Estado actual:** no queda ningún placeholder temporal ni ninguna referencia de imagen a Gaviota Azul (mariscos/ceviche/gaviota) en la app.
+
+---
+
 ## 8. Protección contra pérdida del último admin
 
 **Confirmado:** `staff-admin` ya protege contra eliminar o degradar al último admin (`handleDelete` y `handleUpdate` en `supabase/functions/staff-admin/index.ts`), vía conteo de filas `role='admin'` en `user_roles` antes de aplicar el cambio.
@@ -122,3 +136,83 @@ DELETE FROM public.user_roles WHERE user_id = '<uuid>' AND role = 'customer';
 **Segundo admin de respaldo creado**, como mitigación operativa adicional (reduce el impacto si el admin principal pierde acceso).
 
 **Riesgo conocido, aceptado sin acción por ahora:** condición de carrera de baja probabilidad — el conteo de admins y el borrado/degradación no son atómicos (dos llamadas separadas a Supabase), por lo que dos solicitudes concurrentes podrían en teoría dejar el sistema sin ningún admin. Dado el volumen de uso esperado del panel, se acepta el riesgo sin remediar por ahora.
+
+---
+
+## 9. `.env` expuesto en el historial heredado de Gaviota Azul
+
+**Problema:** se detectó `.env` versionado en 3 commits del historial heredado de Gaviota Azul (9 y 13 de mayo de 2026) — el repo QBites es un fork con historial conservado, y esos commits venían con él. `.env` tampoco estaba en `.gitignore`, por lo que el riesgo seguía abierto hacia adelante.
+
+**Verificación de impacto:** se confirmó que las variables expuestas en esos commits eran únicamente `PUBLISHABLE_KEY`/`URL` (claves públicas de Supabase, de por sí seguras para exponer del lado del cliente) — sin claves privadas ni `SERVICE_ROLE_KEY`. Riesgo real: ninguno.
+
+**Fix aplicado:**
+- Se limpió el historial completo con `git-filter-repo` desde un clon fresco (elimina `.env` de todos los commits, no solo del HEAD).
+- Se forzó el push a `origin` en ambas ramas (`dev` y `main`).
+- Se agregó `.env` a `.gitignore`.
+
+**Cómo se validó:** verificación independiente tras el cleanup —
+- `git log --all --full-history -- .env` → vacío, `.env` ya no aparece en ningún commit.
+- Los hashes de los commits viejos que sí lo contenían (`d165645`, `71a6eb6`) ya no existen como objetos válidos en el repo — confirma que el historial fue reescrito, no solo enmascarado.
+- `dev` y `main` locales coinciden exactamente con `origin/dev` y `origin/main` — confirma que el force-push se completó y quedó sincronizado.
+
+---
+
+## 11. Actualizaciones en tiempo real no llegaban al cliente (`supabase_realtime` vacía)
+
+**Problema:** al asignar puntos como admin, el cliente no reflejaba el cambio en vivo (sin refrescar) — tampoco se disparaba la animación del ícono de progreso. El frontend ya tenía implementadas las suscripciones (`subscribePointTransactionsRealtime()` en `pointsLedger.service.ts`, `subscribeCustomerPointsRealtime()` en `customerPoints.service.ts`, ambas activadas desde `AuthContext.tsx`), así que el síntoma apuntaba a un problema del lado de la base, no del cliente.
+
+**Causa raíz:** la publicación `supabase_realtime` existe pero estaba **vacía** — verificado con `SELECT schemaname, tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime';` (0 filas) y `SELECT pubname, puballtables FROM pg_publication WHERE pubname = 'supabase_realtime';` (`puballtables = false`). Ninguna tabla estaba transmitiendo cambios — las suscripciones del frontend estaban correctamente abiertas pero nunca recibían eventos.
+
+**Fix aplicado:**
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.point_transactions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.customer_points;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.admin_audit_log;
+```
+
+**Nota técnica verificada antes de aplicar:** se confirmó que `customer_points` tiene `REPLICA IDENTITY` por defecto con clave primaria `(customer_id, campaign_id)` — exactamente las columnas que el handler de `DELETE` necesita de `payload.old`, así que no hizo falta `REPLICA IDENTITY FULL` adicional.
+
+**Cómo se validó:** confirmado en vivo con dos sesiones simultáneas (dos navegadores/pestañas) — la asignación de puntos desde una sesión de admin se refleja en la otra sesión sin necesidad de refrescar la página.
+
+---
+
+## 12. Módulo de cumpleaños
+
+**Qué se construyó:**
+- **Base de datos** (`supabase/Schemabbdd/schema_production.sql`, sección "MÓDULO DE CUMPLEAÑOS"):
+  - Tabla `birthday_config` — fila única (singleton vía `id boolean` + `CHECK`), con `is_active`, `reward_description` (texto visible al cliente) y `reward_message` (texto interno solo staff). Trigger `set_birthday_config_audit` completa `updated_at`/`updated_by` automáticamente.
+  - Tabla `birthday_grants` — historial de entregas, con `UNIQUE (user_id, birthday_year)` como anti-fraude (una entrega por cliente por año calendario). Sin acceso directo vía API — solo a través de las funciones.
+  - Funciones `SECURITY DEFINER`: `get_birthday_status(p_customer_id)` (consultable por el propio cliente o por staff — nunca expone `reward_message`), `grant_birthday_reward(p_customer_id, p_notes)` (solo staff, valida rol, programa activo, mes de cumpleaños y anti-doble-entrega, audita vía `log_admin_action`), y `get_birthday_grants_this_year()` (listado staff-only, agregada a pedido durante la revisión).
+  - RLS en ambas tablas + `GRANT`s correspondientes (config: SELECT/UPDATE gateados; grants: sin GRANT a `authenticated`, solo vía funciones).
+  - Programa arranca **desactivado** (`is_active = false`) a propósito — un admin debe encenderlo desde la pantalla de configuración.
+
+- **Frontend** (`src/services/birthday.service.ts` + 3 puntos de UI):
+  1. Banner en el panel cliente (`BirthdayBanner.tsx`, insertado en `CustomerDashboard.tsx`) — condicionado a `get_birthday_status`.
+  2. Tarjeta + botón "Registrar entrega" en Operaciones (`BirthdayRewardCard.tsx`, insertado en `OperationsTab.tsx`).
+  3. Extensión de la tarjeta "Cumpleañeros del mes" ya existente en `DashboardTab.tsx` (líneas 645-694 del mapeo original) con badges Entregado/Pendiente por cliente, más un ícono de engranaje que abre `BirthdayConfigDialog.tsx` (pantalla simple de configuración del premio).
+
+**Hallazgo de seguridad detectado y corregido antes de construir el frontend:** la primera versión de la policy RLS de `birthday_config` (`birthday_config_select_all`) permitía `SELECT` a cualquier usuario autenticado, incluyendo clientes — como RLS filtra filas y no columnas, eso exponía `reward_message` (pensado como "solo staff") a cualquier cliente que hiciera un `select` directo a la tabla. Se corrigió a `birthday_config_select_staff` (restringida a `admin`/`cashier`) antes de escribir el `BirthdayBanner` del cliente, que de todas formas nunca necesitó acceso directo a la tabla — usa `get_birthday_status()`, que ya devolvía únicamente `reward_description` de forma segura desde el diseño original. El script final en `schema_production.sql` ya incluye la versión corregida directamente, sin rastro de la policy con el bug.
+
+**Verificado en vivo (sin datos de prueba, ciclo real de config):**
+- Diálogo de configuración carga los valores reales desde Supabase (coinciden con el seed).
+- Guardado end-to-end confirmado con SQL directo de solo lectura: se cambió `is_active` a `true` y de vuelta a `false` desde la UI, verificando en la base que el trigger completó `updated_at`/`updated_by` correctamente ambas veces.
+- Banner y tarjeta de cajero verificados sin errores de consola cuando no es mes de cumpleaños del cliente (caso real disponible para probar).
+
+**Pendiente de confirmar:** el flujo completo de "Registrar entrega" (`grant_birthday_reward`) — incluyendo el caso de usar un `birthdate` temporal en un cliente de prueba para forzar el mes de cumpleaños — **no se ha validado todavía**. Se ofreció hacerlo pero no se recibió confirmación para modificar el `birthdate` de un cliente real, ni hay registro de que se haya hecho por otra vía.
+
+---
+
+## 13. Reorganización de navegación del panel admin (Campañas → Configuración)
+
+**Motivo:** el módulo de cumpleaños (sección 12) ya tenía su propia lógica funcionando, pero el punto de entrada a su configuración (ícono de engranaje en la tarjeta "Cumpleañeros del mes" del Dashboard) quedaba poco descubrible y mezclaba una acción de configuración dentro de una tarjeta pensada como reporte. Se decidió reubicar el control, sin tocar la lógica interna de campañas ni de cumpleaños.
+
+**Qué se cambió:**
+- **`src/pages/StaffPanel.tsx`** (línea 282): el `TabsTrigger` de `value="campaigns"` cambió su texto visible de "Campañas" a "Configuración", conservando el ícono `Settings` y el mismo `value` (para no romper el `sessionStorage` que persiste el tab activo).
+- **`src/components/staff/CampaignsTab.tsx`**: el contenido existente (Vista A - lista de campañas, y Vista B - formulario de edición) se envolvió en un `<Tabs>` anidado, replicando el mismo patrón ya usado en `ReportsTab.tsx`, con dos `TabsTrigger` simétricos: "Campañas" (ícono `Star`, contenido original sin cambios de lógica) y "Cumpleaños" (ícono `Cake`, nuevo). El sub-tab "Cumpleaños" agrega el componente `BirthdayConfigCard` (líneas 619-670): lee `birthday_config` vía `getBirthdayConfig()` al montar, muestra badge Activo/Inactivo + el `reward_description` vigente, y un botón "Editar configuración" que abre el `BirthdayConfigDialog` ya existente (sin reescribirlo, solo reubicando desde dónde se dispara).
+- **`src/components/staff/DashboardTab.tsx`**: se quitó el ícono de engranaje, el estado `showBirthdayConfig` y el render de `BirthdayConfigDialog` de la tarjeta "Cumpleañeros del mes" — esa tarjeta queda como reporte puro (lista de cumpleañeros del mes con badges Entregado/Pendiente), sin ninguna acción de configuración.
+
+**Cómo se validó:**
+- Verificación estática: lectura completa de `CampaignsTab.tsx` confirmando balance correcto de `Tabs`/`TabsContent` y `BirthdayConfigCard` correctamente definido y referenciado; `grep` en `DashboardTab.tsx` confirmando cero referencias remanentes a `Settings2`/`BirthdayConfigDialog`/`showBirthdayConfig`.
+- Verificación en vivo (navegador, sesión admin real): captura del sub-tab "Campañas" mostrando ambos sub-tabs simétricos (ícono + texto en los dos) y el contenido original de campañas intacto; captura del sub-tab "Cumpleaños" mostrando `BirthdayConfigCard` con estado real cargado desde Supabase (badge y premio vigente reflejando el valor actual de `birthday_config`, no datos de prueba).
+
+**Nota sobre el estado mostrado en la captura:** la verificación en vivo mostró `birthday_config` como **Activo**, con premio "Postre de cortesía en tu mes de cumpleaños 🎂" — distinto del `is_active=false` que se creía vigente al cierre de la sección 12. El usuario confirmó (validación propia, fuera de esta sesión) que ese es el estado correcto actual — no es un bug de `BirthdayConfigCard` ni del backend, el componente simplemente refleja el valor real de la tabla.

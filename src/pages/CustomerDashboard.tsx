@@ -30,6 +30,7 @@ import ProgressRoute from "@/components/ProgressRoute";
 import TransactionItem from "@/components/TransactionItem";
 import HeroSection from "@/components/customer/HeroSection";
 import NextMilestoneBanner from "@/components/customer/NextMilestoneBanner";
+import BirthdayBanner from "@/components/customer/BirthdayBanner";
 import RewardsCard from "@/components/customer/RewardsCard";
 import TermsSection from "@/components/customer/TermsSection";
 import PasswordChangeModal from "@/components/customer/PasswordChangeModal";
@@ -453,6 +454,8 @@ export default function CustomerDashboard() {
       <NextMilestoneBanner allCompleted={allCompleted} nextMilestone={nextMilestone} pointsToNext={pointsToNext} />
 
       <div className="max-w-[720px] mx-auto flex flex-col px-3 pb-5 sm:px-4 sm:pb-6" style={{ marginTop: 12, gap: 10 }}>
+        <BirthdayBanner customerId={customer.id} />
+
         {needsPasswordChange && (
           <div
             className="flex items-center gap-3 cursor-pointer"
@@ -555,7 +558,7 @@ export default function CustomerDashboard() {
             onClick={() => setShowHistory(!showHistory)}
             className="flex items-center justify-center gap-2 font-body font-semibold text-white cursor-pointer w-full"
             style={{
-              background: "linear-gradient(135deg, #0B181E 0%, #D92521 100%)",
+              background: "linear-gradient(135deg, #0B181E 0%, hsl(199 35% 14%) 100%)",
               borderRadius: 14,
               padding: "12px",
               fontSize: 11,

@@ -162,10 +162,10 @@ export default function TermsSection({ campaign, hasAcceptedTerms, onAcceptTerms
               className="w-full font-body font-bold text-xs text-white px-4 py-2.5 rounded-lg transition-all disabled:cursor-not-allowed"
               style={{
                 background: accepted
-                  ? 'linear-gradient(135deg, #D92521 0%, #0B181E 100%)'
+                  ? 'linear-gradient(135deg, #E8A145 0%, #0B181E 100%)'
                   : '#cbd2db',
                 opacity: accepted ? 1 : 0.6,
-                boxShadow: accepted ? '0 4px 14px -4px rgba(217,37,33,0.45)' : 'none',
+                boxShadow: accepted ? '0 4px 14px -4px rgba(232,161,69,0.45)' : 'none',
               }}
             >
               Participar en el programa

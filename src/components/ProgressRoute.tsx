@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Milestone } from "@/lib/types";
 import { getActiveCampaign } from "@/services";
 import { Gift, Lock, Check, Flag, Trophy } from "lucide-react";
-import gaviotaImg from "@/assets/gaviota3d.png";
+import markerImg from "@/assets/hamburguesa-3d.png";
 
 interface ProgressRouteProps {
   currentPoints: number;
@@ -107,7 +107,7 @@ export default function ProgressRoute({
 
   const nodeInlineStyles = {
     completed: { background: "#0B181E", borderColor: "#0B181E" },
-    current: { background: "#fff", borderColor: "#D92521", boxShadow: "0 0 0 4px rgba(217,37,33,0.2)" },
+    current: { background: "#fff", borderColor: "#E8A145", boxShadow: "0 0 0 4px rgba(232,161,69,0.2)" },
     locked: { background: "#fff", borderColor: "#E8A145" },
   };
 
@@ -118,7 +118,7 @@ export default function ProgressRoute({
       ) : (
         <Check className="w-4 h-4" style={{ color: "#fff" }} />
       );
-    if (state === "current") return <Gift className="w-4 h-4" style={{ color: "#D92521" }} />;
+    if (state === "current") return <Gift className="w-4 h-4" style={{ color: "#E8A145" }} />;
     return <Lock className="w-3.5 h-3.5" style={{ color: "#E8A145" }} />;
   };
 
@@ -184,7 +184,7 @@ export default function ProgressRoute({
               top: TRACK_START_TOP,
               width: 3,
               borderRadius: 2,
-              background: "linear-gradient(180deg, #0B181E, #D92521)",
+              background: "linear-gradient(180deg, #0B181E, #E8A145)",
               minHeight: currentPoints > 0 ? "8px" : "0px",
             }}
             initial={animate ? { height: 0 } : false}
@@ -194,7 +194,7 @@ export default function ProgressRoute({
 
           {/* GAVIOTA MOBILE FIX: translateY(-100%) = la BASE de la imagen toca el punto de progreso */}
           <motion.img
-            src={gaviotaImg}
+            src={markerImg}
             alt="Progreso"
             className="absolute w-7 h-7 object-contain drop-shadow-md z-10"
             style={{ left: -10, transform: "translateY(calc(-100% + 8.22px))" }}
@@ -245,7 +245,7 @@ export default function ProgressRoute({
                       state === "completed"
                         ? { color: "#0B181E" }
                         : state === "current"
-                          ? { color: "#D92521" }
+                          ? { color: "#E8A145" }
                           : { color: "#E8A145" }
                     }
                   >
@@ -297,7 +297,7 @@ export default function ProgressRoute({
 
   const labelColorStyles = {
     completed: { color: "#0B181E" },
-    current: { color: "#D92521" },
+    current: { color: "#E8A145" },
     locked: { color: "#E8A145" },
   };
 
@@ -324,7 +324,7 @@ export default function ProgressRoute({
           style={{
             top: "20px",
             left: PAD,
-            background: "linear-gradient(90deg, #0B181E, #D92521)",
+            background: "linear-gradient(90deg, #0B181E, #E8A145)",
             minWidth: currentPoints > 0 ? "8px" : "0px",
           }}
           initial={animate ? { width: 0 } : false}
@@ -352,7 +352,7 @@ export default function ProgressRoute({
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
         >
           <motion.img
-            src={gaviotaImg}
+            src={markerImg}
             alt="Progreso"
             className="w-11 h-11 object-contain drop-shadow-lg"
             animate={

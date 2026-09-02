@@ -81,7 +81,7 @@ export default function Index() {
     <div className="min-h-screen bg-gradient-navy flex flex-col items-center p-4">
       <div className="flex-1 flex items-center justify-center w-full">
         <div className="text-center space-y-8 max-w-md w-full">
-          <BrandHeader />
+          <BrandHeader background="dark" />
           <div>
             <h1 className="text-3xl font-heading font-bold text-primary-foreground mb-2">Programa de Fidelidad</h1>
             <p className="text-primary-foreground/70 text-sm">Acumula puntos y gana premios increíbles</p>
@@ -111,7 +111,7 @@ export default function Index() {
             </Button>
           </div>
 
-          <p className="text-primary-foreground/40 text-xs">Desde 1984 · Quito, Ecuador</p>
+          <p className="text-primary-foreground/40 text-xs">All In Burgers by Qbites · Quito, Ecuador</p>
         </div>
       </div>
       <div className="w-full text-primary-foreground/80">

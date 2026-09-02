@@ -25,7 +25,7 @@ export default function TransactionItem({ tx, customerName, showStaff, showComme
   const roleBadge = (() => {
     switch (tx.actorRole) {
       case 'admin':    return { text: 'ADM', title: 'Administrador', bg: 'rgba(232,161,69,0.18)', fg: '#8B6914', border: 'rgba(232,161,69,0.45)' };
-      case 'cashier':  return { text: 'CAJ', title: 'Cajero',        bg: 'rgba(217,37,33,0.15)', fg: '#0B181E', border: 'rgba(217,37,33,0.4)' };
+      case 'cashier':  return { text: 'CAJ', title: 'Cajero',        bg: 'rgba(11,24,30,0.08)', fg: '#0B181E', border: 'rgba(11,24,30,0.3)' };
       case 'customer': return { text: 'CLI', title: 'Cliente',       bg: 'rgba(127,227,181,0.15)', fg: '#0f7a4f', border: 'rgba(127,227,181,0.4)' };
       default:         return null;
     }

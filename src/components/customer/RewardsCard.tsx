@@ -51,14 +51,14 @@ export default function RewardsCard({
       {pendingRequest && (
         <div
           className="mb-3 flex items-start gap-2 rounded-lg p-2.5"
-          style={{ background: 'rgba(217,37,33,0.08)', border: '1px solid rgba(217,37,33,0.25)' }}
+          style={{ background: 'rgba(232,161,69,0.08)', border: '1px solid rgba(232,161,69,0.25)' }}
         >
-          <Hourglass className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#D92521' }} />
+          <Hourglass className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#E8A145' }} />
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-body font-semibold leading-tight" style={{ color: '#0B181E' }}>
               Solicitud enviada — esperando confirmación del cajero
             </p>
-            <p className="text-[10px] font-body mt-0.5" style={{ color: '#D92521' }}>
+            <p className="text-[10px] font-body mt-0.5" style={{ color: '#E8A145' }}>
               Premio: <strong>{pendingRequest.rewardName}</strong> ({pendingRequest.requiredPoints} pts)
             </p>
           </div>
@@ -91,7 +91,7 @@ export default function RewardsCard({
                 padding: unlocked ? '14px 12px 10px' : '12px',
                 minWidth: 0,
                 border: isSelectedPending
-                  ? '1.5px solid #D92521'
+                  ? '1.5px solid #E8A145'
                   : unlocked
                     ? '1.5px solid #E8A145'
                     : '0.5px solid rgba(232,161,69,0.25)',
@@ -110,16 +110,16 @@ export default function RewardsCard({
               {isSelectedPending && (
                 <div
                   className="absolute top-0 left-0 right-0"
-                  style={{ height: 3, background: 'linear-gradient(90deg, #D92521 0%, #E86664 50%, #D92521 100%)' }}
+                  style={{ height: 3, background: 'linear-gradient(90deg, #E8A145 0%, #EEB872 50%, #E8A145 100%)' }}
                 />
               )}
 
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ background: isSelectedPending ? 'rgba(217,37,33,0.15)' : unlocked ? 'rgba(232,161,69,0.15)' : '#f0f4f8' }}
+                style={{ background: isSelectedPending ? 'rgba(232,161,69,0.15)' : unlocked ? 'rgba(232,161,69,0.15)' : '#f0f4f8' }}
               >
                 {isSelectedPending
-                  ? <Hourglass className="w-4 h-4" style={{ color: '#D92521' }} />
+                  ? <Hourglass className="w-4 h-4" style={{ color: '#E8A145' }} />
                   : unlocked
                     ? <CheckCircle className="w-4 h-4" style={{ color: '#E8A145' }} />
                     : <Lock className="w-3.5 h-3.5" style={{ color: '#E8A145' }} />}
@@ -138,15 +138,15 @@ export default function RewardsCard({
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                 style={{
-                  background: isSelectedPending ? 'rgba(217,37,33,0.12)' : unlocked ? 'rgba(232,161,69,0.12)' : '#f0f4f8',
-                  color: isSelectedPending ? '#D92521' : unlocked ? '#E8A145' : '#999',
+                  background: isSelectedPending ? 'rgba(232,161,69,0.12)' : unlocked ? 'rgba(232,161,69,0.12)' : '#f0f4f8',
+                  color: isSelectedPending ? '#E8A145' : unlocked ? '#E8A145' : '#999',
                 }}
               >
                 {m.requiredPoints} pts
               </span>
 
               {isSelectedPending ? (
-                <span className="mt-1 text-[9px] font-body font-bold uppercase tracking-wider" style={{ color: '#D92521' }}>
+                <span className="mt-1 text-[9px] font-body font-bold uppercase tracking-wider" style={{ color: '#E8A145' }}>
                   Solicitado
                 </span>
               ) : unlocked ? (
@@ -155,8 +155,8 @@ export default function RewardsCard({
                     onClick={() => onRedeem(m)}
                     className="mt-1.5 w-full flex items-center justify-center gap-1 text-[10px] font-body font-bold text-white px-2 py-1.5 rounded-md transition-transform active:scale-95"
                     style={{
-                      background: 'linear-gradient(135deg, #D92521 0%, #0B181E 100%)',
-                      boxShadow: '0 2px 8px -2px rgba(217,37,33,0.4)',
+                      background: 'linear-gradient(135deg, #E8A145 0%, #0B181E 100%)',
+                      boxShadow: '0 2px 8px -2px rgba(232,161,69,0.4)',
                     }}
                   >
                     Canjear ahora
@@ -168,8 +168,8 @@ export default function RewardsCard({
                     disabled={blockedByOther}
                     className="mt-1.5 w-full flex items-center justify-center gap-1 text-[10px] font-body font-bold text-white px-2 py-1.5 rounded-md transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
-                      background: 'linear-gradient(135deg, #D92521 0%, #0B181E 100%)',
-                      boxShadow: '0 2px 8px -2px rgba(217,37,33,0.4)',
+                      background: 'linear-gradient(135deg, #E8A145 0%, #0B181E 100%)',
+                      boxShadow: '0 2px 8px -2px rgba(232,161,69,0.4)',
                     }}
                   >
                     Pedir canje
@@ -178,7 +178,7 @@ export default function RewardsCard({
                 ) : (
                   <span
                     className="mt-1 text-[9px] font-body font-bold uppercase tracking-wider"
-                    style={{ color: '#D92521' }}
+                    style={{ color: '#E8A145' }}
                   >
                     Disponible
                   </span>

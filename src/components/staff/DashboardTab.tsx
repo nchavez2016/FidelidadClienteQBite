@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip as InfoTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import TransactionItem from '@/components/TransactionItem';
-import { Users, TrendingUp, Award, Coins, Filter, PieChart, Clock, RotateCcw, CalendarDays, ShoppingBag, ArrowUpRight, ArrowDownRight, Minus, MessageSquare, Info, Cake, RefreshCw } from 'lucide-react';
+import { Users, TrendingUp, Award, Coins, Filter, PieChart, Clock, RotateCcw, CalendarDays, ShoppingBag, ArrowUpRight, ArrowDownRight, Minus, MessageSquare, Info, Cake, RefreshCw, Check } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { CommentCategory } from '@/lib/types';
+import { getBirthdayGrantsThisYear } from '@/services/birthday.service';
 
 const commentCatLabels: Record<CommentCategory, string> = {
   complaint: '😟 Queja',
@@ -83,6 +84,15 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
     });
     return () => { cancelled = true; };
   }, []);
+
+  // Entregas de cumpleaños ya registradas este año (para el badge Entregado/Pendiente).
+  const [grantedUserIds, setGrantedUserIds] = useState<Set<string>>(new Set());
+  const loadBirthdayGrants = () => {
+    void getBirthdayGrantsThisYear()
+      .then(grants => setGrantedUserIds(new Set(grants.map(g => g.userId))))
+      .catch(err => console.error('[DashboardTab] getBirthdayGrantsThisYear failed', err));
+  };
+  useEffect(() => { loadBirthdayGrants(); }, [birthdayTick]);
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -686,11 +696,22 @@ export default function DashboardTab({ branchCampaignId }: DashboardTabProps) {
                     <p className="font-medium truncate">{b.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{b.phone}</p>
                   </div>
-                  {b.isToday && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent shrink-0">
-                      ¡HOY!
-                    </span>
-                  )}
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    {b.isToday && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent">
+                        ¡HOY!
+                      </span>
+                    )}
+                    {grantedUserIds.has(b.id) ? (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-success/15 text-success flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Entregado
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        Pendiente
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

@@ -14,10 +14,10 @@ export default function NextMilestoneBanner({ allCompleted, nextMilestone, point
         <div
           className="flex items-center justify-center gap-2 py-3 px-5 font-body text-[13px] sm:text-[14px]"
           style={{
-            background: 'linear-gradient(135deg, #D92521 0%, #921816 100%)',
+            background: 'linear-gradient(135deg, #E8A145 0%, #B67116 100%)',
             color: '#fff',
             borderRadius: 12,
-            boxShadow: '0 4px 16px -4px rgba(217,37,33,0.4)',
+            boxShadow: '0 4px 16px -4px rgba(232,161,69,0.4)',
           }}
         >
           <Star className="w-4 h-4 shrink-0" style={{ color: '#E8A145', fill: '#E8A145' }} />
@@ -32,7 +32,7 @@ export default function NextMilestoneBanner({ allCompleted, nextMilestone, point
       <div className="max-w-[720px] mx-auto px-4 sm:px-6 mt-3 mb-1">
         <div
           className="flex items-center justify-center gap-2 py-3 px-5 font-body text-[13px]"
-          style={{ background: 'rgba(217,37,33,0.1)', color: '#0B181E', borderRadius: 12 }}
+          style={{ background: 'rgba(232,161,69,0.1)', color: '#0B181E', borderRadius: 12 }}
         >
           Sin campaña activa
         </div>
@@ -45,9 +45,9 @@ export default function NextMilestoneBanner({ allCompleted, nextMilestone, point
       <div
         className="flex items-center gap-3 py-3 px-4"
         style={{
-          background: 'linear-gradient(135deg, #D92521 0%, #921816 100%)',
+          background: 'linear-gradient(135deg, #E8A145 0%, #B67116 100%)',
           borderRadius: 12,
-          boxShadow: '0 4px 16px -4px rgba(217,37,33,0.4)',
+          boxShadow: '0 4px 16px -4px rgba(232,161,69,0.4)',
         }}
       >
         <div

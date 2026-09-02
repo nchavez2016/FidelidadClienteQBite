@@ -16,6 +16,7 @@ import { evaluateBonus } from '@/services/bonusRules.service';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import ResetPointsDialog from './ResetPointsDialog';
+import BirthdayRewardCard from './BirthdayRewardCard';
 import { getBranchAccent } from '@/lib/utils';
 
 const IDLE_TIMEOUT_MS = 60_000; // 60s para limpiar pantalla
@@ -189,28 +190,30 @@ export default function OperationsTab({
     <div className="space-y-4 mt-4">
       <Card style={opsCardStyle}>
         <CardContent className="pt-4 space-y-2">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input
               ref={searchInputRef}
               placeholder="Buscar por teléfono..."
               value={phoneSearch}
               onChange={e => setPhoneSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && searchCustomer()}
-              className="flex-1"
+              className="w-full sm:flex-1"
               disabled={!!selectedCustomer}
             />
-            {selectedCustomer ? (
-              <Button onClick={clearAndFocus} variant="outline" className="gap-2 border-secondary/40 text-secondary hover:bg-secondary/5">
-                <TimerReset className="w-4 h-4" />Otra búsqueda
+            <div className="flex gap-2">
+              {selectedCustomer ? (
+                <Button onClick={clearAndFocus} variant="outline" className="flex-1 sm:flex-initial min-w-0 gap-1.5 sm:gap-2 px-2 sm:px-4 border-secondary/40 text-secondary hover:bg-secondary/5">
+                  <TimerReset className="w-4 h-4 shrink-0" /><span className="truncate">Otra búsqueda</span>
+                </Button>
+              ) : (
+                <Button onClick={searchCustomer} className="flex-1 sm:flex-initial min-w-0 gap-1.5 sm:gap-2 px-2 sm:px-4 text-white font-semibold" style={{ background: 'linear-gradient(135deg, #E8A145, #EEB872)', border: '1px solid rgba(232,161,69,0.5)' }}>
+                  <Search className="w-4 h-4 shrink-0" /><span className="truncate">Buscar</span>
+                </Button>
+              )}
+              <Button variant="outline" className="flex-1 sm:flex-initial min-w-0 gap-1.5 sm:gap-2 px-2 sm:px-4" onClick={() => setShowRegisterDialog(true)}>
+                <UserPlus className="w-4 h-4 shrink-0" /><span className="truncate">Registrar Cliente</span>
               </Button>
-            ) : (
-              <Button onClick={searchCustomer} className="gap-2 text-white font-semibold" style={{ background: 'linear-gradient(135deg, #E8A145, #EEB872)', border: '1px solid rgba(232,161,69,0.5)' }}>
-                <Search className="w-4 h-4" />Buscar
-              </Button>
-            )}
-            <Button variant="outline" className="gap-2" onClick={() => setShowRegisterDialog(true)}>
-              <UserPlus className="w-4 h-4" />Registrar Cliente
-            </Button>
+            </div>
           </div>
           <Button
             onClick={() => handleAddProPoints?.()}
@@ -263,8 +266,8 @@ export default function OperationsTab({
                   <div
                     className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-heading font-bold text-base text-white"
                     style={{
-                      background: 'linear-gradient(135deg, #0B181E 0%, #D92521 100%)',
-                      boxShadow: '0 4px 12px rgba(0,31,63,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
+                      background: 'linear-gradient(135deg, #0B181E 0%, hsl(199 35% 14%) 100%)',
+                      boxShadow: '0 4px 12px rgba(11,24,30,0.3), inset 0 1px 0 rgba(255,255,255,0.15)',
                     }}
                     aria-label={`Avatar de ${selectedCustomer.name}`}
                   >
@@ -360,6 +363,8 @@ export default function OperationsTab({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              <BirthdayRewardCard customerId={selectedCustomer.id} />
+
               <ProgressRoute currentPoints={currentPoints} milestones={campaign?.milestones} />
 
               {campaign?.termsAndConditions && (
@@ -404,20 +409,20 @@ export default function OperationsTab({
                   animate={{ opacity: 1, y: 0 }}
                   className="rounded-lg p-3 flex flex-col gap-2"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(217,37,33,0.10) 0%, rgba(232,161,69,0.10) 100%)',
-                    border: '1.5px solid #D92521',
-                    boxShadow: '0 4px 16px -6px rgba(217,37,33,0.35)',
+                    background: 'linear-gradient(135deg, rgba(232,161,69,0.10) 0%, rgba(232,161,69,0.10) 100%)',
+                    border: '1.5px solid #E8A145',
+                    boxShadow: '0 4px 16px -6px rgba(232,161,69,0.35)',
                   }}
                 >
                   <div className="flex items-start gap-2">
-                    <Hourglass className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#D92521' }} />
+                    <Hourglass className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#E8A145' }} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#0B181E' }}>
                         El cliente solicitó un canje
                       </p>
                       <p className="text-sm font-semibold mt-0.5" style={{ color: '#0B181E' }}>
                         🎁 {pendingRequest.rewardName}
-                        <span className="ml-2 text-xs font-normal" style={{ color: '#D92521' }}>
+                        <span className="ml-2 text-xs font-normal" style={{ color: '#E8A145' }}>
                           ({pendingRequest.requiredPoints} pts)
                         </span>
                       </p>
@@ -527,7 +532,7 @@ export default function OperationsTab({
                     type="button"
                     onClick={() => setShowOperationalTimeline(v => !v)}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg, #921816 0%, #D92521 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #0B181E 0%, hsl(199 35% 14%) 100%)' }}
                   >
                     <Clock className="w-4 h-4" />
                     {showOperationalTimeline ? 'Ocultar historial' : 'Ver historial'}
@@ -549,7 +554,7 @@ export default function OperationsTab({
                           </p>
                         ) : (() => {
                           const STATUS_CFG: Record<string, { label: string; color: string; Icon: any }> = {
-                            pending:   { label: 'SOLICITADO', color: '#D92521', Icon: Hourglass },
+                            pending:   { label: 'SOLICITADO', color: '#E8A145', Icon: Hourglass },
                             approved:  { label: 'APROBADO',   color: '#16a34a', Icon: Check },
                             rejected:  { label: 'RECHAZADO',  color: '#dc2626', Icon: X },
                             cancelled: { label: 'CANCELADO',  color: '#6b7280', Icon: Undo2 },
@@ -612,7 +617,7 @@ export default function OperationsTab({
                     type="button"
                     onClick={() => setShowFinancialLedger(v => !v)}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg, #921816 0%, #D92521 100%)' }}
+                    style={{ background: 'linear-gradient(135deg, #0B181E 0%, hsl(199 35% 14%) 100%)' }}
                   >
                     <Clock className="w-4 h-4" />
                     {showFinancialLedger ? 'Ocultar movimientos' : 'Ver movimientos'}

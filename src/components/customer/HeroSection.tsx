@@ -1,9 +1,9 @@
 import { LogOut, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logo from '@/assets/logo-qbites.png';
-import dishImg1 from '@/assets/papa_ahogada.png';
-import dishImg2 from '@/assets/camaron_apanado.png';
-import dishImg3 from '@/assets/gaviota_especial.png';
+import dishImg1 from '@/assets/chicken-tender.png';
+import dishImg2 from '@/assets/hamburguesa.png';
+import dishImg3 from '@/assets/sanduche.png';
 import type { Customer, Campaign, Milestone } from '@/lib/types';
 import { getCustomerPoints } from '@/services';
 import { getBranchAccent } from '@/lib/utils';
