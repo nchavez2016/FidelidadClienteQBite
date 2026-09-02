@@ -1,4 +1,4 @@
-# Sistema de Fidelización de Clientes — Gaviota Azul
+# Sistema de Fidelización de Clientes
 
 Plataforma web de fidelización de clientes ("Ruta Gaviota") desarrollada para **Cevichería Gaviota Azul** (Ecuador), con arquitectura pensada para ser adaptable (white-label) a otros negocios de consumo (retail, restaurantes, etc.).
 
