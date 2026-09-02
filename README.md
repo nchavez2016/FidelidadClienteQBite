@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Sistema de Fidelización de Clientes — QBites
+=======
+# Sistema de Fidelización de Clientes
+>>>>>>> 0992513eba694ec3c590b75fe88c2ec844393be7
 
 Plataforma web de fidelización de clientes desarrollada para **All In Burgers by Qbites** (Quito, Ecuador), con arquitectura pensada para ser adaptable (white-label) a otros negocios de consumo (retail, restaurantes, etc.) — de hecho, este mismo código nació para otro negocio (una cevichería) y se adaptó a QBites sin cambios estructurales, como prueba de ese diseño.
 
