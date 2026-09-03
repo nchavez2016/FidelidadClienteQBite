@@ -216,3 +216,47 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.admin_audit_log;
 - Verificación en vivo (navegador, sesión admin real): captura del sub-tab "Campañas" mostrando ambos sub-tabs simétricos (ícono + texto en los dos) y el contenido original de campañas intacto; captura del sub-tab "Cumpleaños" mostrando `BirthdayConfigCard` con estado real cargado desde Supabase (badge y premio vigente reflejando el valor actual de `birthday_config`, no datos de prueba).
 
 **Nota sobre el estado mostrado en la captura:** la verificación en vivo mostró `birthday_config` como **Activo**, con premio "Postre de cortesía en tu mes de cumpleaños 🎂" — distinto del `is_active=false` que se creía vigente al cierre de la sección 12. El usuario confirmó (validación propia, fuera de esta sesión) que ese es el estado correcto actual — no es un bug de `BirthdayConfigCard` ni del backend, el componente simplemente refleja el valor real de la tabla.
+
+---
+
+## 14. Escalada visual de intensidad temática (motivo póker) y marca de agua del hero
+
+### 14.1 `PokerAmbience` en `ProgressRoute.tsx`
+
+**Qué se construyó:** un sistema de ambientación visual de fondo alrededor de la ruta de puntos, que escala en intensidad según el porcentaje de avance del cliente hacia el último hito de la campaña activa — sin tocar los íconos de hitos (marcador de hamburguesa, gift/lock/check), solo fondo/ambientación.
+
+- `progressRatio = currentPoints / maxPoints` (último hito de la campaña). Tres estados calculados en `ProgressRoute.tsx`:
+  - **`inicio`** (`ratio < 0.33`): sin borde, un ♠ casi imperceptible (opacidad 0.05).
+  - **`medio`** (`0.33 ≤ ratio ≤ 0.66`): borde superior dorado 2px (`#E8A145`) + dos palos (♠/♣) a opacidad 0.125.
+  - **`cerca`** (`ratio > 0.66`): borde superior dorado + inferior rojo (`#D92521`) 3px cada uno, + un palo (♠) grande a opacidad 0.20.
+- Componente interno `PokerAmbience({ state })`: capa decorativa `position: absolute; inset: 0; pointer-events-none; z-0`, sin ocupar espacio en el layout. El wrapper exterior (mobile y desktop) lleva `overflow-hidden rounded-lg` para que el borde y el recorte de los palos sigan el radio de la tarjeta contenedora.
+- Transición entre estados: cambio de estilo directo en el re-render (sin animación continua ni interpolación), por decisión explícita.
+- Mismo componente reutilizado automáticamente en los 3 puntos de uso (`CustomerDashboard.tsx`, `OperationsTab.tsx` vista staff, `CampaignsTab.tsx` preview con `currentPoints=0`) sin código adicional — es el mismo `ProgressRoute`.
+
+**Bugs encontrados y corregidos antes de cerrar (todos en la misma sesión, antes de cualquier commit):**
+1. **Borde no seguía el border-radius de la tarjeta** (se cortaba en línea recta antes de la esquina) — causa: el wrapper con el borde no tenía `border-radius` propio. Fix: `rounded-lg` (12px) + `overflow-hidden` en el wrapper exterior.
+2. **Palo grande de `cerca` se superponía con el marcador (hamburguesa)** — en desktop el marcador viaja cerca del borde derecho en ese rango de progreso; en mobile vive siempre cerca del borde izquierdo. Fix: se reposicionó el palo grande de `-top-4 -right-4` a `bottom-2 right-2` (posición no-negativa, franja vertical/horizontal libre de íconos en ambos layouts) + `z-0` explícito.
+3. **Overflow en mobile** (el palo se cortaba/sobresalía) — mismo fix que el punto 1 (`overflow-hidden` en el wrapper) más el uso de offsets no-negativos, evitando depender solo del recorte para contener un elemento posicionado fuera de su caja.
+
+**Cómo se validó:** verificación mixta (visual + inspección de DOM vía JS) en vivo, con datos reales de clientes de la base — no con datos simulados:
+- Opacidades confirmadas leyendo `span.style.opacity` en el DOM: 0.05 / 0.125 / 0.2 según estado.
+- Border-radius y overflow confirmados vía `getComputedStyle()`: `border-radius: 12px`, `overflow: hidden` en ambos layouts.
+- Capturas en desktop (~700px) y en mobile real (375px) para los 3 estados, usando clientes reales de la base (`Napoleon Chavez` en 14/30 pts para `medio`, un cliente de prueba creado y luego subido a 23/30 pts vía las herramientas de staff para `cerca`).
+
+### 14.2 Trébol dorado como marca de agua en `HeroSection.tsx`
+
+**Qué se construyó:** un `♣` grande (220px), color `#E8A145`, opacidad 0.09, agregado como capa decorativa (`position: absolute`, sin espacio propio en el layout) sobre el fondo oscuro del header del cliente — mismo patrón que `PokerAmbience`, no un ícono con su propio lugar en el flujo. Contenido por el `overflow-hidden` que ya tenía el wrapper del hero.
+
+**Iteración de posición:** el primer intento (esquina inferior derecha) quedó casi completamente oculto detrás de la tarjeta de puntos (frosted-glass con `backdrop-filter: blur(18px)` + fondo blanco al 8% — el blur borra prácticamente cualquier elemento de baja opacidad detrás suyo, igual que ya le pasa al patrón de olas y al triángulo dorado decorativos preexistentes). Se reposicionó arriba (`top: -30px; right: -15px`), zona donde el fondo oscuro del hero queda mayormente visible (logo/saludo, antes de que empiece la tarjeta), confirmado por `getBoundingClientRect()` antes de fijarlo.
+
+**Descartado en el camino:** una primera versión ponía un trébol pequeño y sólido debajo del logo, ocupando su propio espacio en el layout — se revirtió por pedido explícito, no era el patrón buscado.
+
+### 14.3 Investigación del logo: SVG blanco vs. PNG actual
+
+**Hallazgo:** se recibieron dos archivos SVG para comparar contra `logo-qbites.png` (el usado actualmente en `HeroSection.tsx`):
+- Un primer archivo (`logo-qbites_White.svg`, 443 bytes) resultó estar **vacío** — el `<g>` no contenía ningún `<path>`, confirmado con el mismo método de detección de canal alfa ya usado para el ícono de progreso (0 píxeles con alpha>10 en todo el lienzo). No se aplicó ningún cambio.
+- Un segundo archivo (`logo-qbites-dark.svg`, con geometría real) sí tenía paths válidos, con el color como un único atributo `fill="#000000"` en el `<g>` padre (heredado por todos los `<path>`, ninguno lo sobreescribe) — confirmado editable, sin imagen rasterizada embebida. Se generó `logo-qbites-blanco.svg` cambiando ese atributo a `#FFFFFF`.
+
+**Comparación de bounding box (canal alfa, ambos renderizados a 400×400px):** resultado idéntico pixel a pixel entre el PNG y el SVG — mismo bbox de contenido (x:72–323, y:136–268), mismo `fillRatioArea` (20.9%). El SVG es una réplica vectorial exacta del PNG, no una versión con menos margen interno.
+
+**Decisión:** no se reemplazó el PNG por el SVG — no habría ninguna ganancia de tamaño visual al mismo ancho en px, ya que ambos tienen exactamente el mismo margen interno. Para agrandar el logo de verdad haría falta **recortar su margen interno** (como ya se hizo antes con el ícono de progreso `hamburguesa-3d.png`, sección 10), no cambiar de formato PNG→SVG. `logo-qbites-blanco.svg` queda disponible en `src/assets/` para uso futuro (nitidez en pantallas de alta densidad, recolor programático) si se decide migrar por esa razón.

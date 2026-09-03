@@ -119,6 +119,7 @@ Qbite/
   - Un **adaptador de persistencia** (`src/services/dbAdapter.ts` + `src/services/drivers/`) con un driver actualmente basado en Supabase (`SupabaseDriver`) y otro en memoria/`localStorage` (`LocalStorageDriver`) usado en tests y prototipado, ambos implementando la misma interfaz `DbDriver`.
 - **Realtime**: `pointsLedger.service.ts` se suscribe a los canales de Supabase Realtime sobre `point_transactions` y `customer_points` para reflejar puntos nuevos en el panel del cliente sin recargar la página, con reconexión y backoff exponencial ante cortes de red.
 - **UI**: componentes primitivos de `src/components/ui` (shadcn/ui sobre Radix) + Tailwind CSS para estilos utilitarios; componentes de dominio organizados por audiencia (`customer/`, `staff/`, `auth/`, `security/`).
+- **Ambientación decorativa reutilizable**: `ProgressRoute.tsx` implementa un patrón de capas de fondo (`PokerAmbience`) que escala en intensidad visual según el porcentaje de avance del cliente — sin ocupar espacio en el layout ni interferir con la iconografía funcional. El mismo patrón (elemento grande, opacidad baja, posicionado como fondo) se reutiliza en `HeroSection.tsx` como marca de agua del hero del cliente. Detalle completo en `docs/qbites_bitacora_setup.md`.
 
 ### Arquitectura Backend
 

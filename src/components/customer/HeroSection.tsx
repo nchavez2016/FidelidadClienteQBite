@@ -66,9 +66,20 @@ export default function HeroSection({
         clipPath: 'polygon(100% 0, 0 0, 100% 100%)',
       }} />
 
+      {/* Marca de agua decorativa — mismo patrón que PokerAmbience en ProgressRoute.tsx.
+          Anclada arriba: la tarjeta de puntos (frosted glass + blur) tapa casi todo el
+          resto del hero, igual que ya le pasa al patrón de olas y al triángulo dorado. */}
+      <span
+        className="absolute select-none pointer-events-none"
+        style={{ top: '-30px', right: '-15px', fontSize: '220px', lineHeight: 1, color: '#E8A145', opacity: 0.09 }}
+        aria-hidden="true"
+      >
+        ♣
+      </span>
+
       <div className="relative z-10 max-w-[720px] mx-auto px-3 sm:px-10">
         <div className="w-full flex items-center justify-between pt-4 pb-2">
-          <img src={logo} alt="Qbites" className="w-12 h-auto sm:w-14 opacity-90" />
+          <img src={logo} alt="Qbites" className="w-[67px] h-auto sm:w-[78px] opacity-90" />
           <button
             onClick={onLogout}
             className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"

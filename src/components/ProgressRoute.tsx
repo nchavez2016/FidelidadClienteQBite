@@ -14,6 +14,47 @@ interface ProgressRouteProps {
 
 const MOBILE_BREAKPOINT = 640;
 
+type IntensityState = "inicio" | "medio" | "cerca";
+
+const intensityBorderStyle: Record<IntensityState, React.CSSProperties> = {
+  inicio: {},
+  medio: { borderTop: "2px solid #E8A145" },
+  cerca: { borderTop: "3px solid #E8A145", borderBottom: "3px solid #D92521" },
+};
+
+function PokerAmbience({ state }: { state: IntensityState }) {
+  if (state === "inicio") {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-0" aria-hidden="true">
+        <span className="absolute top-2 right-3 text-4xl select-none" style={{ color: "#0B181E", opacity: 0.05 }}>
+          ♠
+        </span>
+      </div>
+    );
+  }
+  if (state === "medio") {
+    return (
+      <div className="absolute inset-0 pointer-events-none z-0" aria-hidden="true">
+        <span className="absolute top-1 right-4 text-5xl select-none" style={{ color: "#E8A145", opacity: 0.125 }}>
+          ♠
+        </span>
+        <span className="absolute bottom-1 left-4 text-4xl select-none" style={{ color: "#E8A145", opacity: 0.125 }}>
+          ♣
+        </span>
+      </div>
+    );
+  }
+  // 'cerca': la marca (hamburguesa) viaja cerca del borde derecho en desktop y del borde
+  // izquierdo en mobile — el palo va abajo a la derecha para no competir con ella en ningún layout.
+  return (
+    <div className="absolute inset-0 pointer-events-none z-0" aria-hidden="true">
+      <span className="absolute bottom-2 right-2 text-7xl select-none" style={{ color: "#D92521", opacity: 0.2 }}>
+        ♠
+      </span>
+    </div>
+  );
+}
+
 export default function ProgressRoute({
   currentPoints,
   animate = true,
@@ -62,6 +103,9 @@ export default function ProgressRoute({
   const milestones = [...sourceMilestones].sort((a, b) => a.order - b.order);
   const maxPoints = milestones[milestones.length - 1].requiredPoints;
   const allCompleted = currentPoints >= maxPoints;
+  const progressRatio = maxPoints > 0 ? currentPoints / maxPoints : 0;
+  const intensityState: IntensityState =
+    progressRatio > 0.66 ? "cerca" : progressRatio >= 0.33 ? "medio" : "inicio";
   const totalMilestones = milestones.length;
   const segmentSize = totalMilestones > 0 ? 1 / totalMilestones : 0;
   const milestoneRouteRatios = milestones.map((_, idx) => (idx + 1) * segmentSize);
@@ -162,7 +206,11 @@ export default function ProgressRoute({
     const gaviotaTop = getGaviotaTop();
 
     return (
-      <div className="w-full py-2">
+      <div
+        className="w-full py-2 relative overflow-hidden rounded-lg"
+        style={intensityBorderStyle[intensityState]}
+      >
+        <PokerAmbience state={intensityState} />
         <div className="relative" style={{ paddingLeft: 28 }}>
           <div
             className="absolute"
@@ -302,7 +350,11 @@ export default function ProgressRoute({
   };
 
   return (
-    <div className="w-full py-4">
+    <div
+      className="w-full py-4 relative overflow-hidden rounded-lg"
+      style={intensityBorderStyle[intensityState]}
+    >
+      <PokerAmbience state={intensityState} />
       {showFixture && (
         <div className="mb-3 grid grid-cols-4 gap-1.5 rounded-lg border border-dashed border-secondary/30 bg-secondary/5 p-2">
           {fixturePoints.map((points) => (

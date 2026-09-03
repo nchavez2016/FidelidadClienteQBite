@@ -66,7 +66,7 @@ const socialLinks: SocialLink[] = [
   },
   {
     name: "WhatsApp",
-    href: "https://wa.me/593993763382",
+    href: "https://wa.me/593984729905",
     handle: "Escríbenos",
     icon: MessageCircle,
   },
