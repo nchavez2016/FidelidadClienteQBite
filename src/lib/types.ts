@@ -34,6 +34,8 @@ export interface Customer {
    * con un sufijo para liberar el número y permitir un nuevo registro.
    */
   revokedFromPhone?: string;
+  /** true si la clave actual == teléfono (recién creada por staff o reseteada así). Fuente: profiles.must_change_password. */
+  mustChangePassword?: boolean;
   createdAt: string;
 }
 

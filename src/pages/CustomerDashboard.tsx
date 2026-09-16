@@ -7,9 +7,8 @@ import { toast } from "sonner";
 import type { Milestone, RedemptionRequest, Transaction } from "@/lib/types";
 import {
   getActiveCampaigns,
-  resetCustomerPassword,
   acceptCampaignTerms,
-  customerNeedsPasswordChange,
+  patchCachedCustomer,
   getCustomerPoints,
   getCustomerTotalPoints,
   getConsentStatus,
@@ -139,13 +138,14 @@ const mapRequestToTransaction = (request: RedemptionRequest): Transaction => ({
 });
 
 export default function CustomerDashboard() {
-  const { isHydrating } = useAuth();
+  const { isHydrating, updatePassword } = useAuth();
   const { customer, refresh: refreshCustomer, logout } = useCustomerSession("/cliente/login");
   const [, setTick] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [heroImgIdx, setHeroImgIdx] = useState(0);
   const [campaignsReady, setCampaignsReady] = useState<boolean>(isCampaignsHydrated());
 
@@ -275,7 +275,7 @@ export default function CustomerDashboard() {
   const pointsToNext = nextMilestone ? nextMilestone.requiredPoints - currentPoints : 0;
   const allCompleted = currentPoints >= maxPoints && maxPoints > 0;
 
-  const needsPasswordChange = customer ? customerNeedsPasswordChange(customer) : false;
+  const needsPasswordChange = customer ? !!customer.mustChangePassword : false;
   const hasAcceptedTerms = !!(selectedCampaign && customer?.acceptedCampaigns?.includes(selectedCampaign.id));
   const showProgressFixture =
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("fixture") === "progress";
@@ -337,9 +337,10 @@ export default function CustomerDashboard() {
 
   if (!customer) return null;
 
-  const handleChangePassword = () => {
-    if (newPwd.length < 4) {
-      toast.error("La contraseña debe tener al menos 4 caracteres");
+  const handleChangePassword = async () => {
+    if (isChangingPassword) return;
+    if (newPwd.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
       return;
     }
     if (newPwd === customer.phone) {
@@ -350,13 +351,23 @@ export default function CustomerDashboard() {
       toast.error("Las contraseñas no coinciden");
       return;
     }
-    resetCustomerPassword(customer.id, newPwd);
-    toast.success("¡Contraseña actualizada exitosamente! 🔐");
-    setShowPasswordModal(false);
-    setNewPwd("");
-    setConfirmPwd("");
-    setTick((t) => t + 1);
-    refreshCustomer();
+    setIsChangingPassword(true);
+    try {
+      const { error } = await updatePassword(newPwd);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      patchCachedCustomer(customer.id, { mustChangePassword: false });
+      toast.success("¡Contraseña actualizada exitosamente! 🔐");
+      setShowPasswordModal(false);
+      setNewPwd("");
+      setConfirmPwd("");
+      setTick((t) => t + 1);
+      refreshCustomer();
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleAcceptTerms = (checked: boolean) => {

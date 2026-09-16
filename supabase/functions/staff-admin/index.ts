@@ -62,6 +62,31 @@ function validateRole(r: unknown): r is StaffRole {
   return r === 'admin' || r === 'cashier';
 }
 
+/**
+ * True when the request body for action:'update' contains ONLY user_id +
+ * password (plus action). Used to let a cashier reset a customer's password
+ * without opening up role/branch_id/display_name changes to them.
+ */
+function isPasswordOnlyUpdate(body: Record<string, unknown>): boolean {
+  const allowedKeys = new Set(['action', 'user_id', 'password']);
+  if (!Object.keys(body).every((k) => allowedKeys.has(k))) return false;
+  return (
+    typeof body.user_id === 'string' && body.user_id.length > 0 &&
+    typeof body.password === 'string' && body.password.length > 0
+  );
+}
+
+async function checkStaffRoles(
+  admin: ReturnType<typeof createClient>,
+  callerId: string,
+): Promise<{ isAdmin: boolean; isCashier: boolean }> {
+  const [adminCheck, cashierCheck] = await Promise.all([
+    admin.rpc('has_role', { _user_id: callerId, _role: 'admin' }),
+    admin.rpc('has_role', { _user_id: callerId, _role: 'cashier' }),
+  ]);
+  return { isAdmin: adminCheck.data === true, isCashier: cashierCheck.data === true };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST') return json(405, { error: 'method_not_allowed' });
@@ -103,13 +128,28 @@ Deno.serve(async (req) => {
   const action = body.action as Action;
 
   // 4. Verificar roles según action.
-  if (action === 'create_customer') {
-    const [adminCheck, cashierCheck] = await Promise.all([
-      admin.rpc('has_role', { _user_id: callerId, _role: 'admin' }),
-      admin.rpc('has_role', { _user_id: callerId, _role: 'cashier' }),
-    ]);
-    const isStaff = adminCheck.data === true || cashierCheck.data === true;
-    if (!isStaff) return json(403, { error: 'forbidden_staff_only' });
+  if (action === 'create_customer' || (action === 'update' && isPasswordOnlyUpdate(body))) {
+    const { isAdmin, isCashier } = await checkStaffRoles(admin, callerId);
+    if (!isAdmin && !isCashier) {
+      return json(403, { error: 'forbidden_staff_only' });
+    }
+
+    // Un cashier solo puede resetear la clave de una cuenta con rol customer.
+    // Un admin conserva su capacidad actual sin esta restricción adicional.
+    if (action === 'update' && isCashier && !isAdmin) {
+      const targetUserId = String(body.user_id);
+      const { data: targetIsCustomer, error: targetRoleErr } = await admin.rpc('has_role', {
+        _user_id: targetUserId,
+        _role: 'customer',
+      });
+      if (targetRoleErr) {
+        console.error('[staff-admin] target has_role rpc failed', targetRoleErr);
+        return json(500, { error: 'role_check_failed', details: targetRoleErr.message });
+      }
+      if (targetIsCustomer !== true) {
+        return json(403, { error: 'forbidden_cashier_target_not_customer' });
+      }
+    }
   } else {
     const { data: isAdminResp, error: roleErr } = await admin.rpc('has_role', {
       _user_id: callerId,
@@ -388,6 +428,24 @@ async function handleUpdate(
     if (pwErr) return json(422, { error: pwErr });
     const { error } = await admin.auth.admin.updateUserById(user_id, { password });
     if (error) return json(500, { error: 'password_update_failed', details: error.message });
+
+    // Mantiene must_change_password sincronizado con la clave real. No fatal:
+    // si falla, la clave ya cambió correctamente — solo se pierde el flag de aviso.
+    const { data: targetProfile, error: targetProfileErr } = await admin
+      .from('profiles')
+      .select('phone')
+      .eq('id', user_id)
+      .maybeSingle();
+    if (targetProfileErr) {
+      console.error('[staff-admin] fetch target phone for must_change_password failed', targetProfileErr);
+    } else {
+      const mustChange = !!targetProfile?.phone && password === targetProfile.phone;
+      const { error: flagErr } = await admin
+        .from('profiles')
+        .update({ must_change_password: mustChange })
+        .eq('id', user_id);
+      if (flagErr) console.error('[staff-admin] must_change_password update failed', flagErr);
+    }
   }
 
   return json(200, { ok: true, user_id });
@@ -523,6 +581,7 @@ async function handleCreateCustomer(
       phone_consent_at: new Date().toISOString(),
       phone_consent_source: 'staff_panel',
       phone_consent_actor_id: callerId,
+      must_change_password: true, // password = phone (línea de arriba)
     })
     .eq('id', newUserId);
 

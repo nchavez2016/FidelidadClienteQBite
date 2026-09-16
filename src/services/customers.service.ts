@@ -22,7 +22,6 @@ import {
   customerLoginSchema,
 } from './validation';
 import {
-  setCredential,
   verifyCredential,
   updateCredentialIdentifier,
   getCredentialPassword,
@@ -66,6 +65,10 @@ interface ProfileRow {
   legacy_id: string | null;
   email: string | null;
   birthdate: string | null;
+  // Opcional: los tipos generados de Supabase aún no incluyen esta columna
+  // (agregada manualmente vía schema_production.sql) hasta el próximo
+  // `supabase gen types`. En runtime siempre viene en el SELECT '*'.
+  must_change_password?: boolean | null;
 }
 
 function profileToCustomer(r: ProfileRow): Customer {
@@ -81,6 +84,7 @@ function profileToCustomer(r: ProfileRow): Customer {
     isActive: r.is_active,
     deletedAt: r.deleted_at ?? undefined,
     revokedFromPhone: r.revoked_from_phone ?? undefined,
+    mustChangePassword: !!r.must_change_password,
     createdAt: r.created_at,
   };
 }
@@ -328,11 +332,17 @@ export function getCustomerTotalPoints(customer: Customer | undefined | null): n
   return Object.values(getPointsByCustomer(customer.id)).reduce((s, n) => s + (n || 0), 0);
 }
 
-export function resetCustomerPassword(id: string, newPassword: string): void {
-  // TODO(Supabase Auth): supabase.auth.updateUser({ password }).
-  const customer = getCustomerById(id);
-  if (!customer) return;
-  setCredential(id, 'phone', customer.phone, newPassword);
+/**
+ * Optimistic local-cache patch (mismo patrón que updateCustomerPhone) para
+ * reflejar de inmediato un cambio ya confirmado en Supabase (ej. el flag
+ * must_change_password tras un reseteo/cambio de clave), sin esperar al
+ * siguiente hydrateCustomers().
+ */
+export function patchCachedCustomer(id: string, patch: Partial<Customer>): void {
+  const list = db.readSync<any>(TABLES.customers).map((c: any) =>
+    c.id === id ? { ...c, ...patch } : c,
+  );
+  db.writeSync(TABLES.customers, list);
 }
 
 export function updateCustomerPhone(id: string, newPhone: string): boolean {

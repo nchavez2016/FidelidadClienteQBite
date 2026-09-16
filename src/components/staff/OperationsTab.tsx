@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Customer, CommentCategory, Milestone, Campaign, RedemptionRequest, Transaction } from '@/lib/types';
-import { getCustomerTransactions, resetCustomerPassword, updateCustomerPhone, getCustomerById, getCustomerPoints, customerNeedsPasswordChange } from '@/services';
+import { getCustomerTransactions, updateCustomerPhone, getCustomerById, getCustomerPoints, patchCachedCustomer } from '@/services';
+import { invokeStaffAdminOp, StaffAdminError } from '@/services/staff/staffAccount.service';
+import { logAdminAction } from '@/services/security/adminAudit.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,6 +73,7 @@ export default function OperationsTab({
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
   const [newPassword, setNewPassword] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [newPhone, setNewPhone] = useState('');
   const [idleWarning, setIdleWarning] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -96,7 +99,7 @@ export default function OperationsTab({
         border: `1px solid ${opsAccent.borderStrong}`,
       }
     : { background: 'rgba(232,161,69,0.06)', border: '1px solid rgba(232,161,69,0.2)' };
-  const opsInnerLabelColor = opsAccent?.color ?? '#8B6914';
+  const opsInnerLabelColor = '#0B181E';
 
   // Limpiar cliente y enfocar buscador (memoizable manualmente vía ref-stable callback)
   const clearAndFocus = () => {
@@ -160,14 +163,33 @@ export default function OperationsTab({
   // en useCustomerOperations con refetchInterval, eliminando la necesidad
   // de intervals manuales y listeners de storage aquí.
 
-  const handleResetPassword = () => {
-    if (!selectedCustomer || !newPassword.trim() || newPassword.length < 4) {
-      toast.error('La clave debe tener al menos 4 caracteres');
+  const handleResetPassword = async () => {
+    if (!selectedCustomer || !newPassword.trim() || newPassword.length < 6) {
+      toast.error('La clave debe tener al menos 6 caracteres');
       return;
     }
-    resetCustomerPassword(selectedCustomer.id, newPassword.trim());
-    toast.success('Clave restablecida exitosamente 🔑');
-    setNewPassword('');
+    setIsResettingPassword(true);
+    try {
+      const trimmed = newPassword.trim();
+      await invokeStaffAdminOp<{ ok: boolean; user_id: string }>({
+        action: 'update',
+        user_id: selectedCustomer.id,
+        password: trimmed,
+      });
+      patchCachedCustomer(selectedCustomer.id, { mustChangePassword: trimmed === selectedCustomer.phone });
+      setSelectedCustomer(getCustomerById(selectedCustomer.id) || null);
+      void logAdminAction({
+        action: 'customer_password_reset',
+        targetType: 'customer',
+        targetId: selectedCustomer.id,
+      });
+      toast.success('Clave restablecida exitosamente 🔑');
+      setNewPassword('');
+    } catch (err) {
+      toast.error(err instanceof StaffAdminError ? err.message : 'Ocurrió un error, intenta de nuevo');
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   const handleUpdatePhone = () => {
@@ -308,7 +330,7 @@ export default function OperationsTab({
                       const border = accent
                         ? `1px solid ${isCurrent ? accent.borderStrong : accent.border}`
                         : (isCurrent ? '1px solid #E8A145' : '1px solid #eee');
-                      const textColor = accent?.color ?? '#0B181E';
+                      const textColor = '#0B181E';
                       return (
                         <div key={c.id} className="flex items-center justify-between text-xs px-2 py-1 rounded" style={{ background: bg, border }}>
                           <span className="truncate flex items-center gap-1.5" style={{ color: textColor }}>
@@ -321,7 +343,7 @@ export default function OperationsTab({
                             )}
                             {c.branch}
                           </span>
-                          <strong style={{ color: isCurrent ? (accent?.borderStrong ?? '#E8A145') : '#666' }}>{pts}</strong>
+                          <strong style={{ color: isCurrent ? '#0B181E' : '#666' }}>{pts}</strong>
                         </div>
                       );
                     })}
@@ -347,7 +369,7 @@ export default function OperationsTab({
                     </span>
                   );
                 })()}
-                {customerNeedsPasswordChange(selectedCustomer) && (
+                {selectedCustomer.mustChangePassword && (
                   <span
                     className="inline-flex items-center gap-1 text-[10px] font-body font-semibold px-2.5 py-1 rounded-full"
                     style={{
@@ -676,8 +698,8 @@ export default function OperationsTab({
                     className="flex-1"
                     maxLength={20}
                   />
-                  <Button size="sm" onClick={handleResetPassword} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    Cambiar
+                  <Button size="sm" onClick={handleResetPassword} disabled={isResettingPassword} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                    {isResettingPassword ? 'Cambiando…' : 'Cambiar'}
                   </Button>
                 </div>
               </div>

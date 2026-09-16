@@ -18,7 +18,7 @@ export default function StatsGrid({ currentPoints, pointsToNext, maxPoints, next
     : '0 2px 8px -4px rgba(11,24,30,0.06)';
   const bg = accent ? accent.bg : '#fff';
   const cards = [
-    { value: currentPoints, label: 'Puntos actuales', color: accent?.borderStrong ?? '#E8A145' },
+    { value: currentPoints, label: 'Puntos actuales', color: '#0B181E' },
     { value: nextMilestone ? pointsToNext : '—', label: 'Faltan para siguiente', color: '#0B181E' },
     { value: maxPoints, label: 'Meta de campaña', color: '#0B181E' },
   ];
@@ -45,7 +45,7 @@ export default function StatsGrid({ currentPoints, pointsToNext, maxPoints, next
           >
             {c.value}
           </div>
-          <p className="font-body text-[9px] sm:text-[10px] mt-1.5 leading-tight break-words" style={{ color: '#8a96a6' }}>
+          <p className="font-body text-[9px] sm:text-[10px] mt-1.5 leading-tight break-words text-muted-foreground">
             {c.label}
           </p>
         </div>
