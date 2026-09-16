@@ -17,6 +17,7 @@ export type AdminAction =
   | 'staff_change_password'
   | 'customer_deactivate'
   | 'customer_reactivate'
+  | 'customer_password_reset'
   | 'export_csv';
 
 export interface LogAdminActionInput {

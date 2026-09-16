@@ -199,15 +199,35 @@ export default function ProgressRoute({
 
     const fillHeight = getVerticalProgressTop();
 
+    // El marcador se dibuja con `top: getVerticalProgressTop()` y luego se
+    // desplaza hacia arriba con translateY(calc(-100% + 8.22px)) — con su
+    // altura real (28px, w-7/h-7) eso equivale a subirlo 19.78px desde `top`.
+    // El círculo de "Inicio" (32px, w-8/h-8) ocupa el rango [0, 32] al tope
+    // del track. En vez de un caso especial para currentPoints===0, medimos
+    // la distancia real entre el borde inferior del marcador ya renderizado
+    // y el borde inferior de "Inicio", y empujamos el marcador solo lo
+    // necesario para mantener un margen mínimo — cualquier punto cuyo
+    // recorrido natural ya deje ese margen (a partir de ~4 pts en esta ruta)
+    // pasa sin tocarse. No afecta fillHeight (la barra de relleno sigue
+    // mostrando el progreso real).
+    const MARKER_Y_SHIFT = 19.78; // 28px de alto (w-7/h-7) menos los 8.22px del transform
+    const INICIO_NODE_BOTTOM = 32;
+    const MIN_GAP_BELOW_INICIO = 4;
+
     const getGaviotaTop = () => {
-      return getVerticalProgressTop();
+      const rawTop = getVerticalProgressTop();
+      const renderedTop = rawTop - MARKER_Y_SHIFT;
+      const gap = renderedTop - INICIO_NODE_BOTTOM;
+      if (gap >= MIN_GAP_BELOW_INICIO) return rawTop;
+      const missing = MIN_GAP_BELOW_INICIO - gap;
+      return rawTop + missing;
     };
 
     const gaviotaTop = getGaviotaTop();
 
     return (
       <div
-        className="w-full py-2 relative overflow-hidden rounded-lg"
+        className="w-full py-2 pl-3 relative overflow-hidden rounded-lg"
         style={intensityBorderStyle[intensityState]}
       >
         <PokerAmbience state={intensityState} />
@@ -325,8 +345,17 @@ export default function ProgressRoute({
   const fillRatio = Math.min(1, getFillRatio());
   const fixturePoints = [0, 1, 2, 3];
 
+  // A ratio=0 el marcador queda anclado en el mismo left:PAD que el nodo
+  // "Inicio" (w-8/h-8, 32px) — este offset lo separa horizontalmente solo en
+  // ese caso exacto; para cualquier ratio > 0 el término `* r` ya lo aleja de
+  // Inicio de forma natural, así que no hace falta tocar el resto de la escala.
+  const DESKTOP_MARKER_START_OFFSET = 28;
+
   // toLeft = borde derecho exacto del relleno
-  const toLeft = (r: number) => `calc(${PAD}px + (100% - ${PAD * 2}px) * ${r})`;
+  const toLeft = (r: number) => {
+    const pad = r <= 0 ? PAD + DESKTOP_MARKER_START_OFFSET : PAD;
+    return `calc(${pad}px + (100% - ${PAD * 2}px) * ${r})`;
+  };
 
   const getNodePositionStyle = (r: number, _isFirst: boolean, isLast: boolean): React.CSSProperties => {
     if (isLast) return { right: PAD - 16, top: "12px" };

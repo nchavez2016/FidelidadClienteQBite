@@ -51,6 +51,8 @@ export interface AuthContextValue {
   ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   hasRole: (...roles: AppRole[]) => boolean;
+  /** Lets the currently authenticated user change their own password. */
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -355,9 +357,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [roles],
   );
 
+  const updatePassword = useCallback(async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: error.message };
+    const { error: rpcErr } = await supabase.rpc('clear_own_must_change_password' as never);
+    if (rpcErr) console.warn('[Auth] failed to clear must_change_password', rpcErr);
+    return { error: null };
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, session, roles, rolesLoaded, loading, isHydrating, signIn, signUp, signOut, hasRole }),
-    [user, session, roles, rolesLoaded, loading, isHydrating, signIn, signUp, signOut, hasRole],
+    () => ({ user, session, roles, rolesLoaded, loading, isHydrating, signIn, signUp, signOut, hasRole, updatePassword }),
+    [user, session, roles, rolesLoaded, loading, isHydrating, signIn, signUp, signOut, hasRole, updatePassword],
   );
 
   // Phase 4.6 — idle-timeout warning. Auto-logout itself stays gated by

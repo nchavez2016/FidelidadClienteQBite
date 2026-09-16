@@ -1512,3 +1512,57 @@ GRANT EXECUTE ON FUNCTION public.get_birthday_grants_this_year() TO authenticate
 
 -- NOTA: birthday_grants NO recibe GRANT a authenticated a propósito —
 -- el acceso es exclusivamente vía las tres funciones de arriba.
+
+-- =====================Fecha 16/09/2026=======================================
+-- FLAG REAL must_change_password — reemplaza la comparación legacy
+-- (getCredentialPassword() contra localStorage) que quedó desconectada de
+-- Supabase Auth. must_change_password se agrega como campo PRIVILEGIADO:
+-- un cliente no puede tocarlo con un UPDATE directo (ni a true ni a false).
+-- Solo admin, el edge function staff-admin (service role), o la función
+-- clear_own_must_change_password() de abajo pueden cambiarlo.
+-- Ver docs/qbites_bitacora_setup.md para el diagnóstico completo.
+-- Aplicar en el proyecto QBite antes de cualquier prueba real
+-- ============================================================
+
+-- 1. Columna nueva
+ALTER TABLE public.profiles ADD COLUMN must_change_password boolean DEFAULT false;
+
+-- 2. Trigger de campos privilegiados: se agrega must_change_password a la lista
+CREATE OR REPLACE FUNCTION public.profiles_guard_privileged_fields()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN NEW; END IF;
+  IF current_setting('app.profile_internal', true) = '1' THEN RETURN NEW; END IF;
+  IF public.has_role(auth.uid(), 'admin') THEN RETURN NEW; END IF;
+  IF NEW.accepted_campaigns    IS DISTINCT FROM OLD.accepted_campaigns
+  OR NEW.branch_id             IS DISTINCT FROM OLD.branch_id
+  OR NEW.is_active             IS DISTINCT FROM OLD.is_active
+  OR NEW.legacy_id             IS DISTINCT FROM OLD.legacy_id
+  OR NEW.revoked_from_phone    IS DISTINCT FROM OLD.revoked_from_phone
+  OR NEW.deleted_at            IS DISTINCT FROM OLD.deleted_at
+  OR NEW.phone                 IS DISTINCT FROM OLD.phone
+  OR NEW.must_change_password  IS DISTINCT FROM OLD.must_change_password THEN
+    RAISE EXCEPTION 'forbidden_field_update' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- 3. RPC para que el cliente limpie su propio flag tras cambiar su clave real
+-- (mismo patrón que accept_campaign_terms, línea 741 de este archivo)
+CREATE OR REPLACE FUNCTION public.clear_own_must_change_password()
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'no_auth' USING ERRCODE = '42501'; END IF;
+  PERFORM set_config('app.profile_internal','1',true);
+  UPDATE public.profiles SET must_change_password = false, updated_at = now()
+  WHERE id = v_uid;
+  PERFORM set_config('app.profile_internal','',true);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.clear_own_must_change_password() TO authenticated;

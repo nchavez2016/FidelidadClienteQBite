@@ -153,7 +153,7 @@ export default function CampaignsTab({ onRefresh, onFinishCampaign, onReactivate
                     </h3>
                     <p
                       className="text-xs"
-                      style={branchAccent ? { color: branchAccent.color, opacity: 0.85 } : undefined}
+                      style={branchAccent ? { color: '#0B181E', opacity: 0.85 } : undefined}
                     >
                       📍 {c.branch || '—'} · {c.startDate} → {c.endDate}
                     </p>

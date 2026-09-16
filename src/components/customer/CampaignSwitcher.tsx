@@ -33,7 +33,7 @@ export default function CampaignSwitcher({ campaigns, customer, selectedCampaign
           const pts = getCustomerPoints(customer, c.id);
           const accent = getBranchAccent(c.branch);
           const accentColor = accent?.borderStrong ?? '#E8A145';
-          const textColor = accent?.color ?? '#0B181E';
+          const textColor = '#0B181E';
           return (
             <button
               key={c.id}
@@ -52,14 +52,14 @@ export default function CampaignSwitcher({ campaigns, customer, selectedCampaign
                 transform: isActive ? 'translateY(-1px)' : 'translateY(0)',
               }}
             >
-              <span className="font-body text-[10px] uppercase tracking-wider" style={{ color: isActive ? accentColor : '#999' }}>
+              <span className="font-body text-[10px] uppercase tracking-wider" style={{ color: isActive ? '#0B181E' : '#999' }}>
                 {accent ? `Sucursal · ${accent.label}` : 'Sucursal'}
               </span>
               <span className="font-heading font-bold text-[13px] leading-tight mt-0.5" style={{ color: textColor }}>
                 {c.branch}
               </span>
               <span className="font-body text-[11px] mt-1.5" style={{ color: isActive ? textColor : '#666' }}>
-                <strong style={{ fontSize: 14, color: isActive ? accentColor : '#888' }}>{pts}</strong> pts
+                <strong style={{ fontSize: 14, color: isActive ? '#0B181E' : '#888' }}>{pts}</strong> pts
               </span>
             </button>
           );

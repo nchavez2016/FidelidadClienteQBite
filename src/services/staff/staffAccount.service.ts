@@ -50,6 +50,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   missing_authorization: 'Sesión no válida.',
   invalid_token: 'Sesión no válida o expirada.',
   forbidden_admin_only: 'Solo un administrador puede gestionar usuarios staff.',
+  forbidden_staff_only: 'Debes ser parte del staff para realizar esta acción.',
+  forbidden_cashier_target_not_customer: 'Un cajero solo puede restablecer la clave de un cliente.',
+  role_check_failed: 'Ocurrió un error, intenta de nuevo.',
   unknown_action: 'Acción no soportada.',
   invalid_json: 'Solicitud mal formada.',
   username_too_short: 'El usuario debe tener al menos 3 caracteres alfanuméricos.',
@@ -73,7 +76,13 @@ function humanize(code: string, fallback?: string): string {
   return ERROR_MESSAGES[code] ?? fallback ?? code;
 }
 
-async function invoke<T>(payload: Record<string, unknown>): Promise<T> {
+/**
+ * Invoca `staff-admin` y parsea el body de error real (status + json) antes
+ * de lanzar. Exportada para que otros callers del edge function (ej. el
+ * reseteo de clave de un cliente desde OperationsTab) reusen el mismo
+ * parseo de errores en vez de reimplementarlo.
+ */
+export async function invokeStaffAdminOp<T>(payload: Record<string, unknown>): Promise<T> {
   const { data, error } = await invokeStaffAdmin<T>(payload);
   if (error) {
     // FunctionsHttpError trae el body en .context.response (algunos clientes).
@@ -97,12 +106,12 @@ async function invoke<T>(payload: Record<string, unknown>): Promise<T> {
 }
 
 export async function listStaffAccounts(): Promise<StaffAccount[]> {
-  const data = await invoke<{ staff: StaffAccount[] }>({ action: 'list' });
+  const data = await invokeStaffAdminOp<{ staff: StaffAccount[] }>({ action: 'list' });
   return data.staff ?? [];
 }
 
 export async function createStaffAccount(input: CreateStaffInput): Promise<{ user_id: string }> {
-  const res = await invoke<{ user_id: string }>({ action: 'create', ...input });
+  const res = await invokeStaffAdminOp<{ user_id: string }>({ action: 'create', ...input });
   void logAdminAction({
     action: 'staff_create',
     targetType: 'staff_user',
@@ -113,7 +122,7 @@ export async function createStaffAccount(input: CreateStaffInput): Promise<{ use
 }
 
 export async function updateStaffAccount(input: UpdateStaffInput): Promise<{ user_id: string }> {
-  const res = await invoke<{ user_id: string }>({ action: 'update', ...input });
+  const res = await invokeStaffAdminOp<{ user_id: string }>({ action: 'update', ...input });
   void logAdminAction({
     action: input.password ? 'staff_change_password' : 'staff_update',
     targetType: 'staff_user',
@@ -129,7 +138,7 @@ export async function updateStaffAccount(input: UpdateStaffInput): Promise<{ use
 }
 
 export async function setStaffActive(user_id: string, active: boolean): Promise<void> {
-  await invoke({ action: 'set_active', user_id, active });
+  await invokeStaffAdminOp({ action: 'set_active', user_id, active });
   void logAdminAction({
     action: 'staff_set_active',
     targetType: 'staff_user',
@@ -139,7 +148,7 @@ export async function setStaffActive(user_id: string, active: boolean): Promise<
 }
 
 export async function deleteStaffAccount(user_id: string): Promise<void> {
-  await invoke({ action: 'delete', user_id });
+  await invokeStaffAdminOp({ action: 'delete', user_id });
   void logAdminAction({
     action: 'staff_delete',
     targetType: 'staff_user',

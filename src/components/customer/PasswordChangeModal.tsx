@@ -39,7 +39,7 @@ export default function PasswordChangeModal({
           )}
           <div className="space-y-2">
             <Label className="text-xs font-semibold">Nueva contraseña</Label>
-            <Input type="password" placeholder="Mínimo 4 caracteres" value={newPwd} onChange={e => onNewPwdChange(e.target.value)} maxLength={20} />
+            <Input type="password" placeholder="Mínimo 6 caracteres" value={newPwd} onChange={e => onNewPwdChange(e.target.value)} maxLength={20} />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-semibold">Confirmar contraseña</Label>
