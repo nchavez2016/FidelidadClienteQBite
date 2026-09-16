@@ -1163,11 +1163,28 @@ SELECT cron.schedule('sdd_purge_archived_point_transactions',
 -- ============================================================
 -- 11. DATOS SEMILLA — SUCURSALES REALES
 -- ============================================================
-INSERT INTO public.branches (id, name, is_active, created_at, updated_at)
-VALUES
-  ('c083afc4-21c5-4cb0-a3e7-d91f518baf6d', 'Gaviota Azul - Express', true, now(), now()),
-  ('090d2649-9419-4860-9a2e-53fcf96e1e41', 'Gaviota Azul - Matriz',  true, now(), now())
-ON CONFLICT (id) DO NOTHING;
+-- =====================Fecha 16/09/2026 (2)=======================================
+-- Sin al menos una fila en `branches`, el sistema arranca BLOQUEADO: el
+-- <Select> de sucursal en CampaignsTab.tsx es cerrado (solo lista filas que
+-- ya existen, sin input de texto libre ni botón "agregar"), y "Sucursal" es
+-- obligatoria para guardar una campaña — con la tabla vacía no hay forma de
+-- crear la primera campaña desde el panel admin (ver bitácora, sección 17).
+--
+-- Por eso se siembra una fila con nombre GENÉRICO NEUTRO (no un nombre de
+-- negocio real, a propósito — este script no debe asumir de qué negocio se
+-- trata). El nombre y la cantidad de sucursales reales siguen siendo datos
+-- de negocio, no estructura de base de datos: el único paso MANUAL que le
+-- queda al checklist de onboarding es renombrar esta fila (o agregar más)
+-- al nombre real del negocio al dar de alta un proyecto nuevo — ya no hace
+-- falta insertarla desde cero a mano, solo corregir el nombre.
+INSERT INTO public.branches (id, name, is_active)
+VALUES (gen_random_uuid(), 'Sucursal Principal', true)
+ON CONFLICT DO NOTHING;
+--
+-- getBranchAccent() (src/lib/utils.ts) y los 4 archivos que ya manejan la
+-- variante "Express" quedan intactos a propósito — listos para un segundo
+-- branch real si alguna vez llega a existir, sin que este script asuma
+-- cuántas sucursales hay.
 
 -- ============================================================
 -- FIN DEL SCRIPT
@@ -1566,3 +1583,55 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.clear_own_must_change_password() TO authenticated;
+
+-- =====================Fecha 16/09/2026=======================================
+-- brand_config — configuración de marca editable (nombre de negocio, logo,
+-- colores). Tabla base para un futuro panel "Configuración → Marca" que
+-- permita a un admin cambiar estos valores sin tocar código — hoy no existe
+-- ni el panel ni el código que lea esta tabla en runtime (ver bitácora,
+-- entrada "brand_config — propósito y estado real").
+--
+-- Esta sección documenta cómo debe crearse esta tabla desde cero en
+-- cualquier proyecto nuevo que reutilice este schema.
+--
+-- NOTA RETROACTIVA: el mismo REVOKE + GRANT de abajo se aplicó también,
+-- el 16/09/2026, sobre el proyecto de producción actual (povjovcktiqeooxakhnv)
+-- — ahí la tabla ya existía (creada en algún momento vía Table Editor de
+-- Supabase, sin este script), pero con GRANTs excesivos: anon y authenticated
+-- tenían INSERT/UPDATE/DELETE/TRUNCATE completos sobre la tabla, no solo
+-- SELECT/UPDATE. RLS ya lo bloqueaba en la práctica (ver policies abajo),
+-- pero se cerró como corrección de defensa en profundidad. Confirmado antes
+-- de aplicar que ningún código del frontend ni de las Edge Functions
+-- referencia `brand_config` (grep en src/ y supabase/, cero resultados) —
+-- el REVOKE no afecta nada visible hoy.
+-- ============================================================
+CREATE TABLE public.brand_config (
+  id             integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  business_name  text NOT NULL DEFAULT 'QBite',
+  program_name   text NOT NULL DEFAULT 'Programa de Fidelidad',
+  logo_url       text,
+  color_primary  text NOT NULL DEFAULT '#0A1F44',
+  color_accent   text NOT NULL DEFAULT '#C9A84C',
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+  updated_by     uuid REFERENCES auth.users(id)
+);
+
+ALTER TABLE public.brand_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY brand_config_select_all ON public.brand_config
+  FOR SELECT TO public USING (true);
+
+CREATE POLICY brand_config_update_admin ON public.brand_config
+  FOR UPDATE TO public USING (has_role(auth.uid(), 'admin'));
+
+-- Sin este REVOKE, crear la tabla desde el Table Editor (o sin especificar
+-- privilegios) le da CRUD completo a anon/authenticated por defecto en
+-- Supabase — RLS ya lo bloquearía en la práctica, pero mejor no depender
+-- solo de eso (defensa en profundidad, mismo criterio que el resto de este
+-- schema).
+REVOKE ALL ON public.brand_config FROM anon, authenticated;
+GRANT SELECT ON public.brand_config TO anon, authenticated;
+GRANT UPDATE ON public.brand_config TO authenticated;
+
+-- Fila única inicial, usando los defaults.
+INSERT INTO public.brand_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
